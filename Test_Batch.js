@@ -1,0 +1,219 @@
+function testBatch3() {
+  Logger.log("=== TEST BATCH 3 ===");
+
+  var loginResult = login_({ username: "superadmin", password: "ganti123" });
+  if (!loginResult.success) {
+    Logger.log("❌ Login gagal: " + loginResult.message);
+    return;
+  }
+  var ctx = validateSession_(loginResult.data.token);
+
+  Logger.log("1. Test getMembers_:");
+  var membersResult = getMembers_(ctx, {});
+  if (membersResult.success) {
+    Logger.log("   ✅ OK — " + membersResult.data.length + " members");
+  } else {
+    Logger.log("   ❌ " + membersResult.message);
+  }
+
+  Logger.log("");
+  Logger.log("2. Test getMembersPaged_:");
+  var pagedResult = getMembersPaged_(ctx, { limit: 5, offset: 0 });
+  if (pagedResult.success) {
+    Logger.log(
+      "   ✅ OK — " +
+        pagedResult.data.items.length +
+        " of " +
+        pagedResult.data.total,
+    );
+  } else {
+    Logger.log("   ❌ " + pagedResult.message);
+  }
+
+  Logger.log("");
+  Logger.log("3. Test getAttendance_ (by meeting):");
+  var meetingsRepo = new SheetRepository_("meetings");
+  var meetings = meetingsRepo.getAll();
+  if (meetings.length > 0) {
+    var attResult = getAttendance_(ctx, { meeting_id: meetings[0].meeting_id });
+    if (attResult.success) {
+      Logger.log("   ✅ OK — " + attResult.data.length + " attendance");
+    } else {
+      Logger.log("   ❌ " + attResult.message);
+    }
+  } else {
+    Logger.log("   ⚠️ Tidak ada meeting untuk test");
+  }
+
+  Logger.log("");
+  Logger.log("4. Test getMonitoring_:");
+  if (membersResult.success && membersResult.data.length > 0) {
+    var monResult = getMonitoring_(ctx, {
+      member_id: membersResult.data[0].member_id,
+    });
+    if (monResult.success) {
+      Logger.log("   ✅ OK — " + monResult.data.length + " entries");
+    } else {
+      Logger.log("   ❌ " + monResult.message);
+    }
+  }
+
+  Logger.log("");
+  Logger.log("✅ Batch 3 selesai");
+}
+
+function testBatch4() {
+  Logger.log("=== TEST BATCH 4 ===");
+
+  var loginResult = login_({ username: "superadmin", password: "ganti123" });
+  if (!loginResult.success) {
+    Logger.log("❌ Login gagal");
+    return;
+  }
+  var ctx = validateSession_(loginResult.data.token);
+
+  Logger.log("1. Test createMeeting_:");
+  var createResult = createMeeting_(ctx, {
+    tanggal: "2026-09-20",
+    jam: "Isya",
+    acara: "Test Meeting",
+    kategori_target: ["PRA_NIKAH"],
+  });
+  if (createResult.success) {
+    Logger.log("   ✅ Meeting created: " + createResult.data.meeting_id);
+
+    Logger.log("");
+    Logger.log("2. Test getMeetings_:");
+    var listResult = getMeetings_(ctx, {});
+    if (listResult.success) {
+      Logger.log("   ✅ OK — " + listResult.data.length + " meetings");
+    }
+
+    Logger.log("");
+    Logger.log("3. Test updateMeeting_:");
+    var updateResult = updateMeeting_(ctx, {
+      meeting_id: createResult.data.meeting_id,
+      acara: "Test Meeting (Updated)",
+    });
+    if (updateResult.success) {
+      Logger.log("   ✅ Updated: " + updateResult.data.acara);
+    }
+  } else {
+    Logger.log("   ❌ " + createResult.message);
+  }
+
+  Logger.log("");
+  Logger.log("4. Test saveGroup_:");
+  var groupResult = saveGroup_(ctx, {
+    group_code: "TEST",
+    group_name: "Test Group",
+  });
+  if (groupResult.success) {
+    Logger.log("   ✅ Group created: " + groupResult.data.group_id);
+  }
+
+  Logger.log("");
+  Logger.log("5. Test getGroups_:");
+  var groupsList = getGroups_(ctx, {});
+  if (groupsList.success) {
+    Logger.log("   ✅ OK — " + groupsList.data.length + " groups");
+  }
+
+  Logger.log("");
+  Logger.log("6. Test getAnnouncementTemplates_:");
+  var tplResult = getAnnouncementTemplates_(ctx, {});
+  if (tplResult.success) {
+    Logger.log("   ✅ OK — " + tplResult.data.length + " templates");
+  }
+
+  Logger.log("");
+  Logger.log("✅ Batch 4 selesai");
+}
+
+function testBatch5() {
+  Logger.log("=== TEST BATCH 5 ===");
+
+  var loginResult = login_({ username: "superadmin", password: "ganti123" });
+  if (!loginResult.success) {
+    Logger.log("❌ Login gagal: " + loginResult.message);
+    return;
+  }
+  var ctx = validateSession_(loginResult.data.token);
+  Logger.log("1. Login: ✅");
+
+  Logger.log("");
+  Logger.log("2. Test getUsers_:");
+  var usersResult = getUsers_(ctx, {});
+  if (usersResult.success) {
+    Logger.log("   ✅ " + usersResult.data.length + " users");
+  }
+
+  Logger.log("");
+  Logger.log("3. Test getSettings_:");
+  var settingsResult = getSettings_(ctx, {});
+  if (settingsResult.success) {
+    Logger.log("   ✅ Settings OK");
+    Logger.log(
+      "   jadwal_rutin: " + JSON.stringify(settingsResult.data.jadwal_rutin),
+    );
+  }
+
+  Logger.log("");
+  Logger.log("4. Test getAuditLogs_:");
+  var auditResult = getAuditLogs_(ctx, { limit: 5 });
+  if (auditResult.success) {
+    Logger.log("   ✅ " + auditResult.data.length + " logs");
+  }
+
+  Logger.log("");
+  Logger.log("5. Test submitPublicRegistration_:");
+  var regResult = submitPublicRegistration_(null, {
+    nama_lengkap: "Test Registrasi " + Date.now(),
+    jenis_kelamin: "L",
+    no_wa: "62812" + String(Date.now()).slice(-8),
+    _client_ip: "test-ip-" + Date.now(),
+  });
+  if (regResult.success) {
+    Logger.log("   ✅ Submission: " + regResult.data.submission_id);
+  } else {
+    Logger.log("   ⚠️ " + regResult.message);
+  }
+
+  Logger.log("");
+  Logger.log("✅ Batch 5 selesai");
+}
+
+function testAfterCleanup() {
+  Logger.log("=== TEST SETELAH HAPUS Kode.js ===");
+
+  Logger.log("1. Test nowIso_: " + nowIso_());
+  Logger.log("2. Test formatDate: " + formatDate("2026-09-13"));
+
+  Logger.log("");
+  Logger.log("3. Test login:");
+  var loginResult = login_({ username: "superadmin", password: "ganti123" });
+  if (loginResult.success) {
+    Logger.log("   ✅ Login OK");
+
+    var ctx = validateSession_(loginResult.data.token);
+
+    Logger.log("");
+    Logger.log("4. Test getDashboard_:");
+    var dashResult = getDashboard_(ctx, {});
+    if (dashResult.success) {
+      Logger.log("   ✅ Dashboard OK");
+    }
+
+    Logger.log("");
+    Logger.log("5. Test getMembers_:");
+    var membersResult = getMembers_(ctx, {});
+    if (membersResult.success) {
+      Logger.log("   ✅ Members OK — " + membersResult.data.length);
+    }
+  } else {
+    Logger.log("   ❌ Login gagal: " + loginResult.message);
+  }
+
+  Logger.log("");
+  Logger.log("✅ Cleanup test selesai");
+}
