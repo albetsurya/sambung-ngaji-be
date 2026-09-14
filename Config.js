@@ -323,6 +323,7 @@ var WRITE_ACTIONS = {
   saveGroup: true,
   createMeeting: true,
   updateMeeting: true,
+  deleteMeeting: true,
   saveAttendance: true,
   bulkSaveAttendance: true,
   deleteAttendance: true,

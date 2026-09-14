@@ -114,6 +114,7 @@ var ACTION_HANDLERS = {
   getMeetings: getMeetings_,
   createMeeting: createMeeting_,
   updateMeeting: updateMeeting_,
+  deleteMeeting: deleteMeeting_,
 
   getAttendance: getAttendance_,
   saveAttendance: saveAttendance_,

@@ -101,3 +101,35 @@ function updateMeeting_(ctx, params) {
   );
   return ok_(publicMeeting_(updated));
 }
+
+function deleteMeeting_(ctx, params) {
+  if (!params.meeting_id) return fail_("meeting_id wajib diisi");
+
+  var meetingsRepo = new SheetRepository_("meetings");
+  var existing = meetingsRepo.findById("meeting_id", params.meeting_id);
+  if (!existing) return fail_("Jadwal tidak ditemukan");
+
+  // Hapus juga absensi terkait supaya tidak ada orphan
+  var attendanceRepo = new SheetRepository_("attendance");
+  var relatedAttendance = attendanceRepo.findByField(
+    "meeting_id",
+    params.meeting_id,
+  );
+  relatedAttendance.forEach(function (a) {
+    attendanceRepo.deleteById("attendance_id", a.attendance_id);
+  });
+
+  meetingsRepo.deleteById("meeting_id", params.meeting_id);
+
+  writeAuditLog_(
+    ctx.user.user_id,
+    "DELETE_MEETING",
+    "MEETING",
+    params.meeting_id,
+  );
+
+  return ok_({
+    meeting_id: params.meeting_id,
+    deleted_attendance: relatedAttendance.length,
+  });
+}
