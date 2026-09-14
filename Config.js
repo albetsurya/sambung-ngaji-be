@@ -205,6 +205,8 @@ var SHEETS = {
       "tahun_mulai_pendidikan",
       "tahun_selesai_pendidikan",
       "foto_url",
+      "username",
+      "password_hash",
       "status",
       "submitted_at",
       "submitted_ip",
@@ -315,7 +317,6 @@ var ATTENDANCE_CACHE_PREFIX = "att_";
 var ATTENDANCE_RECENT_LIMIT = 3000; // untuk dashboard (≈ 6 bulan Grup C)
 var AUDIT_LOG_RECENT_LIMIT = 500; // audit log tidak perlu semua
 var WRITE_ACTIONS = {
-  // Action yang butuh lock (write ke sheet)
   createMember: true,
   updateMember: true,
   deactivateMember: true,

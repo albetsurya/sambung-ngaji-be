@@ -1,0 +1,222 @@
+function keepAlive() {
+  return ok_({ ping: new Date().toISOString() });
+}
+
+function setupKeepAliveTrigger() {
+  var triggers = ScriptApp.getProjectTriggers();
+  triggers.forEach(function (t) {
+    if (t.getHandlerFunction() === "keepAlive") {
+      ScriptApp.deleteTrigger(t);
+    }
+  });
+
+  ScriptApp.newTrigger("keepAlive").timeBased().everyMinutes(5).create();
+
+  Logger.log("Keep-alive trigger created. Akan ping setiap 5 menit.");
+}
+
+function setupSpreadsheet() {
+  var ss = getSpreadsheet_();
+  Object.keys(SHEETS).forEach(function (key) {
+    var def = SHEETS[key];
+    var sheet = ss.getSheetByName(def.name);
+    if (!sheet) {
+      sheet = ss.insertSheet(def.name);
+    }
+    var firstRow = sheet.getRange(1, 1, 1, def.headers.length).getValues()[0];
+    var hasHeader = firstRow.join("") !== "";
+    if (!hasHeader) {
+      sheet.getRange(1, 1, 1, def.headers.length).setValues([def.headers]);
+      sheet.setFrozenRows(1);
+      sheet.getRange(1, 1, 1, def.headers.length).setFontWeight("bold");
+    }
+  });
+
+  var sheet1 = ss.getSheetByName("Sheet1");
+  if (sheet1 && sheet1.getLastRow() === 0 && ss.getSheets().length > 1) {
+    ss.deleteSheet(sheet1);
+  }
+
+  seedInitialData_();
+  Logger.log("Setup selesai. Total sheet: " + ss.getSheets().length);
+}
+
+function setEnvironmentConfig(spreadsheetId, folderId, archiveFolderId) {
+  if (!spreadsheetId) {
+    return { success: false, message: "spreadsheetId wajib diisi" };
+  }
+  if (!folderId) {
+    return { success: false, message: "folderId wajib diisi" };
+  }
+  if (!archiveFolderId) {
+    return { success: false, message: "archiveFolderId wajib diisi" };
+  }
+
+  var props = PropertiesService.getScriptProperties();
+  props.setProperty(PROP_KEY_SPREADSHEET_ID, spreadsheetId);
+  props.setProperty(PROP_KEY_DRIVE_FOLDER_ID, folderId);
+  props.setProperty(PROP_KEY_DRIVE_ARCHIVE_FOLDER_ID, archiveFolderId);
+
+  Logger.log("=== ENVIRONMENT CONFIG ===");
+  Logger.log("SPREADSHEET_ID: " + spreadsheetId);
+  Logger.log("DRIVE_FOLDER_ID: " + folderId);
+  Logger.log("DRIVE_ARCHIVE_FOLDER_ID: " + archiveFolderId);
+
+  return {
+    success: true,
+    spreadsheetId: spreadsheetId,
+    folderId: folderId,
+    archiveFolderId: archiveFolderId,
+  };
+}
+
+function setupProd() {
+  setEnvironmentConfig(
+    "1DatV0OTTpvwJ1dfquA-ywmIeEq3UJQaRMU-1yt-IhYI",
+    "15riNBnDt-IIepfVCcgXX7pWBRR68J7Ax",
+    "17QoKWtgJsH64q07wwiKHewKuY7r8k8V-",
+  );
+}
+
+function verifyProd() {
+  showEnvironmentConfig();
+  validateEnvironmentConfig();
+}
+
+function showEnvironmentConfig() {
+  var props = PropertiesService.getScriptProperties();
+  var config = {
+    SPREADSHEET_ID: props.getProperty(PROP_KEY_SPREADSHEET_ID) || "(kosong)",
+    DRIVE_FOLDER_ID: props.getProperty(PROP_KEY_DRIVE_FOLDER_ID) || "(kosong)",
+    DRIVE_ARCHIVE_FOLDER_ID:
+      props.getProperty(PROP_KEY_DRIVE_ARCHIVE_FOLDER_ID) || "(kosong)",
+  };
+
+  Logger.log("=== ENVIRONMENT CONFIG ===");
+  Object.keys(config).forEach(function (key) {
+    Logger.log(key + ": " + config[key]);
+  });
+
+  return config;
+}
+
+function clearEnvironmentConfig() {
+  var props = PropertiesService.getScriptProperties();
+  props.deleteProperty(PROP_KEY_SPREADSHEET_ID);
+  props.deleteProperty(PROP_KEY_DRIVE_FOLDER_ID);
+  props.deleteProperty(PROP_KEY_DRIVE_ARCHIVE_FOLDER_ID);
+  Logger.log("Environment config dihapus");
+  return { success: true };
+}
+
+function validateEnvironmentConfig() {
+  var errors = [];
+
+  var spreadsheetId = getSpreadsheetId_();
+  if (!spreadsheetId) {
+    errors.push("SPREADSHEET_ID belum diatur");
+  } else {
+    try {
+      var ss = SpreadsheetApp.openById(spreadsheetId);
+      Logger.log("Spreadsheet OK: " + ss.getName());
+    } catch (e) {
+      errors.push("SPREADSHEET_ID tidak valid: " + e.message);
+    }
+  }
+
+  var folderId = getDriveFolderId_();
+  if (!folderId) {
+    errors.push("DRIVE_FOLDER_ID belum diatur");
+  } else {
+    try {
+      var folder = DriveApp.getFolderById(folderId);
+      Logger.log("Photo folder OK: " + folder.getName());
+    } catch (e) {
+      errors.push("DRIVE_FOLDER_ID tidak valid: " + e.message);
+    }
+  }
+
+  var archiveFolderId = getDriveArchiveFolderId_();
+  if (!archiveFolderId) {
+    errors.push("DRIVE_ARCHIVE_FOLDER_ID belum diatur");
+  } else {
+    try {
+      var archiveFolder = DriveApp.getFolderById(archiveFolderId);
+      Logger.log("Archive folder OK: " + archiveFolder.getName());
+    } catch (e) {
+      errors.push("DRIVE_ARCHIVE_FOLDER_ID tidak valid: " + e.message);
+    }
+  }
+
+  if (errors.length > 0) {
+    Logger.log("=== ERROR ===");
+    errors.forEach(function (e) {
+      Logger.log("  - " + e);
+    });
+    return { success: false, errors: errors };
+  }
+
+  Logger.log("=== SEMUA OK ===");
+  return { success: true };
+}
+
+function seedInitialData_() {
+  var usersRepo = new SheetRepository_("users");
+  if (usersRepo.getAll().length === 0) {
+    var now = nowIso_();
+    usersRepo.insert({
+      user_id: "USR001",
+      username: "superadmin",
+      password_hash: hashPassword_("ganti123"),
+      nama: "Super Admin",
+      role: ROLES.SUPER_ADMIN,
+      member_id: "",
+      status_aktif: true,
+      created_at: now,
+      updated_at: now,
+      last_login_at: "",
+    });
+    Logger.log("User default: superadmin / ganti123");
+  }
+
+  var tplRepo = new SheetRepository_("announcement_templates");
+  if (tplRepo.getAll().length === 0) {
+    var now2 = nowIso_();
+    var defaultTemplate =
+      "\u25CF\u25C9\u2740 *UNDANGAN SAMBUNG*\n*KELOMPOK* \u2740 \u25C9\u25CF\u2022\u25E6\n\n" +
+      "Assalamu'alaikum wr. wb\n\n" +
+      "Diberitahukan kepada seluruh jama'ah {{nama_kelompok}}, bahwa :\n\n" +
+      "HARI : {{hari}}, {{tanggal}}\n\nJAM : {{jam}}\n\nACARA : {{acara}}\n\n" +
+      "MATERI :\n{{materi}}\n\nNB :\n{{catatan}}\n\n" +
+      "Alkhamdulillahi jazakumullohu khoiro\nWassalamualaikum wr. wb\n\n" +
+      "ttd\n{{penandatangan}}";
+
+    var templates = [
+      ["TPL001", "Undangan Sambung Kelompok", "UNDANGAN_SAMBUNG"],
+      ["TPL002", "Pengumuman Pengajian", "PENGUMUMAN_PENGAJIAN"],
+      ["TPL003", "Pengingat Pengajian", "PENGINGAT_PENGAJIAN"],
+      ["TPL004", "Perubahan Jadwal", "PERUBAHAN_JADWAL"],
+      ["TPL005", "Pengumuman Umum", "PENGUMUMAN_UMUM"],
+    ];
+    templates.forEach(function (t) {
+      tplRepo.insert({
+        template_id: t[0],
+        nama_template: t[1],
+        kode: t[2],
+        isi_template: defaultTemplate,
+        status_aktif: true,
+        created_at: now2,
+        updated_at: now2,
+      });
+    });
+  }
+
+  var settingsRepo = new SheetRepository_("settings");
+  if (settingsRepo.getAll().length === 0) {
+    settingsRepo.insert({
+      key: "jadwal_rutin",
+      value: JSON.stringify(["Minggu", "Selasa", "Kamis"]),
+      updated_at: nowIso_(),
+    });
+  }
+}
