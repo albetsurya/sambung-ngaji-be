@@ -1,62 +1,94 @@
-/* -------------------------------------------------------------------------- */
-/*                            WhatsApp notification                           */
-/* -------------------------------------------------------------------------- */
+function login_(params) {
+  var username = String(params.username || "").trim();
+  var password = String(params.password || "");
+  if (!username || !password) return fail_("Username dan password wajib diisi");
 
-/**
- * Kirim pesan WhatsApp via gateway yang dikonfigurasi.
- * Provider: Fonnte (default). Ganti sesuai provider yang dipakai.
- *
- * Script Properties yang dibutuhkan:
- *   WA_GATEWAY_URL   -> endpoint provider (mis. https://api.fonnte.com/send)
- *   WA_GATEWAY_TOKEN -> API key / token
- *   WA_GATEWAY_ENABLED -> "true" untuk aktifkan
- */
-function sendWhatsApp_(noWa, message) {
-  var enabled = String(getConfig_("WA_GATEWAY_ENABLED", "false")).toLowerCase();
-  if (enabled !== "true") {
-    Logger.log("WA gateway disabled, pesan tidak dikirim ke " + noWa);
-    return { skipped: true };
-  }
+  var usersRepo = new SheetRepository_("users");
+  var user = usersRepo.findById("username", username);
+  if (!user) return fail_("Username atau password salah");
+  if (!toBool_(user.status_aktif)) return fail_("Akun tidak aktif");
+  if (!verifyPassword_(password, user.password_hash))
+    return fail_("Username atau password salah");
 
-  var url = getConfig_("WA_GATEWAY_URL", "");
-  var token = getConfig_("WA_GATEWAY_TOKEN", "");
+  var token = Utilities.getUuid();
+  var now = new Date();
+  var expires = new Date(now.getTime() + SESSION_TTL_HOURS * 3600 * 1000);
+  var sessionsRepo = new SheetRepository_("sessions");
+  sessionsRepo.insert({
+    token: token,
+    user_id: user.user_id,
+    created_at: now.toISOString(),
+    expires_at: expires.toISOString(),
+  });
 
-  if (!url || !token) {
-    Logger.log("WA gateway belum dikonfigurasi (url/token kosong)");
-    return { skipped: true };
-  }
+  usersRepo.updateById("user_id", user.user_id, {
+    last_login_at: now.toISOString(),
+  });
+  writeAuditLog_(user.user_id, "LOGIN", "USER", user.user_id);
+  return ok_({ token: token, user: publicUser_(user) });
+}
 
-  var normalized = normalizePhoneNumber(noWa);
-  if (!normalized) {
-    Logger.log("Nomor WA tidak valid: " + noWa);
-    return { skipped: true };
-  }
+function logout_(ctx) {
+  if (!ctx || !ctx.token) return ok_(null);
+  var sessionsRepo = new SheetRepository_("sessions");
+  var session = sessionsRepo.findById("token", ctx.token);
+  if (session)
+    sessionsRepo.updateById("token", ctx.token, { expires_at: nowIso_() });
+  if (ctx.user)
+    writeAuditLog_(ctx.user.user_id, "LOGOUT", "USER", ctx.user.user_id);
+  return ok_(null);
+}
 
-  // Fonnte menerima format 62812xxx
-  var target =
-    normalized.indexOf("0") === 0 ? "62" + normalized.slice(1) : normalized;
-
-  var payload = {
-    target: target,
-    message: message,
-    countryCode: "62",
+function publicUser_(user) {
+  return {
+    user_id: user.user_id,
+    username: user.username,
+    nama: user.nama,
+    role: user.role,
+    member_id: user.member_id || "",
+    jenis_kelamin: user.jenis_kelamin || "",
   };
+}
 
-  var options = {
-    method: "post",
-    contentType: "application/x-www-form-urlencoded",
-    headers: { Authorization: token },
-    payload: payload,
-    muteHttpExceptions: true,
-  };
+function validateSession_(token) {
+  if (!token) return null;
+  var sessionsRepo = new SheetRepository_("sessions");
+  var session = sessionsRepo.findById("token", token);
+  if (!session) return null;
+  if (new Date(session.expires_at).getTime() < Date.now()) return null;
 
+  var usersRepo = new SheetRepository_("users");
+  var user = usersRepo.findById("user_id", session.user_id);
+  if (!user || !toBool_(user.status_aktif)) return null;
+  return { token: token, user: user };
+}
+
+function checkPermission_(user, action) {
+  var perms = ROLE_PERMISSIONS[user.role];
+  if (!perms) return false;
+  if (perms.indexOf("*") !== -1) return true;
+  return perms.indexOf(action) !== -1;
+}
+
+function writeAuditLog_(userId, action, targetType, targetId) {
   try {
-    var res = UrlFetchApp.fetch(url, options);
-    var body = res.getContentText();
-    Logger.log("WA response (" + res.getResponseCode() + "): " + body);
-    return { ok: res.getResponseCode() === 200, body: body };
+    var logsRepo = new SheetRepository_("audit_logs");
+    logsRepo.insert({
+      log_id: generateLogId(),
+      user_id: userId || "",
+      action: action,
+      target_type: targetType || "",
+      target_id: targetId || "",
+      timestamp: nowIso_(),
+    });
   } catch (e) {
-    Logger.log("Gagal kirim WA: " + e);
-    return { ok: false, error: String(e) };
+    Logger.log("Gagal menulis audit log: " + e);
   }
+}
+
+function requireMemberLink_(ctx) {
+  if (!ctx.user.member_id) {
+    return fail_("Akun Anda belum terhubung ke data jamaah. Hubungi admin.");
+  }
+  return null;
 }

@@ -5,6 +5,53 @@ var USERNAME_REGEX = /^[a-z0-9_]{3,20}$/;
 var MIN_PASSWORD_LENGTH = 6;
 
 /* -------------------------------------------------------------------------- */
+/*                          Helper sapaan & doa                               */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Hitung usia dari tanggal lahir (ISO date).
+ * Return null kalau tidak valid.
+ */
+function hitungUsia_(tanggalLahir) {
+  if (!tanggalLahir) return null;
+  var dob = new Date(tanggalLahir);
+  if (isNaN(dob.getTime())) return null;
+  var today = new Date();
+  var usia = today.getFullYear() - dob.getFullYear();
+  var m = today.getMonth() - dob.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) usia--;
+  return usia;
+}
+
+/**
+ * Sapaan berdasarkan usia + jenis kelamin.
+ * - Caberawit (< 13 th)         -> "Adik"
+ * - Laki-laki >= 40 th          -> "Bapak"
+ * - Perempuan >= 40 th          -> "Ibu"
+ * - Lainnya                     -> "Saudara/Saudari"
+ */
+function buildSapaan_(jenisKelamin, tanggalLahir) {
+  var usia = hitungUsia_(tanggalLahir);
+  var jk = String(jenisKelamin || "").toUpperCase();
+
+  if (usia !== null && usia < 13) {
+    return "Adik";
+  }
+  if (usia !== null && usia >= 40) {
+    return jk === "P" ? "Ibu" : "Bapak";
+  }
+  return jk === "P" ? "Saudari" : "Saudara";
+}
+
+/**
+ * Doa penutup sesuai jenis kelamin.
+ */
+function buildDoa_(jenisKelamin) {
+  var jk = String(jenisKelamin || "").toUpperCase();
+  return jk === "P" ? "Jazaakillahu khoiro" : "Jazaakallahu khoiro";
+}
+
+/* -------------------------------------------------------------------------- */
 /*                     Cek ketersediaan username (real-time)                  */
 /* -------------------------------------------------------------------------- */
 
@@ -331,19 +378,28 @@ function approvePendingMember_(ctx, params) {
   writeAuditLog_(ctx.user.user_id, "CREATE_USER_FROM_PENDING", "USER", userId);
 
   if (pending.no_wa) {
+    var sapaan = buildSapaan_(pending.jenis_kelamin, pending.tanggal_lahir);
+    var doa = buildDoa_(pending.jenis_kelamin);
+
     try {
       sendWhatsApp_(
         pending.no_wa,
         "Assalamu'alaikum " +
-          (pending.nama_panggilan || pending.nama_lengkap) +
+          sapaan +
           ",\n\n" +
-          "Pendaftaranmu di *Pengajian* sudah disetujui.\n\n" +
-          "Silakan login dengan:\n" +
+          "Alhamdulillah, pendaftaran " +
+          sapaan +
+          " di *Sambung Ngaji* sudah disetujui.\n\n" +
+          "Silakan masuk menggunakan:\n" +
           "Username: *" +
           username +
           "*\n" +
-          "Password: sesuai yang kamu daftarkan\n\n" +
-          "Barakallahu fiik \uD83E\uDD0D",
+          "Password: sesuai yang " +
+          sapaan +
+          " daftarkan\n\n" +
+          "Barakallahu fiik.\n" +
+          doa +
+          " \uD83E\uDD0D",
       );
     } catch (e) {
       Logger.log("Gagal kirim WA approve: " + e);
@@ -390,17 +446,24 @@ function rejectPendingMember_(ctx, params) {
   );
 
   if (pending.no_wa) {
+    var sapaan = buildSapaan_(pending.jenis_kelamin, pending.tanggal_lahir);
+    var doa = buildDoa_(pending.jenis_kelamin);
+
     try {
       sendWhatsApp_(
         pending.no_wa,
         "Assalamu'alaikum " +
-          (pending.nama_panggilan || pending.nama_lengkap) +
+          sapaan +
           ",\n\n" +
-          "Mohon maaf, pendaftaranmu di *Pengajian* belum bisa disetujui.\n\n" +
+          "Mohon maaf, pendaftaran " +
+          sapaan +
+          " di *Sambung Ngaji* belum bisa kami setujui.\n\n" +
           "Alasan: " +
           reason +
           "\n\n" +
-          "Silakan hubungi admin untuk informasi lebih lanjut.",
+          "Silakan hubungi admin untuk informasi lebih lanjut.\n\n" +
+          doa +
+          " \uD83D\uDE4F",
       );
     } catch (e) {
       Logger.log("Gagal kirim WA reject: " + e);
