@@ -19,11 +19,18 @@ function testSetupSpreadsheet() {
     } else {
       ok.push(def.name);
       var lastCol = sheet.getLastColumn();
-      var headerRow = sheet.getRange(1, 1, 1, def.headers.length).getValues()[0];
+      var headerRow = sheet
+        .getRange(1, 1, 1, def.headers.length)
+        .getValues()[0];
       var hasHeader = headerRow.join("") !== "";
       Logger.log(
-        "✅ " + def.name +
-        " (kolom: " + lastCol + ", header: " + (hasHeader ? "ok" : "kosong") + ")"
+        "✅ " +
+          def.name +
+          " (kolom: " +
+          lastCol +
+          ", header: " +
+          (hasHeader ? "ok" : "kosong") +
+          ")",
       );
     }
   });
@@ -34,7 +41,9 @@ function testSetupSpreadsheet() {
 
   if (missing.length > 0) {
     Logger.log("");
-    Logger.log("⚠️ Jalankan setupSpreadsheet() untuk membuat sheet yang missing.");
+    Logger.log(
+      "⚠️ Jalankan setupSpreadsheet() untuk membuat sheet yang missing.",
+    );
   }
 
   return { ok: ok, missing: missing };
@@ -64,7 +73,13 @@ function testSheetHeaders() {
     }
 
     if (match) {
-      Logger.log("✅ " + def.name + " — headers match (" + def.headers.length + " kolom)");
+      Logger.log(
+        "✅ " +
+          def.name +
+          " — headers match (" +
+          def.headers.length +
+          " kolom)",
+      );
     } else {
       Logger.log("❌ " + def.name + " — headers tidak match");
       Logger.log("   Expected: " + def.headers.join(", "));
@@ -85,7 +100,7 @@ function testRepositoryCRUD() {
   var inserted = repo.insert({
     key: testKey,
     value: testValue,
-    updated_at: nowIso_()
+    updated_at: nowIso_(),
   });
   Logger.log("   ✅ Inserted: " + inserted.key);
 
@@ -102,7 +117,7 @@ function testRepositoryCRUD() {
   Logger.log("3. UPDATE");
   var updated = repo.updateById("key", testKey, {
     value: JSON.stringify({ test: "updated" }),
-    updated_at: nowIso_()
+    updated_at: nowIso_(),
   });
   if (updated && updated.value.indexOf("updated") !== -1) {
     Logger.log("   ✅ Updated");
@@ -134,7 +149,7 @@ function testUserLogin() {
 
   var result = login_({
     username: "superadmin",
-    password: "ganti123"
+    password: "ganti123",
   });
 
   if (result.success) {
@@ -153,7 +168,7 @@ function testUserLoginWrongPassword() {
 
   var result = login_({
     username: "superadmin",
-    password: "salah"
+    password: "salah",
   });
 
   if (!result.success) {
@@ -168,7 +183,7 @@ function testValidateSession() {
 
   var loginResult = login_({
     username: "superadmin",
-    password: "ganti123"
+    password: "ganti123",
   });
 
   if (!loginResult.success) {
@@ -220,7 +235,7 @@ function testPublicRegistration() {
     jurusan: "Teknik Informatika",
     tahun_mulai_pendidikan: "2018",
     tahun_selesai_pendidikan: "2022",
-    _client_ip: "test-ip-" + timestamp
+    _client_ip: "test-ip-" + timestamp,
   });
 
   if (result.success) {
@@ -245,7 +260,9 @@ function testDebugDuplicate() {
   Logger.log("");
   Logger.log("1. Cek cache status:");
   var cached = CacheService.getScriptCache().get("sheet_pending_members");
-  Logger.log("   Cache ada: " + (cached ? "ya (" + cached.length + " bytes)" : "tidak"));
+  Logger.log(
+    "   Cache ada: " + (cached ? "ya (" + cached.length + " bytes)" : "tidak"),
+  );
 
   Logger.log("");
   Logger.log("2. Submit pertama:");
@@ -253,7 +270,7 @@ function testDebugDuplicate() {
     nama_lengkap: "Debug User 1",
     jenis_kelamin: "L",
     no_wa: testWa,
-    _client_ip: "debug-ip-1"
+    _client_ip: "debug-ip-1",
   });
   Logger.log("   Result: " + (r1.success ? "✅ OK" : "❌ " + r1.message));
   if (r1.success) Logger.log("   Submission: " + r1.data.submission_id);
@@ -261,7 +278,10 @@ function testDebugDuplicate() {
   Logger.log("");
   Logger.log("3. Cek cache setelah insert:");
   var cachedAfter = CacheService.getScriptCache().get("sheet_pending_members");
-  Logger.log("   Cache ada: " + (cachedAfter ? "ya (" + cachedAfter.length + " bytes)" : "tidak"));
+  Logger.log(
+    "   Cache ada: " +
+      (cachedAfter ? "ya (" + cachedAfter.length + " bytes)" : "tidak"),
+  );
 
   Logger.log("");
   Logger.log("4. Cek isi sheet pending_members:");
@@ -270,20 +290,40 @@ function testDebugDuplicate() {
   Logger.log("   Total rows: " + all.length);
 
   all.forEach(function (p, i) {
-    Logger.log("   [" + i + "] no_wa=" + p.no_wa + " (tipe: " + typeof p.no_wa + "), status=" + p.status);
+    Logger.log(
+      "   [" +
+        i +
+        "] no_wa=" +
+        p.no_wa +
+        " (tipe: " +
+        typeof p.no_wa +
+        "), status=" +
+        p.status,
+    );
   });
 
   Logger.log("");
   Logger.log("5. Cek normalisasi:");
   var normalized = normalizePhoneNumber(testWa);
   Logger.log("   Input:     '" + testWa + "' (tipe: " + typeof testWa + ")");
-  Logger.log("   Normalized: '" + normalized + "' (tipe: " + typeof normalized + ")");
+  Logger.log(
+    "   Normalized: '" + normalized + "' (tipe: " + typeof normalized + ")",
+  );
 
   Logger.log("");
   Logger.log("6. Simulasi find:");
   var found = repo.find(function (p) {
-    var match = String(p.no_wa) === String(normalized) && p.status === PENDING_STATUS.PENDING;
-    Logger.log("   Row: p.no_wa='" + p.no_wa + "' vs normalized='" + normalized + "' → " + match);
+    var match =
+      String(p.no_wa) === String(normalized) &&
+      p.status === PENDING_STATUS.PENDING;
+    Logger.log(
+      "   Row: p.no_wa='" +
+        p.no_wa +
+        "' vs normalized='" +
+        normalized +
+        "' → " +
+        match,
+    );
     return match;
   });
   Logger.log("   Found: " + found.length);
@@ -294,14 +334,22 @@ function testDebugDuplicate() {
     nama_lengkap: "Debug User 2",
     jenis_kelamin: "P",
     no_wa: testWa,
-    _client_ip: "debug-ip-2"
+    _client_ip: "debug-ip-2",
   });
-  Logger.log("   Result: " + (r2.success ? "❌ BERHASIL (HARUSNYA GAGAL!)" : "✅ Rejected: " + r2.message));
+  Logger.log(
+    "   Result: " +
+      (r2.success
+        ? "❌ BERHASIL (HARUSNYA GAGAL!)"
+        : "✅ Rejected: " + r2.message),
+  );
 
   Logger.log("");
   Logger.log("8. Cleanup:");
   var testRows = repo.find(function (p) {
-    return String(p.no_wa).indexOf("62") === 0 && p.nama_lengkap.indexOf("Debug User") === 0;
+    return (
+      String(p.no_wa).indexOf("62") === 0 &&
+      p.nama_lengkap.indexOf("Debug User") === 0
+    );
   });
   testRows.forEach(function (p) {
     repo.deleteById("submission_id", p.submission_id);
@@ -316,7 +364,7 @@ function testPublicRegistrationValidation() {
   var r1 = submitPublicRegistration_(null, {
     nama_lengkap: "",
     jenis_kelamin: "L",
-    no_wa: "081234567890"
+    no_wa: "081234567890",
   });
   Logger.log(r1.success ? "❌ Should fail" : "✅ Rejected: " + r1.message);
 
@@ -325,7 +373,7 @@ function testPublicRegistrationValidation() {
   var r2 = submitPublicRegistration_(null, {
     nama_lengkap: "AB",
     jenis_kelamin: "L",
-    no_wa: "081234567890"
+    no_wa: "081234567890",
   });
   Logger.log(r2.success ? "❌ Should fail" : "✅ Rejected: " + r2.message);
 
@@ -334,7 +382,7 @@ function testPublicRegistrationValidation() {
   var r3 = submitPublicRegistration_(null, {
     nama_lengkap: "Test User",
     jenis_kelamin: "X",
-    no_wa: "081234567890"
+    no_wa: "081234567890",
   });
   Logger.log(r3.success ? "❌ Should fail" : "✅ Rejected: " + r3.message);
 
@@ -343,7 +391,7 @@ function testPublicRegistrationValidation() {
   var r4 = submitPublicRegistration_(null, {
     nama_lengkap: "Test User",
     jenis_kelamin: "L",
-    no_wa: ""
+    no_wa: "",
   });
   Logger.log(r4.success ? "❌ Should fail" : "✅ Rejected: " + r4.message);
 
@@ -352,7 +400,7 @@ function testPublicRegistrationValidation() {
   var r5 = submitPublicRegistration_(null, {
     nama_lengkap: "Test User",
     jenis_kelamin: "L",
-    no_wa: "08123"
+    no_wa: "08123",
   });
   Logger.log(r5.success ? "❌ Should fail" : "✅ Rejected: " + r5.message);
 }
@@ -368,9 +416,11 @@ function testPublicRegistrationDuplicate() {
     nama_lengkap: "Dup Test 1",
     jenis_kelamin: "L",
     no_wa: testWa,
-    _client_ip: "test-ip-dup-1"
+    _client_ip: "test-ip-dup-1",
   });
-  Logger.log(r1.success ? "✅ OK: " + r1.data.submission_id : "❌ Failed: " + r1.message);
+  Logger.log(
+    r1.success ? "✅ OK: " + r1.data.submission_id : "❌ Failed: " + r1.message,
+  );
 
   Logger.log("");
   Logger.log("2. Submit kedua dengan no WA sama (should fail):");
@@ -378,9 +428,11 @@ function testPublicRegistrationDuplicate() {
     nama_lengkap: "Dup Test 2",
     jenis_kelamin: "P",
     no_wa: testWa,
-    _client_ip: "test-ip-dup-2"
+    _client_ip: "test-ip-dup-2",
   });
-  Logger.log(r2.success ? "❌ Should fail but succeeded" : "✅ Rejected: " + r2.message);
+  Logger.log(
+    r2.success ? "❌ Should fail but succeeded" : "✅ Rejected: " + r2.message,
+  );
 }
 
 function testVerifyNoWaType() {
@@ -422,14 +474,15 @@ function testVerifyNoWaType() {
     Logger.log("   Number: " + numberCount);
 
     if (numberCount > 0) {
-      Logger.log("   ⚠️ Ada " + numberCount + " baris yang tersimpan sebagai NUMBER");
+      Logger.log(
+        "   ⚠️ Ada " + numberCount + " baris yang tersimpan sebagai NUMBER",
+      );
       Logger.log("   → Jalankan migratePhoneNumbersToText() untuk fix");
     } else {
       Logger.log("   ✅ Semua string");
     }
   });
 }
-
 
 function testPendingMemberFlow() {
   Logger.log("=== TEST PENDING MEMBER FLOW ===");
@@ -446,8 +499,8 @@ function testPendingMemberFlow() {
     user: {
       user_id: "USR001",
       nama: "Super Admin",
-      role: ROLES.SUPER_ADMIN
-    }
+      role: ROLES.SUPER_ADMIN,
+    },
   };
 
   var listResult = getPendingMembers_(ctx, { status: PENDING_STATUS.PENDING });
@@ -459,7 +512,9 @@ function testPendingMemberFlow() {
 
   Logger.log("");
   Logger.log("2. Get detail");
-  var detailResult = getPendingMemberDetail_(ctx, { submission_id: submissionId });
+  var detailResult = getPendingMemberDetail_(ctx, {
+    submission_id: submissionId,
+  });
   if (detailResult.success) {
     Logger.log("   ✅ Detail: " + detailResult.data.nama_lengkap);
   } else {
@@ -471,7 +526,7 @@ function testPendingMemberFlow() {
   var approveResult = approvePendingMember_(ctx, {
     submission_id: submissionId,
     kelompok: "",
-    create_user: false
+    create_user: false,
   });
   if (approveResult.success) {
     Logger.log("   ✅ Approved");
@@ -515,14 +570,14 @@ function testPendingMemberReject() {
     user: {
       user_id: "USR001",
       nama: "Super Admin",
-      role: ROLES.SUPER_ADMIN
-    }
+      role: ROLES.SUPER_ADMIN,
+    },
   };
 
   Logger.log("Reject with reason:");
   var result = rejectPendingMember_(ctx, {
     submission_id: submissionId,
-    reason: "Data tidak lengkap"
+    reason: "Data tidak lengkap",
   });
 
   if (result.success) {
@@ -545,8 +600,8 @@ function testApproveWithCreateUser() {
     user: {
       user_id: "USR001",
       nama: "Super Admin",
-      role: ROLES.SUPER_ADMIN
-    }
+      role: ROLES.SUPER_ADMIN,
+    },
   };
 
   var pending = pendingRepo_findById(submissionId);
@@ -558,7 +613,7 @@ function testApproveWithCreateUser() {
     kelompok: "",
     create_user: true,
     username: username,
-    password: password
+    password: password,
   });
 
   if (result.success) {
@@ -571,7 +626,7 @@ function testApproveWithCreateUser() {
       Logger.log("Test login with new user:");
       var loginResult = login_({
         username: username,
-        password: password
+        password: password,
       });
       if (loginResult.success) {
         Logger.log("   ✅ Login OK");
@@ -602,8 +657,8 @@ function testMemberSelfProfile() {
       user_id: "TEST_MEMBER",
       nama: firstMember.nama_lengkap,
       role: ROLES.MEMBER,
-      member_id: firstMember.member_id
-    }
+      member_id: firstMember.member_id,
+    },
   };
 
   Logger.log("Member ID: " + firstMember.member_id);
@@ -652,8 +707,8 @@ function testMemberSelfAttendance() {
       user_id: "TEST_MEMBER",
       nama: firstMember.nama_lengkap,
       role: ROLES.MEMBER,
-      member_id: firstMember.member_id
-    }
+      member_id: firstMember.member_id,
+    },
   };
 
   var result = getMyAttendance_(ctx, {});
@@ -684,8 +739,8 @@ function testMemberSelfMonitoring() {
       user_id: "TEST_MEMBER",
       nama: firstMember.nama_lengkap,
       role: ROLES.MEMBER,
-      member_id: firstMember.member_id
-    }
+      member_id: firstMember.member_id,
+    },
   };
 
   var result = getMyMonitoring_(ctx, {});
@@ -712,8 +767,8 @@ function testMemberSelfUpcomingMeetings() {
       user_id: "TEST_MEMBER",
       nama: firstMember.nama_lengkap,
       role: ROLES.MEMBER,
-      member_id: firstMember.member_id
-    }
+      member_id: firstMember.member_id,
+    },
   };
 
   var result = getUpcomingMeetings_(ctx, { limit: 5 });
@@ -721,7 +776,9 @@ function testMemberSelfUpcomingMeetings() {
     Logger.log("✅ Upcoming OK");
     Logger.log("   Total: " + result.data.length);
     result.data.forEach(function (m, i) {
-      Logger.log("   " + (i + 1) + ". " + m.hari + " " + m.tanggal + " — " + m.acara);
+      Logger.log(
+        "   " + (i + 1) + ". " + m.hari + " " + m.tanggal + " — " + m.acara,
+      );
     });
   } else {
     Logger.log("❌ Failed: " + result.message);
@@ -743,8 +800,8 @@ function testMemberSelfUpdateProfile() {
       user_id: "TEST_MEMBER",
       nama: firstMember.nama_lengkap,
       role: ROLES.MEMBER,
-      member_id: firstMember.member_id
-    }
+      member_id: firstMember.member_id,
+    },
   };
 
   Logger.log("Before update:");
@@ -757,7 +814,7 @@ function testMemberSelfUpdateProfile() {
   var result = updateMyProfile_(ctx, {
     nama_panggilan: "Test Update",
     hobi: testHobi,
-    no_wa: "081234567890"
+    no_wa: "081234567890",
   });
 
   if (result.success) {
@@ -772,9 +829,11 @@ function testMemberSelfUpdateProfile() {
   Logger.log("");
   Logger.log("Test forbidden field (nama_lengkap):");
   var result2 = updateMyProfile_(ctx, {
-    nama_lengkap: "HACKED"
+    nama_lengkap: "HACKED",
   });
-  Logger.log("   Result: " + (result2.success ? "❌ Should fail" : "✅ Rejected"));
+  Logger.log(
+    "   Result: " + (result2.success ? "❌ Should fail" : "✅ Rejected"),
+  );
 
   if (result2.success) {
     Logger.log("   Cek apakah nama_lengkap berubah:");
@@ -791,8 +850,8 @@ function testMemberSelfAccessWithoutLink() {
       user_id: "TEST",
       nama: "Test",
       role: ROLES.MEMBER,
-      member_id: ""
-    }
+      member_id: "",
+    },
   };
 
   var result = getMyProfile_(ctx, {});
@@ -810,8 +869,8 @@ function testAiQuotaCheck() {
     user: {
       user_id: "TEST_QUOTA_USER",
       nama: "Test Quota",
-      role: ROLES.MEMBER
-    }
+      role: ROLES.MEMBER,
+    },
   };
 
   var usageRepo = new SheetRepository_("ai_usage");
@@ -838,7 +897,7 @@ function testAiQuotaCheck() {
       input_tokens: 100,
       output_tokens: 50,
       total_tokens: 150,
-      timestamp: nowIso_()
+      timestamp: nowIso_(),
     });
   }
   usageRepo.insertMany(toInsert);
@@ -871,13 +930,15 @@ function testAiUsageLogging() {
     user: {
       user_id: "TEST_LOG_USER",
       nama: "Test Log",
-      role: ROLES.MEMBER
-    }
+      role: ROLES.MEMBER,
+    },
   };
 
   Logger.log("Before logging:");
   var repo = new SheetRepository_("ai_usage");
-  var before = repo.find(function (u) { return u.user_id === "TEST_LOG_USER"; });
+  var before = repo.find(function (u) {
+    return u.user_id === "TEST_LOG_USER";
+  });
   Logger.log("   Existing: " + before.length);
 
   Logger.log("");
@@ -887,7 +948,9 @@ function testAiUsageLogging() {
 
   Logger.log("");
   Logger.log("After logging:");
-  var after = repo.find(function (u) { return u.user_id === "TEST_LOG_USER"; });
+  var after = repo.find(function (u) {
+    return u.user_id === "TEST_LOG_USER";
+  });
   Logger.log("   Total: " + after.length);
 
   if (after.length > 0) {
@@ -922,8 +985,8 @@ function testDeleteAttendance() {
     user: {
       user_id: "USR001",
       nama: "Super Admin",
-      role: ROLES.SUPER_ADMIN
-    }
+      role: ROLES.SUPER_ADMIN,
+    },
   };
 
   var attendanceId = firstAttendance.attendance_id;
@@ -938,7 +1001,7 @@ function testDeleteAttendance() {
   Logger.log("2. Delete");
   var result = deleteAttendance_(ctx, {
     meeting_id: firstAttendance.meeting_id,
-    member_id: firstAttendance.member_id
+    member_id: firstAttendance.member_id,
   });
 
   if (result.success && result.data.deleted === 1) {
@@ -967,7 +1030,7 @@ function testDeleteAttendance() {
     catatan: backup.catatan,
     created_by: backup.created_by,
     created_at: backup.created_at,
-    updated_at: backup.updated_at
+    updated_at: backup.updated_at,
   };
   attendanceRepo.insert(restoreRow);
   Logger.log("   ✅ Restored");
@@ -988,8 +1051,8 @@ function testUserCreateMember() {
     user: {
       user_id: "USR001",
       nama: "Super Admin",
-      role: ROLES.SUPER_ADMIN
-    }
+      role: ROLES.SUPER_ADMIN,
+    },
   };
 
   var username = "testmember_" + Date.now();
@@ -1000,7 +1063,7 @@ function testUserCreateMember() {
     password: "test123456",
     role: ROLES.MEMBER,
     nama: "Test",
-    member_id: ""
+    member_id: "",
   });
   Logger.log(r1.success ? "❌ Should fail" : "✅ Rejected: " + r1.message);
 
@@ -1011,7 +1074,7 @@ function testUserCreateMember() {
     password: "test123456",
     role: ROLES.MEMBER,
     nama: "Test Member",
-    member_id: firstMember.member_id
+    member_id: firstMember.member_id,
   });
 
   if (r2.success) {
@@ -1023,7 +1086,7 @@ function testUserCreateMember() {
     Logger.log("Test login dengan user baru:");
     var loginResult = login_({
       username: username + "_2",
-      password: "test123456"
+      password: "test123456",
     });
     if (loginResult.success) {
       Logger.log("   ✅ Login OK");
@@ -1110,9 +1173,9 @@ function testParseParams() {
       contents: JSON.stringify({
         action: "login",
         username: "superadmin",
-        password: "ganti123"
-      })
-    }
+        password: "ganti123",
+      }),
+    },
   };
 
   var params = parseParams_(mockEvent);
@@ -1122,7 +1185,12 @@ function testParseParams() {
   Logger.log("");
   Logger.log("Output params: " + JSON.stringify(params, null, 2));
   Logger.log("");
-  Logger.log("action ada? " + (params.action ? "✅ " + params.action : "❌ KOSONG"));
+  Logger.log(
+    "action ada? " + (params.action ? "✅ " + params.action : "❌ KOSONG"),
+  );
 }
 
-
+function testSendWA() {
+  var res = sendWhatsApp_("085791978786", "Test dari Pengajian ✅");
+  Logger.log(res);
+}
