@@ -1194,3 +1194,11 @@ function testSendWA() {
   var res = sendWhatsApp_("085791978786", "Test dari Pengajian ✅");
   Logger.log(res);
 }
+
+function testDeleteMeeting() {
+  var fakeCtx = { user: { user_id: "test", role: "ADMIN" }, token: "test" };
+  var result = deleteMeeting_(fakeCtx, {
+    meeting_id: "MTG06746AB6", // ganti dengan meeting_id yang ada
+  });
+  Logger.log(result);
+}
