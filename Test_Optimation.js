@@ -1,61 +1,3 @@
-function setupAllTriggers() {
-  Logger.log("=== SETUP ALL TRIGGERS ===");
-  Logger.log("");
-
-  Logger.log("1. Hapus trigger lama (kalau ada)...");
-  var existing = ScriptApp.getProjectTriggers();
-  existing.forEach(function (t) {
-    if (
-      t.getHandlerFunction() === "keepAlive" ||
-      t.getHandlerFunction() === "cleanupOldAiQuota_"
-    ) {
-      ScriptApp.deleteTrigger(t);
-      Logger.log("   Hapus: " + t.getHandlerFunction());
-    }
-  });
-  Logger.log("");
-
-  Logger.log("2. Buat keepAlive trigger (setiap 5 menit)...");
-  ScriptApp.newTrigger("keepAlive").timeBased().everyMinutes(5).create();
-  Logger.log("   ✅ keepAlive dibuat");
-  Logger.log("");
-
-  Logger.log("3. Buat cleanupOldAiQuota_ trigger (setiap hari jam 2 pagi)...");
-  ScriptApp.newTrigger("cleanupOldAiQuota_")
-    .timeBased()
-    .atHour(2)
-    .everyDays(1)
-    .create();
-  Logger.log("   ✅ cleanupOldAiQuota_ dibuat");
-  Logger.log("");
-
-  Logger.log("=== VERIFIKASI ===");
-  listAllTriggers();
-
-  Logger.log("");
-  Logger.log("Yang diharapkan: 2 trigger aktif.");
-}
-
-function listAllTriggers() {
-  var triggers = ScriptApp.getProjectTriggers();
-  Logger.log("=== TRIGGERS ===");
-  Logger.log("Total: " + triggers.length);
-  Logger.log("");
-  triggers.forEach(function (t, i) {
-    Logger.log(
-      i +
-        1 +
-        ". " +
-        t.getHandlerFunction() +
-        " | " +
-        t.getEventType() +
-        " | " +
-        t.getTriggerSource(),
-    );
-  });
-  return triggers.length;
-}
-
 function postDeploySmokeTest() {
   Logger.log("=== POST-DEPLOY SMOKE TEST ===");
   Logger.log("");
@@ -2607,5 +2549,103 @@ function testDriveFolderSize() {
     }
   } catch (e) {
     Logger.log("Error: " + e.message);
+  }
+}
+
+function testKategoriBaru() {
+  Logger.log("=== TEST KATEGORI (PAUD/TK = CABERAWIT) ===");
+  Logger.log("");
+
+  function tglLahirDariUsia(usia) {
+    var now = new Date();
+    var tahunLahir = now.getFullYear() - usia;
+    return tahunLahir + "-06-15";
+  }
+
+  var cases = [
+    // ============ BALITA (usia < 6 th, jenjang KOSONG) ============
+    ["Bayi 0 th (tanpa jenjang)", 0, false, "", "BALITA"],
+    ["Bayi 2 th (tanpa jenjang)", 2, false, "", "BALITA"],
+    ["Balita 4 th (tanpa jenjang)", 4, false, "", "BALITA"],
+    ["Balita 5 th (tanpa jenjang)", 5, false, "", "BALITA"],
+
+    // ============ CABERAWIT (PAUD/TK selalu CABERAWIT) ============
+    ["PAUD 3 th", 3, false, "PAUD", "CABERAWIT"],
+    ["PAUD 4 th", 4, false, "PAUD", "CABERAWIT"],
+    ["TK 4 th", 4, false, "TK", "CABERAWIT"],
+    ["TK 5 th", 5, false, "TK", "CABERAWIT"],
+    ["TK 6 th", 6, false, "TK", "CABERAWIT"],
+    ["PAUD 7 th", 7, false, "PAUD", "CABERAWIT"],
+
+    // ============ CABERAWIT (SD atau usia 6–12) ============
+    ["SD 7 th", 7, false, "SD", "CABERAWIT"],
+    ["SD 8 th", 8, false, "SD", "CABERAWIT"],
+    ["Caberawit 6 th (usia, tanpa jenjang)", 6, false, "", "CABERAWIT"],
+    ["Caberawit 10 th (usia, tanpa jenjang)", 10, false, "", "CABERAWIT"],
+    ["Caberawit 12 th (usia, tanpa jenjang)", 12, false, "", "CABERAWIT"],
+
+    // ============ PRA_REMAJA ============
+    ["SMP 14 th", 14, false, "SMP", "PRA_REMAJA"],
+    ["Pra Remaja 13 th (usia, tanpa jenjang)", 13, false, "", "PRA_REMAJA"],
+    ["Pra Remaja 15 th (usia, tanpa jenjang)", 15, false, "", "PRA_REMAJA"],
+
+    // ============ REMAJA ============
+    ["SMA 17 th", 17, false, "SMA", "REMAJA"],
+    ["SMK 17 th", 17, false, "SMK", "REMAJA"],
+    ["Remaja 16 th (usia, tanpa jenjang)", 16, false, "", "REMAJA"],
+    ["Remaja 18 th (usia, tanpa jenjang)", 18, false, "", "REMAJA"],
+
+    // ============ PRA_NIKAH ============
+    ["Pra Nikah 19 th", 19, false, "", "PRA_NIKAH"],
+    ["Pra Nikah 25 th", 25, false, "", "PRA_NIKAH"],
+
+    // ============ DEWASA ============
+    ["Dewasa 25 th (nikah)", 25, true, "", "DEWASA"],
+    ["Dewasa 35 th (nikah)", 35, true, "", "DEWASA"],
+    ["Dewasa 50 th (nikah)", 50, true, "", "DEWASA"],
+
+    // ============ ISTIMEWA ============
+    ["Istimewa 60 th (belum nikah)", 60, false, "", "ISTIMEWA"],
+    ["Istimewa 65 th (nikah)", 65, true, "", "ISTIMEWA"],
+    ["Istimewa 70 th (belum nikah)", 70, false, "", "ISTIMEWA"],
+  ];
+
+  var lulus = 0;
+  var gagal = 0;
+
+  cases.forEach(function (c) {
+    var member = {
+      nama_lengkap: c[0],
+      tanggal_lahir: tglLahirDariUsia(c[1]),
+      is_nikah: c[2],
+      jenjang_pendidikan: c[3],
+    };
+    var hasil = getMemberCategory(member);
+    var expected = c[4];
+    var ok = hasil === expected;
+
+    Logger.log(
+      (ok ? "✅" : "❌") +
+        " " +
+        c[0] +
+        " → " +
+        hasil +
+        (ok ? "" : " (expected: " + expected + ")"),
+    );
+
+    if (ok) lulus++;
+    else gagal++;
+  });
+
+  Logger.log("");
+  Logger.log("═══════════════════════════════════════");
+  Logger.log("Lulus: " + lulus + " / " + cases.length);
+  Logger.log("Gagal: " + gagal);
+  Logger.log("═══════════════════════════════════════");
+
+  if (gagal === 0) {
+    Logger.log("🎉 SEMUA TEST LULUS");
+  } else {
+    Logger.log("⚠️ Ada " + gagal + " test gagal");
   }
 }

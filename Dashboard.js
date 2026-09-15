@@ -332,6 +332,13 @@ function _buildMyDashboard_(ctx) {
 
   var enriched = enrichMember_(member);
 
+  /* Tambah: pendidikan */
+  var educationRepo = new SheetRepository_("education");
+  enriched.pendidikan = educationRepo.findByField(
+    "member_id",
+    ctx.user.member_id,
+  );
+
   var profileFields = [
     "member_id",
     "nama_lengkap",
@@ -357,7 +364,9 @@ function _buildMyDashboard_(ctx) {
     "tahun_selesai_pendidikan",
     "kategori",
     "usia",
+    "pendidikan", // ← tambah
   ];
+
   var profile = {};
   profileFields.forEach(function (f) {
     if (enriched.hasOwnProperty(f)) profile[f] = enriched[f];

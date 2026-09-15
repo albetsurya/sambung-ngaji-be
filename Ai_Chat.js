@@ -249,7 +249,7 @@ var AI_TOOL_DEFS_ = [
         kategori: {
           type: "string",
           description:
-            "CABERAWIT | PRA_REMAJA | REMAJA | PRA_NIKAH | DEWASA | MANULA",
+            "BALITA | CABERAWIT | PRA_REMAJA | REMAJA | PRA_NIKAH | DEWASA | ISTIMEWA",
         },
         jenis_kelamin: { type: "string", description: "L atau P" },
         kelompok: { type: "string", description: "group_id" },
