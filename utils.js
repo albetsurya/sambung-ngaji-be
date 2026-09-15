@@ -125,48 +125,35 @@ function parseDate_(str) {
 function formatDate(dateStr) {
   if (!dateStr) return "";
 
-  /* ---- Date object (dari sheet) ---- */
   if (dateStr instanceof Date) {
-    /* Pakai WIB offset manual supaya tidak geser.
-       JANGAN pakai toISOString() karena UTC → geser 7 jam. */
-    var utcMs = dateStr.getTime();
-    var wibMs = utcMs + 7 * 60 * 60 * 1000;
-    var wibDate = new Date(wibMs);
-    var y = wibDate.getUTCFullYear();
-    var m = wibDate.getUTCMonth() + 1;
-    var d = wibDate.getUTCDate();
-    var pad = function (n) {
-      return String(n).length < 2 ? "0" + n : String(n);
-    };
-    return y + "-" + pad(m) + "-" + pad(d); // ✅ YYYY-MM-DD
+    return Utilities.formatDate(dateStr, "Asia/Jakarta", "yyyy-MM-dd");
   }
 
-  /* ---- String ---- */
   var str = String(dateStr).trim();
 
-  /* Sudah ISO YYYY-MM-DD → return as-is */
   if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
     return str;
   }
 
-  /* Legacy DD-MM-YYYY → convert ke ISO */
   if (/^\d{2}-\d{2}-\d{4}$/.test(str)) {
     var parts = str.split("-");
-    return parts[2] + "-" + parts[1] + "-" + parts[0]; // ✅ YYYY-MM-DD
+    return parts[2] + "-" + parts[1] + "-" + parts[0];
   }
 
-  /* ISO timestamp "2026-09-15T..." → slice 10 char */
   if (/^\d{4}-\d{2}-\d{2}T/.test(str)) {
-    return str.slice(0, 10);
+    return Utilities.formatDate(new Date(str), "Asia/Jakarta", "yyyy-MM-dd");
   }
 
-  /* Fallback: parse via parseIsoParts_ */
   var p = parseIsoParts_(str);
   if (!p) return "";
-  var pad2 = function (n) {
-    return String(n).length < 2 ? "0" + n : String(n);
-  };
-  return p.year + "-" + pad2(p.month) + "-" + pad2(p.day); // ✅ YYYY-MM-DD
+
+  return (
+    String(p.year) +
+    "-" +
+    String(p.month).padStart(2, "0") +
+    "-" +
+    String(p.day).padStart(2, "0")
+  );
 }
 
 var HARI_ID = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
