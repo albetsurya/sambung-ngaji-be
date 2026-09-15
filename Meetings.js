@@ -144,6 +144,13 @@ function deleteMeeting_(ctx, params) {
 function publicMeeting_(m) {
   var out = Object.assign({}, m);
   delete out._row;
+
+  /* ✅ FIX: normalize tanggal.
+     Google Sheets auto-convert "YYYY-MM-DD" jadi Date object,
+     lalu JSON.stringify serializes ke ISO UTC (geser 7 jam).
+     formatDate() pakai timezone lokal → balik ke "YYYY-MM-DD" yang benar. */
+  out.tanggal = formatDate(m.tanggal);
+
   try {
     out.kategori_target = JSON.parse(m.kategori_target || "[]");
   } catch (e) {

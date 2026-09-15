@@ -388,7 +388,7 @@ function _buildMyDashboard_(ctx) {
       meeting_id: a.meeting_id,
       status: a.status,
       catatan: a.catatan || "",
-      tanggal: m.tanggal || "",
+      tanggal: formatDate(m.tanggal || ""), // ✅ FIX
       hari: m.hari || "",
       acara: m.acara || "",
       jam: m.jam || "",
