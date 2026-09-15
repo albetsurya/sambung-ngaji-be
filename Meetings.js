@@ -35,7 +35,7 @@ function createMeeting_(ctx, params) {
   var meeting = {
     meeting_id: meetingId,
     tanggal: formatDate(params.tanggal),
-    hari: getHariFromDate_(params.tanggal),
+    hari: getHariFromDate(params.tanggal), // FASE 2B FIX: typo getHariFromDate_ → getHariFromDate
     jam: params.jam || "",
     group_id: params.group_id || "",
     acara: params.acara,
@@ -50,6 +50,8 @@ function createMeeting_(ctx, params) {
 
   var repo = new SheetRepository_("meetings");
   repo.insert(meeting);
+
+  invalidateDashboardCache_();
 
   writeAuditLog_(ctx.user.user_id, "CREATE_MEETING", "MEETING", meetingId);
 
@@ -67,7 +69,7 @@ function updateMeeting_(ctx, params) {
 
   if (params.hasOwnProperty("tanggal")) {
     patch.tanggal = formatDate(params.tanggal);
-    patch.hari = getHariFromDate_(params.tanggal);
+    patch.hari = getHariFromDate(params.tanggal); // FASE 2B FIX: typo getHariFromDate_ → getHariFromDate
   }
   if (params.hasOwnProperty("jam")) patch.jam = params.jam;
   if (params.hasOwnProperty("group_id")) patch.group_id = params.group_id;
@@ -80,6 +82,9 @@ function updateMeeting_(ctx, params) {
   }
 
   var updated = repo.updateById("meeting_id", params.meeting_id, patch);
+
+  invalidateDashboardCache_();
+  invalidateAttendanceCache_(params.meeting_id);
 
   writeAuditLog_(
     ctx.user.user_id,
@@ -95,6 +100,13 @@ function updateMeeting_(ctx, params) {
 /*                              Delete meeting                                */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * FASE 2B OPTIMASI:
+ * Sebelumnya: delete attendance satu-per-satu via deleteById (N deleteRow calls).
+ * Sesudahnya: reuse deleteAttendanceByMeeting_ yang sudah pakai batch deleteRows.
+ *
+ * Efek: delete meeting dengan 100 attendance = 1 batch call, bukan 100 calls.
+ */
 function deleteMeeting_(ctx, params) {
   if (!params.meeting_id) return fail_("meeting_id wajib diisi");
 
@@ -102,22 +114,19 @@ function deleteMeeting_(ctx, params) {
   var existing = meetingsRepo.findById("meeting_id", params.meeting_id);
   if (!existing) return fail_("Jadwal tidak ditemukan");
 
-  // Hapus semua absensi terkait supaya tidak ada orphan record
-  var attendanceRepo = new SheetRepository_("attendance");
-  var related = attendanceRepo.findByField("meeting_id", params.meeting_id);
-
-  var deletedAttendance = 0;
-  related.forEach(function (a) {
-    try {
-      attendanceRepo.deleteById("attendance_id", a.attendance_id);
-      deletedAttendance++;
-    } catch (e) {
-      Logger.log("Gagal hapus attendance " + a.attendance_id + ": " + e);
-    }
+  // FASE 2B: hapus semua absensi terkait via batch delete (bukan loop deleteById)
+  var deleteAttendanceResult = deleteAttendanceByMeeting_(ctx, {
+    meeting_id: params.meeting_id,
   });
+  var deletedAttendance = deleteAttendanceResult.success
+    ? deleteAttendanceResult.data.deleted
+    : 0;
 
   // Hapus meeting
   meetingsRepo.deleteById("meeting_id", params.meeting_id);
+
+  invalidateDashboardCache_();
+  invalidateAttendanceCache_(params.meeting_id);
 
   writeAuditLog_(
     ctx.user.user_id,

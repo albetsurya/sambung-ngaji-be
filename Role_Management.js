@@ -33,6 +33,7 @@ var ROLE_PERMISSIONS = {
     "getDashboard",
     "getMembers",
     "getMembersPaged",
+    "getMembersForExport",
     "getMemberDetail",
     "createMember",
     "updateMember",
@@ -52,6 +53,7 @@ var ROLE_PERMISSIONS = {
 
     // — Absensi: baca, input, bulk, hapus (per record / per meeting / per member)
     "getAttendance",
+    "getAttendancePage",
     "saveAttendance",
     "bulkSaveAttendance",
     "deleteAttendance",
@@ -102,6 +104,7 @@ var ROLE_PERMISSIONS = {
     // — Dashboard & jamaah PNKB saja (getPNKBMembers = filter otomatis)
     "getDashboard",
     "getPNKBMembers",
+    "getMembersForExport",
     "getPNKBMembersPaged",
     "getMemberDetail",
 
@@ -135,6 +138,7 @@ var ROLE_PERMISSIONS = {
     // — Absensi: fokus utama role ini
     "getAttendanceMembers",
     "getAttendance",
+    "getAttendancePage",
     "saveAttendance",
     "bulkSaveAttendance",
     "deleteAttendance",
@@ -174,6 +178,7 @@ var ROLE_PERMISSIONS = {
 
     // — Absensi: hanya lihat (tidak ada save/bulk/delete)
     "getAttendance",
+    "getAttendancePage",
     "getAttendanceMembers",
 
     // — Monitoring: SATU-SATUNYA write yang diizinkan

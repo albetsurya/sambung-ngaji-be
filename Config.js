@@ -347,3 +347,81 @@ var WRITE_ACTIONS = {
   rejectPendingMember: true,
   logout: true,
 };
+var SESSION_CACHE_PREFIX = "sess:";
+var USER_SESSION_PREFIX = "usess:";
+var SESSION_CACHE_TTL = 21600;
+var SESSION_MAX_ROWS_BEFORE_CLEANUP = 500;
+
+var MEMBER_LIST_FIELDS = [
+  "member_id",
+  "nama_lengkap",
+  "nama_panggilan",
+  "jenis_kelamin",
+  "kelompok",
+  "kategori",
+  "foto_url",
+];
+
+var ATTENDANCE_MEMBER_FIELDS = [
+  "member_id",
+  "nama_lengkap",
+  "kelompok",
+  "kategori",
+  "jenis_kelamin",
+];
+
+var MEMBER_DETAIL_FIELDS = [
+  "member_id",
+  "nama_lengkap",
+  "nama_panggilan",
+  "jenis_kelamin",
+  "tempat_lahir",
+  "tanggal_lahir",
+  "foto_url",
+  "no_wa",
+  "alamat_rumah",
+  "desa",
+  "daerah",
+  "kelompok",
+  "is_muballigh",
+  "is_kerja",
+  "is_nikah",
+  "tinggi_badan",
+  "berat_badan",
+  "hobi",
+  "pekerjaan",
+  "status_pembinaan",
+  "status_aktif",
+  "tanggal_masuk",
+  "tanggal_keluar",
+  "jenjang_pendidikan",
+  "sekolah",
+  "jurusan",
+  "tahun_mulai_pendidikan",
+  "tahun_selesai_pendidikan",
+  "created_at",
+  "updated_at",
+  "kategori",
+  "usia",
+];
+
+var MEMBER_DEFAULT_LIMIT = 100;
+var MEMBER_MAX_LIMIT = 500;
+
+var MEMBER_EXPORT_FIELDS = [
+  "nama_lengkap",
+  "nama_panggilan",
+  "jenis_kelamin",
+  "tempat_lahir",
+  "tanggal_lahir",
+  "usia",
+  "kategori",
+  "kelompok",
+  "desa",
+  "daerah",
+  "alamat_rumah",
+  "no_wa",
+  "pekerjaan",
+  "hobi",
+  "status_pembinaan",
+];

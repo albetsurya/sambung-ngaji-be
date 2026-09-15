@@ -34,6 +34,7 @@ function saveGroup_(ctx, params) {
       if (params.hasOwnProperty(f)) patch[f] = params[f];
     });
     var updated = repo.updateById("group_id", params.group_id, patch);
+    invalidateDashboardCache_();
     writeAuditLog_(ctx.user.user_id, "UPDATE_GROUP", "GROUP", params.group_id);
     return ok_(updated);
   }
@@ -51,6 +52,7 @@ function saveGroup_(ctx, params) {
     updated_at: now,
   };
   repo.insert(row);
+  invalidateDashboardCache_();
   writeAuditLog_(ctx.user.user_id, "CREATE_GROUP", "GROUP", groupId);
   return ok_(row);
 }
