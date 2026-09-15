@@ -232,12 +232,31 @@ function checkPermission_(user, action) {
   return perms.indexOf(action) !== -1;
 }
 
+/**
+ * Tulis audit log dengan snapshot nama user.
+ * - `user_nama` disimpan supaya historical akurat (user bisa rename nanti).
+ * - Kalau lookup gagal, `user_nama` diisi "" dan akan di-enrich saat read.
+ */
 function writeAuditLog_(userId, action, targetType, targetId) {
   try {
     var logsRepo = new SheetRepository_("audit_logs");
+
+    // Lookup nama user dari cache (cheap — users sheet cached)
+    var userName = "";
+    if (userId) {
+      try {
+        var usersRepo = new SheetRepository_("users");
+        var user = usersRepo.findById("user_id", userId);
+        if (user && user.nama) userName = user.nama;
+      } catch (e) {
+        // ignore — fallback ke empty string
+      }
+    }
+
     logsRepo.insert({
       log_id: generateLogId(),
       user_id: userId || "",
+      user_nama: userName,
       action: action,
       target_type: targetType || "",
       target_id: targetId || "",

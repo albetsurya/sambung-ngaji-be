@@ -1,3 +1,57 @@
+function migrateAuditLogsAddUserName() {
+  Logger.log("=== MIGRASI AUDIT LOGS — TAMBAH user_nama ===");
+
+  var logsRepo = new SheetRepository_("audit_logs");
+  var usersRepo = new SheetRepository_("users");
+  var sheet = logsRepo._sheet();
+  var headers = logsRepo.def.headers;
+
+  var userNameColIdx = headers.indexOf("user_nama");
+  if (userNameColIdx === -1) {
+    Logger.log(
+      "❌ Kolom user_nama tidak ada di schema. Update Config.js dulu.",
+    );
+    return;
+  }
+
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    Logger.log("Sheet kosong.");
+    return;
+  }
+
+  // Build users map
+  var users = usersRepo.getAll();
+  var usersById = {};
+  users.forEach(function (u) {
+    usersById[u.user_id] = u.nama || "";
+  });
+
+  // Baca kolom user_id dan user_nama
+  var userIdColIdx = headers.indexOf("user_id");
+  var range = sheet.getRange(2, 1, lastRow - 1, headers.length);
+  var values = range.getValues();
+
+  var updated = 0;
+  for (var i = 0; i < values.length; i++) {
+    var userId = values[i][userIdColIdx];
+    var currentNama = values[i][userNameColIdx];
+
+    if (!currentNama && userId && usersById[userId]) {
+      values[i][userNameColIdx] = usersById[userId];
+      updated++;
+    }
+  }
+
+  if (updated > 0) {
+    range.setValues(values);
+    logsRepo._invalidateCache();
+    Logger.log("✅ " + updated + " log di-update dengan user_nama");
+  } else {
+    Logger.log("Tidak ada log yang perlu di-update");
+  }
+}
+
 function migratePhotoUrls() {
   Logger.log("=== MIGRATE FOTO URLS ===");
 
@@ -28,11 +82,12 @@ function migratePhotoUrls() {
       return;
     }
 
-    var newUrl = "https://drive.google.com/thumbnail?id=" + fileId + "&sz=w1000";
+    var newUrl =
+      "https://drive.google.com/thumbnail?id=" + fileId + "&sz=w1000";
 
     repo.updateById("member_id", m.member_id, {
       foto_url: newUrl,
-      updated_at: nowIso_()
+      updated_at: nowIso_(),
     });
 
     migrated++;
@@ -54,7 +109,7 @@ function migratePhoneNumbersToText() {
 
   var sheetsToFix = [
     { key: "members", field: "no_wa" },
-    { key: "pending_members", field: "no_wa" }
+    { key: "pending_members", field: "no_wa" },
   ];
 
   sheetsToFix.forEach(function (cfg) {
@@ -79,7 +134,7 @@ function migratePhoneNumbersToText() {
 
     var newValues = values.map(function (row) {
       var val = row[0];
-      if (val === null || val === undefined || val === '') return [''];
+      if (val === null || val === undefined || val === "") return [""];
       return [String(val)];
     });
 
@@ -88,7 +143,15 @@ function migratePhoneNumbersToText() {
 
     repo._invalidateCache();
 
-    Logger.log("✅ " + cfg.key + "." + cfg.field + " — " + newValues.length + " rows migrated");
+    Logger.log(
+      "✅ " +
+        cfg.key +
+        "." +
+        cfg.field +
+        " — " +
+        newValues.length +
+        " rows migrated",
+    );
   });
 
   Logger.log("");

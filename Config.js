@@ -155,6 +155,7 @@ var SHEETS = {
     headers: [
       "log_id",
       "user_id",
+      "user_nama",
       "action",
       "target_type",
       "target_id",
