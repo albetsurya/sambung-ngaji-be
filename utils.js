@@ -96,18 +96,25 @@ function normalizePhoneNumber(raw) {
 
 function parseIsoParts_(dateStr) {
   if (!dateStr) return null;
+
+  /* Handle Date object — pakai Utilities.formatDate dengan timezone
+     eksplisit supaya tidak bergeser karena GAS runtime pakai UTC. */
   if (dateStr instanceof Date) {
-    var y = dateStr.getFullYear();
-    var m = dateStr.getMonth() + 1;
-    var d = dateStr.getDate();
-    if (!y || !m || !d) return null;
-    return { year: y, month: m, day: d };
+    var tz = "Asia/Jakarta"; // hardcode WIB untuk konsistensi
+    var formatted = Utilities.formatDate(dateStr, tz, "yyyy-MM-dd");
+    var parts = formatted.split("-");
+    return {
+      year: Number(parts[0]),
+      month: Number(parts[1]),
+      day: Number(parts[2]),
+    };
   }
+
   var iso = String(dateStr).slice(0, 10);
-  var parts = iso.split("-");
-  var yy = Number(parts[0]);
-  var mm = Number(parts[1]);
-  var dd = Number(parts[2]);
+  var parts2 = iso.split("-");
+  var yy = Number(parts2[0]);
+  var mm = Number(parts2[1]);
+  var dd = Number(parts2[2]);
   if (!yy || !mm || !dd) return null;
   return { year: yy, month: mm, day: dd };
 }
@@ -119,12 +126,29 @@ function parseDate_(str) {
 }
 
 function formatDate(dateStr) {
+  if (!dateStr) return "";
+
+  if (dateStr instanceof Date) {
+    /* Fallback: hitung manual WIB offset (UTC+7).
+       Cara ini tidak bergantung pada GAS timezone config. */
+    var utcMs = dateStr.getTime();
+    var wibMs = utcMs + 7 * 60 * 60 * 1000; // +7 jam
+    var wibDate = new Date(wibMs);
+    var y = wibDate.getUTCFullYear();
+    var m = wibDate.getUTCMonth() + 1;
+    var d = wibDate.getUTCDate();
+    var pad = function (n) {
+      return String(n).length < 2 ? "0" + n : String(n);
+    };
+    return y + "-" + pad(m) + "-" + pad(d);
+  }
+
   var p = parseIsoParts_(dateStr);
   if (!p) return "";
-  var pad = function (n) {
+  var pad2 = function (n) {
     return String(n).length < 2 ? "0" + n : String(n);
   };
-  return p.year + "-" + pad(p.month) + "-" + pad(p.day);
+  return p.year + "-" + pad2(p.month) + "-" + pad2(p.day);
 }
 
 var HARI_ID = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
