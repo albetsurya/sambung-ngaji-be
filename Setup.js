@@ -15,6 +15,103 @@ function setupKeepAliveTrigger() {
   Logger.log("Keep-alive trigger created. Akan ping setiap 5 menit.");
 }
 
+/* -------------------------------------------------------------------------- */
+/*                    DAILY AI QUOTA CLEANUP TRIGGER                          */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Setup trigger harian untuk membersihkan key kuota AI dari hari-hari sebelumnya.
+ * Jalankan SEKALI dari editor GAS. Trigger akan otomatis jalan setiap jam 2 pagi.
+ *
+ * Aman dijalankan ulang: akan hapus trigger lama dengan nama sama sebelum buat baru.
+ */
+function setupDailyAiQuotaCleanupTrigger() {
+  var existing = ScriptApp.getProjectTriggers();
+  existing.forEach(function (t) {
+    if (t.getHandlerFunction() === "cleanupOldAiQuota_") {
+      ScriptApp.deleteTrigger(t);
+      Logger.log("Menghapus trigger lama: cleanupOldAiQuota_");
+    }
+  });
+
+  ScriptApp.newTrigger("cleanupOldAiQuota_")
+    .timeBased()
+    .atHour(2)
+    .everyDays(1)
+    .create();
+
+  Logger.log("✅ Trigger harian dibuat: cleanupOldAiQuota_ setiap jam 2 pagi.");
+
+  // Verifikasi
+  var allTriggers = ScriptApp.getProjectTriggers();
+  Logger.log("");
+  Logger.log("=== SEMUA TRIGGER AKTIF ===");
+  allTriggers.forEach(function (t) {
+    Logger.log("  - " + t.getHandlerFunction() + " (" + t.getEventType() + ")");
+  });
+}
+
+/**
+ * Cek daftar trigger yang sedang aktif (untuk verifikasi).
+ */
+function listAllTriggers() {
+  var triggers = ScriptApp.getProjectTriggers();
+  Logger.log("=== TRIGGERS ===");
+  Logger.log("Total: " + triggers.length);
+  Logger.log("");
+  triggers.forEach(function (t, i) {
+    Logger.log(
+      i +
+        1 +
+        ". " +
+        t.getHandlerFunction() +
+        " | " +
+        t.getEventType() +
+        " | " +
+        t.getTriggerSource(),
+    );
+  });
+  return triggers.length;
+}
+
+/**
+ * Test manual: jalankan cleanup sekali sekarang tanpa menunggu jam 2 pagi.
+ * Berguna untuk verifikasi bahwa fungsi bekerja.
+ */
+function testRunCleanupNow() {
+  Logger.log("=== TEST CLEANUP AI QUOTA (MANUAL) ===");
+  Logger.log("");
+
+  var props = PropertiesService.getScriptProperties();
+  var keysBefore = props.getKeys().filter(function (k) {
+    return k.indexOf("aiquota:") === 0;
+  });
+  Logger.log("Key sebelum cleanup: " + keysBefore.length);
+  keysBefore.forEach(function (k) {
+    Logger.log("  - " + k + " = " + props.getProperty(k));
+  });
+
+  Logger.log("");
+  var removed = cleanupOldAiQuota_();
+
+  Logger.log("");
+  var keysAfter = props.getKeys().filter(function (k) {
+    return k.indexOf("aiquota:") === 0;
+  });
+  Logger.log("Key setelah cleanup: " + keysAfter.length);
+  keysAfter.forEach(function (k) {
+    Logger.log("  - " + k + " = " + props.getProperty(k));
+  });
+
+  Logger.log("");
+  Logger.log("Total dihapus: " + removed);
+  return removed;
+}
+
+/* -------------------------------------------------------------------------- */
+/*                          SPREADSHEET SETUP                                 */
+/* -------------------------------------------------------------------------- */
+
 function setupSpreadsheet() {
   var ss = getSpreadsheet_();
   Object.keys(SHEETS).forEach(function (key) {

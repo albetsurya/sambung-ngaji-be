@@ -60,6 +60,8 @@ function createUser_(ctx, params) {
     last_login_at: "",
   };
   repo.insert(row);
+
+  invalidateDashboardCache_();
   writeAuditLog_(ctx.user.user_id, "CREATE_USER", "USER", userId);
   return ok_(publicUser_(row));
 }
@@ -131,7 +133,23 @@ function updateUser_(ctx, params) {
   if (params.password) patch.password_hash = hashPassword_(params.password);
 
   var updated = repo.updateById("user_id", params.user_id, patch);
+  invalidateDashboardCache_();
   writeAuditLog_(ctx.user.user_id, "UPDATE_USER", "USER", params.user_id);
+
+  var shouldInvalidate = false;
+  if (params.hasOwnProperty("role") && params.role !== existing.role)
+    shouldInvalidate = true;
+  if (
+    params.hasOwnProperty("status_aktif") &&
+    toBool_(params.status_aktif) !== toBool_(existing.status_aktif)
+  )
+    shouldInvalidate = true;
+  if (params.password) shouldInvalidate = true;
+
+  if (shouldInvalidate) {
+    _invalidateUserSessions_(params.user_id);
+  }
+
   return ok_(publicUser_(updated));
 }
 
@@ -174,7 +192,13 @@ function updateUserRole_(ctx, params) {
     updated_at: now,
   });
 
+  invalidateDashboardCache_();
+
   writeAuditLog_(ctx.user.user_id, "UPDATE_USER_ROLE", "USER", params.user_id);
+
+  if (params.role !== existing.role) {
+    _invalidateUserSessions_(params.user_id);
+  }
 
   return ok_(publicUser_(updated));
 }

@@ -1,7 +1,55 @@
+function _pickFields_(obj, fields) {
+  var out = {};
+  for (var i = 0; i < fields.length; i++) {
+    var f = fields[i];
+    if (obj.hasOwnProperty(f)) out[f] = obj[f];
+  }
+  return out;
+}
+
+function _normalizeJenisKelamin_(value) {
+  if (!value) return "";
+  var str = String(value).trim();
+  if (str === "L" || str === "P") return str;
+  var lower = str.toLowerCase();
+  if (
+    lower === "l" ||
+    lower === "laki-laki" ||
+    lower === "laki laki" ||
+    lower === "pria" ||
+    lower === "male"
+  )
+    return "L";
+  if (
+    lower === "p" ||
+    lower === "perempuan" ||
+    lower === "wanita" ||
+    lower === "female"
+  )
+    return "P";
+  return "";
+}
+
+function _normalizeDateForExport_(value) {
+  if (!value) return "";
+  if (value instanceof Date) {
+    var y = value.getFullYear();
+    var m = value.getMonth() + 1;
+    var d = value.getDate();
+    return y + "-" + (m < 10 ? "0" : "") + m + "-" + (d < 10 ? "0" : "") + d;
+  }
+  var str = String(value);
+  if (str.length >= 10 && str.charAt(4) === "-" && str.charAt(7) === "-") {
+    return str.slice(0, 10);
+  }
+  return str;
+}
+
 function enrichMember_(member) {
   var out = Object.assign({}, member);
   out.kategori = getMemberCategory(member);
   out.usia = getMemberAge(member.tanggal_lahir);
+  out.jenis_kelamin = _normalizeJenisKelamin_(member.jenis_kelamin);
   delete out._row;
   return out;
 }
@@ -42,113 +90,116 @@ function filterMemberFieldsByRole_(member, role) {
   return out;
 }
 
+function _applyBaseFilters_(list, params) {
+  var out = [];
+  var includeInactive = String(params.includeInactive) === "true";
+  var kelompok = params.kelompok ? String(params.kelompok) : "";
+  var jenisKelamin = params.jenis_kelamin ? String(params.jenis_kelamin) : "";
+  var desa = params.desa ? String(params.desa) : "";
+  var search = params.search ? String(params.search).toLowerCase() : "";
+
+  for (var i = 0; i < list.length; i++) {
+    var m = list[i];
+    if (!includeInactive && !toBool_(m.status_aktif)) continue;
+    if (kelompok && m.kelompok !== kelompok) continue;
+    if (jenisKelamin && m.jenis_kelamin !== jenisKelamin) continue;
+    if (desa && m.desa !== desa) continue;
+    if (search) {
+      var hay =
+        String(m.nama_lengkap || "").toLowerCase() +
+        " " +
+        String(m.nama_panggilan || "").toLowerCase();
+      if (hay.indexOf(search) === -1) continue;
+    }
+    out.push(m);
+  }
+  return out;
+}
+
+function _applyKategoriFilter_(list, kategori) {
+  if (!kategori) return list;
+  var out = [];
+  for (var i = 0; i < list.length; i++) {
+    if (getMemberCategory(list[i]) === kategori) out.push(list[i]);
+  }
+  return out;
+}
+
+function _sortMembers_(list) {
+  var copy = list.slice();
+  copy.sort(function (a, b) {
+    return String(a.nama_lengkap || "").localeCompare(
+      String(b.nama_lengkap || ""),
+    );
+  });
+  return copy;
+}
+
+function _normalizeLimitOffset_(params) {
+  var limit = params.limit !== undefined ? Number(params.limit) : 0;
+  if (isNaN(limit) || limit < 0) limit = 0;
+  if (limit > MEMBER_MAX_LIMIT) limit = MEMBER_MAX_LIMIT;
+  var offset = params.offset !== undefined ? Number(params.offset) : 0;
+  if (isNaN(offset) || offset < 0) offset = 0;
+  return { limit: limit, offset: offset };
+}
+
+function _toListDto_(member) {
+  var enriched = enrichMember_(member);
+  return _pickFields_(enriched, MEMBER_LIST_FIELDS);
+}
+
 function getMembers_(ctx, params) {
+  params = params || {};
   var membersRepo = new SheetRepository_("members");
   var all = membersRepo.getAll();
 
-  if (String(params.includeInactive) !== "true") {
-    all = all.filter(function (m) {
-      return toBool_(m.status_aktif);
-    });
-  }
-  if (params.kelompok)
-    all = all.filter(function (m) {
-      return m.kelompok === params.kelompok;
-    });
-  if (params.jenis_kelamin)
-    all = all.filter(function (m) {
-      return m.jenis_kelamin === params.jenis_kelamin;
-    });
-  if (params.desa)
-    all = all.filter(function (m) {
-      return m.desa === params.desa;
-    });
-  if (params.search) {
-    var q = String(params.search).toLowerCase();
-    all = all.filter(function (m) {
-      return (
-        String(m.nama_lengkap).toLowerCase().indexOf(q) !== -1 ||
-        String(m.nama_panggilan).toLowerCase().indexOf(q) !== -1
-      );
-    });
+  var filtered = _applyBaseFilters_(all, params);
+  var byKategori = _applyKategoriFilter_(filtered, params.kategori || "");
+  var sorted = _sortMembers_(byKategori);
+
+  var lim = _normalizeLimitOffset_(params);
+  var slice;
+  if (lim.limit > 0) {
+    slice = sorted.slice(lim.offset, lim.offset + lim.limit);
+  } else {
+    var defaultLimit = MEMBER_DEFAULT_LIMIT;
+    slice = sorted.slice(0, defaultLimit);
   }
 
-  var enriched = all.map(enrichMember_);
-  if (params.kategori) {
-    enriched = enriched.filter(function (m) {
-      return m.kategori === params.kategori;
-    });
+  var out = [];
+  for (var i = 0; i < slice.length; i++) {
+    out.push(_toListDto_(slice[i]));
   }
-
-  var role = ctx.user.role;
-  var filtered = enriched.map(function (m) {
-    return filterMemberFieldsByRole_(m, role);
-  });
-  return ok_(filtered);
+  return ok_(out);
 }
 
 function getMembersPaged_(ctx, params) {
+  params = params || {};
   var membersRepo = new SheetRepository_("members");
   var all = membersRepo.getAll();
 
-  if (String(params.includeInactive) !== "true") {
-    all = all.filter(function (m) {
-      return toBool_(m.status_aktif);
-    });
+  var filtered = _applyBaseFilters_(all, params);
+  var byKategori = _applyKategoriFilter_(filtered, params.kategori || "");
+  var sorted = _sortMembers_(byKategori);
+
+  var total = sorted.length;
+  var lim = _normalizeLimitOffset_(params);
+  var limit = lim.limit > 0 ? lim.limit : 30;
+  var offset = lim.offset;
+
+  var slice = sorted.slice(offset, offset + limit);
+  var items = [];
+  for (var i = 0; i < slice.length; i++) {
+    items.push(_toListDto_(slice[i]));
   }
-  if (params.kelompok)
-    all = all.filter(function (m) {
-      return m.kelompok === params.kelompok;
-    });
-  if (params.jenis_kelamin)
-    all = all.filter(function (m) {
-      return m.jenis_kelamin === params.jenis_kelamin;
-    });
-  if (params.desa)
-    all = all.filter(function (m) {
-      return m.desa === params.desa;
-    });
-  if (params.search) {
-    var q = String(params.search).toLowerCase();
-    all = all.filter(function (m) {
-      return (
-        String(m.nama_lengkap).toLowerCase().indexOf(q) !== -1 ||
-        String(m.nama_panggilan).toLowerCase().indexOf(q) !== -1
-      );
-    });
-  }
-
-  var enriched = all.map(enrichMember_);
-  if (params.kategori) {
-    enriched = enriched.filter(function (m) {
-      return m.kategori === params.kategori;
-    });
-  }
-
-  enriched.sort(function (a, b) {
-    return String(a.nama_lengkap).localeCompare(String(b.nama_lengkap));
-  });
-
-  var total = enriched.length;
-  var limit = params.limit ? Number(params.limit) : 0;
-  var offset = params.offset ? Number(params.offset) : 0;
-
-  var paged = enriched;
-  if (limit > 0) {
-    paged = enriched.slice(offset, offset + limit);
-  }
-
-  var role = ctx.user.role;
-  var filtered = paged.map(function (m) {
-    return filterMemberFieldsByRole_(m, role);
-  });
 
   return ok_({
-    items: filtered,
+    items: items,
     total: total,
     limit: limit,
     offset: offset,
-    has_more: limit > 0 ? offset + paged.length < total : false,
+    has_more: offset + items.length < total,
   });
 }
 
@@ -167,7 +218,20 @@ function getPNKBMembersPaged_(ctx, params) {
 }
 
 function getAttendanceMembers_(ctx, params) {
-  return getMembers_(ctx, params);
+  params = params || {};
+  var membersRepo = new SheetRepository_("members");
+  var all = membersRepo.getAll();
+
+  var filtered = _applyBaseFilters_(all, params);
+  var byKategori = _applyKategoriFilter_(filtered, params.kategori || "");
+  var sorted = _sortMembers_(byKategori);
+
+  var out = [];
+  for (var i = 0; i < sorted.length; i++) {
+    var enriched = enrichMember_(sorted[i]);
+    out.push(_pickFields_(enriched, ATTENDANCE_MEMBER_FIELDS));
+  }
+  return ok_(out);
 }
 
 function getMemberDetail_(ctx, params) {
@@ -185,6 +249,11 @@ function getMemberDetail_(ctx, params) {
   }
 
   var enriched = enrichMember_(member);
+
+  if (ctx.user.role === ROLES.SUPER_ADMIN || ctx.user.role === ROLES.ADMIN) {
+    return ok_(_pickFields_(enriched, MEMBER_DETAIL_FIELDS));
+  }
+
   var filtered = filterMemberFieldsByRole_(enriched, ctx.user.role);
   return ok_(filtered);
 }
@@ -197,7 +266,10 @@ function createMember_(ctx, params) {
     member_id: memberId,
     nama_lengkap: params.nama_lengkap || "",
     nama_panggilan: params.nama_panggilan || "",
-    jenis_kelamin: params.jenis_kelamin || "",
+    jenis_kelamin:
+      _normalizeJenisKelamin_(params.jenis_kelamin) ||
+      params.jenis_kelamin ||
+      "",
     tempat_lahir: params.tempat_lahir || "",
     tanggal_lahir: params.tanggal_lahir || "",
     kelompok: params.kelompok || "",
@@ -227,6 +299,7 @@ function createMember_(ctx, params) {
   };
   membersRepo.insert(member);
   writeAuditLog_(ctx.user.user_id, "CREATE_MEMBER", "MEMBER", memberId);
+  invalidateDashboardCache_();
   return ok_(member);
 }
 
@@ -269,14 +342,18 @@ function updateMember_(ctx, params) {
   var patch = { updated_at: nowIso_() };
   MEMBER_EDITABLE_FIELDS.forEach(function (f) {
     if (params.hasOwnProperty(f)) {
-      patch[f] =
-        f === "no_wa" && params[f]
-          ? normalizePhoneNumber(params[f])
-          : params[f];
+      if (f === "no_wa" && params[f]) {
+        patch[f] = normalizePhoneNumber(params[f]);
+      } else if (f === "jenis_kelamin" && params[f]) {
+        patch[f] = _normalizeJenisKelamin_(params[f]) || params[f];
+      } else {
+        patch[f] = params[f];
+      }
     }
   });
   var updated = membersRepo.updateById("member_id", memberId, patch);
   writeAuditLog_(ctx.user.user_id, "UPDATE_MEMBER", "MEMBER", memberId);
+  invalidateDashboardCache_();
   return ok_(updated);
 }
 
@@ -291,7 +368,9 @@ function deactivateMember_(ctx, params) {
     tanggal_keluar: formatDate(nowIso_()),
     updated_at: nowIso_(),
   });
+
   writeAuditLog_(ctx.user.user_id, "DEACTIVATE_MEMBER", "MEMBER", memberId);
+  invalidateDashboardCache_();
   return ok_(updated);
 }
 
@@ -391,7 +470,8 @@ function updateMyProfile_(ctx, params) {
     "MEMBER",
     ctx.user.member_id,
   );
-
+  invalidateDashboardCache_();
+  invalidateMyDashboardCache_(ctx.user.member_id);
   return ok_(enrichMember_(updated));
 }
 
@@ -474,4 +554,23 @@ function getUpcomingMeetings_(ctx, params) {
     .slice(0, limit);
 
   return ok_(upcoming.map(publicMeeting_));
+}
+
+function getMembersForExport_(ctx, params) {
+  params = params || {};
+  var membersRepo = new SheetRepository_("members");
+  var all = membersRepo.getAll();
+
+  var filtered = _applyBaseFilters_(all, params);
+  var byKategori = _applyKategoriFilter_(filtered, params.kategori || "");
+  var sorted = _sortMembers_(byKategori);
+
+  var out = [];
+  for (var i = 0; i < sorted.length; i++) {
+    var enriched = enrichMember_(sorted[i]);
+    var picked = _pickFields_(enriched, MEMBER_EXPORT_FIELDS);
+    picked.tanggal_lahir = _normalizeDateForExport_(picked.tanggal_lahir);
+    out.push(picked);
+  }
+  return ok_(out);
 }

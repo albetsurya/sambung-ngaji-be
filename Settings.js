@@ -25,6 +25,7 @@ function updateSettings_(ctx, params) {
   } else {
     repo.insert({ key: params.key, value: value, updated_at: nowIso_() });
   }
+  invalidateDashboardCache_();
   writeAuditLog_(ctx.user.user_id, "UPDATE_SETTINGS", "SETTINGS", params.key);
   return ok_({ key: params.key, value: JSON.parse(value) });
 }
