@@ -258,10 +258,13 @@ function getMemberDetail_(ctx, params) {
   var enriched = enrichMember_(member);
 
   if (ctx.user.role === ROLES.SUPER_ADMIN || ctx.user.role === ROLES.ADMIN) {
-    return ok_(_pickFields_(enriched, MEMBER_DETAIL_FIELDS));
+    var picked = _pickFields_(enriched, MEMBER_DETAIL_FIELDS);
+    picked.pendidikan = []; // ✅ FIX: field kosong — sheet belum ada
+    return ok_(picked);
   }
 
   var filtered = filterMemberFieldsByRole_(enriched, ctx.user.role);
+  filtered.pendidikan = []; // ✅ FIX
   return ok_(filtered);
 }
 
@@ -440,6 +443,10 @@ function getMyProfile_(ctx, params) {
   allowed.forEach(function (f) {
     if (enriched.hasOwnProperty(f)) out[f] = enriched[f];
   });
+
+  // ✅ FIX: field pendidikan kosong — sheet belum ada
+  out.pendidikan = [];
+
   return ok_(out);
 }
 
