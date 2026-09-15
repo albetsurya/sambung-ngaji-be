@@ -72,6 +72,13 @@ var ROLE_PERMISSIONS = {
 
     // — Pengumuman: baca template, buat, ubah, generate
     "getAnnouncementTemplates",
+    "getAllAnnouncementTemplates", // ← BARU (kelola)
+    "getAnnouncementTemplateDetail", // ← BARU (edit)
+    "createAnnouncementTemplate", // ← BARU
+    "updateAnnouncementTemplate", // ← BARU
+    "deleteAnnouncementTemplate", // ← BARU
+    "createTemplateFromAnnouncement", // ← BARU (copy dari WA)
+    "getAnnouncements", // ← BARU (list pengumuman)
     "createAnnouncement",
     "updateAnnouncement",
     "generateAnnouncement",
