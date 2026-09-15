@@ -159,6 +159,13 @@ var ACTION_HANDLERS = {
   getAnnouncements: getAnnouncements_,
   getAnnouncementRecipientSummary: getAnnouncementRecipientSummary_,
 
+  getAnnouncementTemplateDetail: getAnnouncementTemplateDetail_,
+  getAllAnnouncementTemplates: getAllAnnouncementTemplates_,
+  createAnnouncementTemplate: createAnnouncementTemplate_,
+  updateAnnouncementTemplate: updateAnnouncementTemplate_,
+  deleteAnnouncementTemplate: deleteAnnouncementTemplate_,
+  createTemplateFromAnnouncement: createTemplateFromAnnouncement_,
+
   uploadPhoto: uploadPhoto_,
   deletePhoto: deletePhoto_,
 

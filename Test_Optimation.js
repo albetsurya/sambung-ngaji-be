@@ -2734,3 +2734,55 @@ function verifyRollback() {
         : "✅ sudah dihapus"),
   );
 }
+function testAnnouncementTemplateCRUD() {
+  var login = login_({ username: "albetsurya", password: "albetsurya123" });
+  var ctx = validateSession_(login.data.token);
+
+  Logger.log("=== TEST TEMPLATE CRUD ===");
+  Logger.log("");
+
+  // 1. Create
+  var created = createAnnouncementTemplate_(ctx, {
+    nama_template: "Test Template",
+    kode: "TEST_TPL",
+    isi_template: "Assalamu'alaikum {{nama_kelompok}}\n\nAcara: {{acara}}",
+  });
+  Logger.log("Create: " + created.success);
+  if (!created.success) {
+    Logger.log("  Error: " + created.message);
+    return;
+  }
+  var templateId = created.data.template_id;
+  Logger.log("  ID: " + templateId);
+  Logger.log("");
+
+  // 2. Detail
+  var detail = getAnnouncementTemplateDetail_(ctx, {
+    template_id: templateId,
+  });
+  Logger.log("Detail: " + detail.success);
+  Logger.log("  Nama: " + detail.data.nama_template);
+  Logger.log("");
+
+  // 3. Update
+  var updated = updateAnnouncementTemplate_(ctx, {
+    template_id: templateId,
+    nama_template: "Test Template Updated",
+  });
+  Logger.log("Update: " + updated.success);
+  Logger.log("");
+
+  // 4. List semua
+  var list = getAllAnnouncementTemplates_(ctx, { include_inactive: "true" });
+  Logger.log("List total: " + list.data.length + " template");
+  Logger.log("");
+
+  // 5. Delete
+  var deleted = deleteAnnouncementTemplate_(ctx, {
+    template_id: templateId,
+  });
+  Logger.log("Delete: " + deleted.success);
+  Logger.log("");
+
+  Logger.log("=== SELESAI ===");
+}
