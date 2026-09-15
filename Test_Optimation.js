@@ -2649,3 +2649,23 @@ function testKategoriBaru() {
     Logger.log("⚠️ Ada " + gagal + " test gagal");
   }
 }
+
+function testBulkPreview() {
+  var login = login_({ username: "albetsurya", password: "albetsurya123" });
+  var ctx = validateSession_(login.data.token);
+
+  var result = previewBulkMeetings_(ctx, {
+    tahun: 2026,
+    bulan: 10,
+    hari: ["Minggu", "Selasa", "Kamis"],
+    jam: "Isya di tempat",
+    group_id: "GRPC88D1BA3",
+    acara: "Sambung Kelompok",
+    kategori_target: ["CABERAWIT", "BALITA"],
+  });
+
+  Logger.log("Success: " + result.success);
+  Logger.log("Total new: " + result.data.total_new);
+  Logger.log("Member target: " + result.data.member_target.length);
+  Logger.log("Total WA: " + result.data.total_wa);
+}

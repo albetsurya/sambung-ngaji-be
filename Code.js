@@ -125,6 +125,10 @@ var ACTION_HANDLERS = {
   updateMeeting: updateMeeting_,
   deleteMeeting: deleteMeeting_,
 
+  previewBulkMeetings: previewBulkMeetings_,
+  bulkCreateMeetings: bulkCreateMeetings_,
+  getBulkMeetingTemplates: getBulkMeetingTemplates_,
+
   getAttendance: getAttendance_,
   getAttendancePage: getAttendancePage_,
   saveAttendance: saveAttendance_,

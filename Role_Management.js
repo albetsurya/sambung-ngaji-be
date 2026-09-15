@@ -51,6 +51,11 @@ var ROLE_PERMISSIONS = {
     "updateMeeting",
     "deleteMeeting",
 
+    // — Bulk Meeting
+    "previewBulkMeetings",
+    "bulkCreateMeetings",
+    "getBulkMeetingTemplates",
+
     // — Absensi: baca, input, bulk, hapus (per record / per meeting / per member)
     "getAttendance",
     "getAttendancePage",
