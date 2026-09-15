@@ -328,3 +328,58 @@ function testFormatDateQuick() {
   Logger.log("formatDate source (50 char pertama):");
   Logger.log(formatDate.toString().slice(0, 200));
 }
+
+function diagnoseFormatDateDuplicate() {
+  Logger.log("=== DIAGNOSE FORMATDATE DUPLIKASI ===");
+  Logger.log("");
+
+  // 1. Cek source aktual
+  var source = formatDate.toString();
+  Logger.log("1. Panjang source: " + source.length + " char");
+  Logger.log("");
+  Logger.log("Isi source LENGKAP:");
+  Logger.log("───────────────");
+  Logger.log(source);
+  Logger.log("───────────────");
+  Logger.log("");
+
+  // 2. Cek apakah ada toISOString (bug)
+  var hasToISO = source.indexOf("toISOString") !== -1;
+  Logger.log("2. Analisis:");
+  Logger.log("   toISOString: " + (hasToISO ? "❌ ADA (bug)" : "✅ TIDAK ADA"));
+  Logger.log(
+    "   Utilities.formatDate: " +
+      (source.indexOf("Utilities.formatDate") !== -1 ? "✅" : "❌"),
+  );
+  Logger.log(
+    "   +7 jam fallback: " +
+      (source.indexOf("+ 7") !== -1 || source.indexOf("+7") !== -1
+        ? "✅"
+        : "❌"),
+  );
+  Logger.log("");
+
+  // 3. Test langsung dengan Date object
+  Logger.log("3. Test langsung:");
+  var testDate = new Date("1998-01-01T00:00:00+07:00"); // WIB
+  Logger.log("   Input: " + testDate);
+  Logger.log("   toISOString: " + testDate.toISOString());
+  Logger.log("   getDate() [runtime]: " + testDate.getDate());
+  Logger.log("   getUTCDate() [runtime]: " + testDate.getUTCDate());
+  Logger.log("   formatDate(input): " + formatDate(testDate));
+  Logger.log("   Expected: 1998-01-01");
+  Logger.log(
+    "   " + (formatDate(testDate) === "1998-01-01" ? "✅ BENAR" : "❌ SALAH"),
+  );
+}
+
+function cekDuplikasiFormatDate() {
+  Logger.log("=== CARI DUPLIKASI formatDate ===");
+  Logger.log("");
+  Logger.log("Buka editor GAS:");
+  Logger.log("  1. Tekan Ctrl+Shift+F (Find di semua file)");
+  Logger.log("  2. Cari: function formatDate");
+  Logger.log("  3. Hitung berapa hasil");
+  Logger.log("");
+  Logger.log("Kalau lebih dari 1 → ADA DUPLIKASI, hapus yang salah.");
+}

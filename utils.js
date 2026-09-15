@@ -97,11 +97,8 @@ function normalizePhoneNumber(raw) {
 function parseIsoParts_(dateStr) {
   if (!dateStr) return null;
 
-  /* Handle Date object — pakai Utilities.formatDate dengan timezone
-     eksplisit supaya tidak bergeser karena GAS runtime pakai UTC. */
   if (dateStr instanceof Date) {
-    var tz = "Asia/Jakarta"; // hardcode WIB untuk konsistensi
-    var formatted = Utilities.formatDate(dateStr, tz, "yyyy-MM-dd");
+    var formatted = Utilities.formatDate(dateStr, "Asia/Jakarta", "yyyy-MM-dd");
     var parts = formatted.split("-");
     return {
       year: Number(parts[0]),
@@ -128,11 +125,12 @@ function parseDate_(str) {
 function formatDate(dateStr) {
   if (!dateStr) return "";
 
+  /* ---- Date object (dari sheet) ---- */
   if (dateStr instanceof Date) {
-    /* Fallback: hitung manual WIB offset (UTC+7).
-       Cara ini tidak bergantung pada GAS timezone config. */
+    /* Pakai WIB offset manual supaya tidak geser.
+       JANGAN pakai toISOString() karena UTC → geser 7 jam. */
     var utcMs = dateStr.getTime();
-    var wibMs = utcMs + 7 * 60 * 60 * 1000; // +7 jam
+    var wibMs = utcMs + 7 * 60 * 60 * 1000;
     var wibDate = new Date(wibMs);
     var y = wibDate.getUTCFullYear();
     var m = wibDate.getUTCMonth() + 1;
@@ -140,15 +138,35 @@ function formatDate(dateStr) {
     var pad = function (n) {
       return String(n).length < 2 ? "0" + n : String(n);
     };
-    return y + "-" + pad(m) + "-" + pad(d);
+    return y + "-" + pad(m) + "-" + pad(d); // ✅ YYYY-MM-DD
   }
 
-  var p = parseIsoParts_(dateStr);
+  /* ---- String ---- */
+  var str = String(dateStr).trim();
+
+  /* Sudah ISO YYYY-MM-DD → return as-is */
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+    return str;
+  }
+
+  /* Legacy DD-MM-YYYY → convert ke ISO */
+  if (/^\d{2}-\d{2}-\d{4}$/.test(str)) {
+    var parts = str.split("-");
+    return parts[2] + "-" + parts[1] + "-" + parts[0]; // ✅ YYYY-MM-DD
+  }
+
+  /* ISO timestamp "2026-09-15T..." → slice 10 char */
+  if (/^\d{4}-\d{2}-\d{2}T/.test(str)) {
+    return str.slice(0, 10);
+  }
+
+  /* Fallback: parse via parseIsoParts_ */
+  var p = parseIsoParts_(str);
   if (!p) return "";
   var pad2 = function (n) {
     return String(n).length < 2 ? "0" + n : String(n);
   };
-  return p.year + "-" + pad2(p.month) + "-" + pad2(p.day);
+  return p.year + "-" + pad2(p.month) + "-" + pad2(p.day); // ✅ YYYY-MM-DD
 }
 
 var HARI_ID = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
@@ -191,37 +209,9 @@ function getMemberAge(tanggalLahir) {
   return age;
 }
 
-/* -------------------------------------------------------------------------- */
-/*                          KATEGORI JAMAAH                                   */
-/* -------------------------------------------------------------------------- */
-/*
- * Logika kategorisasi (urutan prioritas):
- *
- * 1. Sudah menikah:
- *    - 60+ tahun          → ISTIMEWA
- *    - < 60 tahun         → DEWASA
- *
- * 2. Berdasarkan jenjang pendidikan:
- *    - PAUD / TK          → CABERAWIT  (selalu, apapun usia)
- *    - SD                 → CABERAWIT
- *    - SMP                → PRA_REMAJA
- *    - SMA / SMK          → REMAJA
- *
- * 3. Fallback berdasarkan usia (untuk yang belum sekolah / jenjang kosong):
- *    - < 6 tahun          → BALITA
- *    - 6–12 tahun         → CABERAWIT
- *    - 13–15 tahun        → PRA_REMAJA
- *    - 16–18 tahun        → REMAJA
- *    - 60+ tahun          → ISTIMEWA
- *    - else               → PRA_NIKAH
- *
- * Catatan: BALITA hanya untuk anak yang BELUM sekolah (jenjang kosong).
- *          Begitu tercatat PAUD/TK/SD, otomatis CABERAWIT.
- */
 function getMemberCategory(member) {
   if (!member) return null;
 
-  /* -------- 1. Sudah menikah -------- */
   if (toBool_(member.is_nikah)) {
     var age = getMemberAge(member.tanggal_lahir);
     return age !== null && age >= 60
@@ -229,7 +219,6 @@ function getMemberCategory(member) {
       : MEMBER_CATEGORY.DEWASA;
   }
 
-  /* -------- 2. Berdasarkan jenjang pendidikan -------- */
   var jenjang = String(member.jenjang_pendidikan || "").toUpperCase();
 
   if (jenjang === "PAUD" || jenjang === "TK") {
@@ -239,8 +228,6 @@ function getMemberCategory(member) {
   if (jenjang === "SMP") return MEMBER_CATEGORY.PRA_REMAJA;
   if (jenjang === "SMA" || jenjang === "SMK") return MEMBER_CATEGORY.REMAJA;
 
-  /* -------- 3. Fallback berdasarkan usia -------- */
-  /* Hanya untuk yang belum punya jenjang pendidikan. */
   var age2 = getMemberAge(member.tanggal_lahir);
   if (age2 !== null && age2 >= 60) return MEMBER_CATEGORY.ISTIMEWA;
   if (age2 !== null && age2 < 6) return MEMBER_CATEGORY.BALITA;
@@ -248,7 +235,6 @@ function getMemberCategory(member) {
   if (age2 !== null && age2 < 16) return MEMBER_CATEGORY.PRA_REMAJA;
   if (age2 !== null && age2 < 19) return MEMBER_CATEGORY.REMAJA;
 
-  /* -------- 4. Default -------- */
   return MEMBER_CATEGORY.PRA_NIKAH;
 }
 
