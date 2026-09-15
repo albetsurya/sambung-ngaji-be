@@ -94,6 +94,14 @@ var ROLE_PERMISSIONS = {
 
     // — Monitoring AI usage
     "getAiUsageStats",
+
+    // ✅ WA Queue
+    "createWaQueue",
+    "cancelWaQueue",
+    "getWaQueueStatus",
+    "bulkGetWaQueueStatus",
+    "listWaQueue",
+    "retryWaQueue",
   ],
 
   /**
@@ -154,6 +162,14 @@ var ROLE_PERMISSIONS = {
     "aiChat",
     "getCurrentProvider",
     "setAIProvider",
+
+    // ✅ WA Queue
+    "createWaQueue",
+    "cancelWaQueue",
+    "getWaQueueStatus",
+    "bulkGetWaQueueStatus",
+    "listWaQueue",
+    "retryWaQueue",
   ],
 
   /**

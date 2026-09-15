@@ -2669,3 +2669,68 @@ function testBulkPreview() {
   Logger.log("Member target: " + result.data.member_target.length);
   Logger.log("Total WA: " + result.data.total_wa);
 }
+
+function testBulkPreviewSetelahFix() {
+  Logger.log("=== TEST BULK PREVIEW SETELAH FIX ===");
+  Logger.log("");
+
+  var login = login_({ username: "albetsurya", password: "albetsurya123" });
+  var ctx = validateSession_(login.data.token);
+
+  var result = previewBulkMeetings_(ctx, {
+    tahun: 2026,
+    bulan: 10,
+    hari: ["Minggu", "Selasa", "Kamis"],
+    jam: "Isya di tempat",
+    group_id: "GRPC88D1BA3",
+    acara: "Sambung Kelompok",
+    kategori_target: ["CABERAWIT", "BALITA"],
+  });
+
+  Logger.log("Success: " + result.success);
+  if (!result.success) {
+    Logger.log("Error: " + result.message);
+    return;
+  }
+
+  Logger.log("Total new: " + result.data.total_new);
+  Logger.log("Member target: " + result.data.member_target.length);
+  Logger.log("Total WA: " + result.data.total_wa);
+  Logger.log("");
+
+  if (result.data.member_target.length > 0) {
+    Logger.log("Target member:");
+    result.data.member_target.forEach(function (m) {
+      Logger.log(
+        "  - " + m.nama_lengkap + " | " + m.no_wa + " | " + m.kategori,
+      );
+    });
+  } else {
+    Logger.log("⚠️ Member target MASIH 0 setelah fix.");
+    Logger.log("→ Masalahnya bukan di group filter, tapi di data member.");
+  }
+}
+
+function verifyRollback() {
+  var login = login_({ username: "albetsurya", password: "albetsurya123" });
+  var ctx = validateSession_(login.data.token);
+
+  var result = previewBulkMeetings_(ctx, {
+    tahun: 2026,
+    bulan: 12,
+    hari: ["Minggu", "Kamis"],
+    jam: "Isya di tempat",
+    group_id: "GRPC88D1BA3",
+    acara: "Sambung Kelompok",
+  });
+
+  Logger.log("Success: " + result.success);
+  Logger.log("Total new: " + result.data.total_new);
+  Logger.log("Total existing: " + result.data.total_existing);
+  Logger.log(
+    "Has member_target? " +
+      (result.data.member_target !== undefined
+        ? "❌ MASIH ADA"
+        : "✅ sudah dihapus"),
+  );
+}
