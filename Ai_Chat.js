@@ -560,7 +560,7 @@ function getUpcomingMeetingsForAi_(limit) {
     upcoming.map(function (m) {
       return {
         meeting_id: m.meeting_id,
-        tanggal: m.tanggal,
+        tanggal: formatDate(m.tanggal), // ✅ FIX
         hari: m.hari,
         jam: m.jam,
         acara: m.acara,

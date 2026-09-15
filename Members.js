@@ -50,6 +50,13 @@ function enrichMember_(member) {
   out.kategori = getMemberCategory(member);
   out.usia = getMemberAge(member.tanggal_lahir);
   out.jenis_kelamin = _normalizeJenisKelamin_(member.jenis_kelamin);
+
+  /* ✅ FIX: normalize tanggal fields (Google Sheets auto-convert ke Date object,
+     lalu JSON.stringify serialize ke ISO UTC → geser 1 hari). */
+  out.tanggal_lahir = formatDate(member.tanggal_lahir);
+  out.tanggal_masuk = formatDate(member.tanggal_masuk);
+  out.tanggal_keluar = formatDate(member.tanggal_keluar);
+
   delete out._row;
   return out;
 }
@@ -493,7 +500,7 @@ function getMyAttendance_(ctx, params) {
       meeting_id: a.meeting_id,
       status: a.status,
       catatan: a.catatan || "",
-      tanggal: m.tanggal || "",
+      tanggal: formatDate(m.tanggal || ""), // ✅ FIX
       hari: m.hari || "",
       acara: m.acara || "",
       jam: m.jam || "",
