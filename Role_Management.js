@@ -17,7 +17,7 @@ var ROLE_PERMISSIONS = {
    * SUPER_ADMIN — Akses penuh.
    * Satu-satunya yang bisa: kelola user, ubah pengaturan, lihat audit log.
    */
-  SUPER_ADMIN: ['*'],
+  SUPER_ADMIN: ["*"],
 
   /**
    * ADMIN — Pengurus harian.
@@ -26,40 +26,69 @@ var ROLE_PERMISSIONS = {
    */
   ADMIN: [
     // — Sesi & keamanan
-    'validateSession', 'changeMyPassword',
+    "validateSession",
+    "changeMyPassword",
 
     // — Jamaah: baca, tulis, nonaktifkan
-    'getDashboard', 'getMembers', 'getMembersPaged', 'getMemberDetail',
-    'createMember', 'updateMember', 'deactivateMember', 'getMemberUserStatus', 'getUserDetail',
+    "getDashboard",
+    "getMembers",
+    "getMembersPaged",
+    "getMembersForExport",
+    "getMemberDetail",
+    "createMember",
+    "updateMember",
+    "deactivateMember",
+    "getMemberUserStatus",
+    "getUserDetail",
 
     // — Kelompok: baca & tulis
-    'getGroups', 'saveGroup',
+    "getGroups",
+    "saveGroup",
 
     // — Jadwal pengajian: baca, buat, ubah
-    'getMeetings', 'createMeeting', 'updateMeeting',
+    "getMeetings",
+    "createMeeting",
+    "updateMeeting",
+    "deleteMeeting",
 
     // — Absensi: baca, input, bulk, hapus (per record / per meeting / per member)
-    'getAttendance', 'saveAttendance', 'bulkSaveAttendance',
-    'deleteAttendance', 'deleteAttendanceByMeeting', 'deleteAttendanceByMember',
+    "getAttendance",
+    "getAttendancePage",
+    "saveAttendance",
+    "bulkSaveAttendance",
+    "deleteAttendance",
+    "deleteAttendanceByMeeting",
+    "deleteAttendanceByMember",
 
     // — Monitoring: baca, tulis, ubah
-    'getMonitoring', 'createMonitoring', 'updateMonitoring',
+    "getMonitoring",
+    "createMonitoring",
+    "updateMonitoring",
 
     // — Pengumuman: baca template, buat, ubah, generate
-    'getAnnouncementTemplates', 'createAnnouncement', 'updateAnnouncement', 'generateAnnouncement',
+    "getAnnouncementTemplates",
+    "createAnnouncement",
+    "updateAnnouncement",
+    "generateAnnouncement",
 
     // — Foto & pengaturan
-    'uploadPhoto', 'deletePhoto', 'getSettings',
+    "uploadPhoto",
+    "deletePhoto",
+    "getSettings",
 
     // — AI
-    'aiChat', 'getCurrentProvider', 'setAIProvider',
+    "aiChat",
+    "getCurrentProvider",
+    "setAIProvider",
 
     // — Pendaftar: verifikasi & approval
-    'getPendingMembers', 'getPendingMemberDetail',
-    'approvePendingMember', 'rejectPendingMember',
+    "getPendingMembers",
+    "getPendingMemberDetail",
+    "approvePendingMember",
+    "rejectPendingMember",
 
     // — Monitoring AI usage
-    'getAiUsageStats',
+    "getAiUsageStats",
   ],
 
   /**
@@ -69,16 +98,25 @@ var ROLE_PERMISSIONS = {
    */
   TIM_PNKB: [
     // — Sesi & keamanan
-    'validateSession', 'changeMyPassword',
+    "validateSession",
+    "changeMyPassword",
 
     // — Dashboard & jamaah PNKB saja (getPNKBMembers = filter otomatis)
-    'getDashboard', 'getPNKBMembers', 'getPNKBMembersPaged', 'getMemberDetail',
+    "getDashboard",
+    "getPNKBMembers",
+    "getMembersForExport",
+    "getPNKBMembersPaged",
+    "getMemberDetail",
 
     // — Monitoring: fokus utama role ini
-    'getMonitoring', 'createMonitoring', 'updateMonitoring',
+    "getMonitoring",
+    "createMonitoring",
+    "updateMonitoring",
 
     // — AI
-    'aiChat', 'getCurrentProvider', 'setAIProvider',
+    "aiChat",
+    "getCurrentProvider",
+    "setAIProvider",
   ],
 
   /**
@@ -88,18 +126,29 @@ var ROLE_PERMISSIONS = {
    */
   TIM_ABSENSI: [
     // — Sesi & keamanan
-    'validateSession', 'changeMyPassword',
+    "validateSession",
+    "changeMyPassword",
 
     // — Dashboard & jadwal pengajian
-    'getDashboard', 'getMeetings', 'createMeeting', 'updateMeeting',
+    "getMeetings",
+    "createMeeting",
+    "updateMeeting",
+    "deleteMeeting",
 
     // — Absensi: fokus utama role ini
-    'getAttendanceMembers', 'getAttendance',
-    'saveAttendance', 'bulkSaveAttendance',
-    'deleteAttendance', 'deleteAttendanceByMeeting', 'deleteAttendanceByMember',
+    "getAttendanceMembers",
+    "getAttendance",
+    "getAttendancePage",
+    "saveAttendance",
+    "bulkSaveAttendance",
+    "deleteAttendance",
+    "deleteAttendanceByMeeting",
+    "deleteAttendanceByMember",
 
     // — AI
-    'aiChat', 'getCurrentProvider', 'setAIProvider',
+    "aiChat",
+    "getCurrentProvider",
+    "setAIProvider",
   ],
 
   /**
@@ -110,31 +159,40 @@ var ROLE_PERMISSIONS = {
    */
   PENGAWAS: [
     // — Sesi & keamanan
-    'validateSession', 'changeMyPassword',
+    "validateSession",
+    "changeMyPassword",
 
     // — Dashboard
-    'getDashboard',
+    "getDashboard",
 
     // — Jamaah: hanya lihat (tidak ada create/update/deactivate)
-    'getMembers', 'getMembersPaged', 'getMemberDetail',
+    "getMembers",
+    "getMembersPaged",
+    "getMemberDetail",
 
     // — Kelompok: hanya lihat (tidak ada saveGroup)
-    'getGroups',
+    "getGroups",
 
     // — Jadwal pengajian: hanya lihat (tidak ada create/update)
-    'getMeetings',
+    "getMeetings",
 
     // — Absensi: hanya lihat (tidak ada save/bulk/delete)
-    'getAttendance', 'getAttendanceMembers',
+    "getAttendance",
+    "getAttendancePage",
+    "getAttendanceMembers",
 
     // — Monitoring: SATU-SATUNYA write yang diizinkan
-    'getMonitoring', 'createMonitoring', 'updateMonitoring',
+    "getMonitoring",
+    "createMonitoring",
+    "updateMonitoring",
 
     // — Pengumuman: hanya lihat
-    'getAnnouncementTemplates', 'getAnnouncements',
+    "getAnnouncementTemplates",
+    "getAnnouncements",
 
     // — AI (read-only, tidak bisa ganti provider)
-    'aiChat', 'getCurrentProvider',
+    "aiChat",
+    "getCurrentProvider",
   ],
 
   /**
@@ -144,24 +202,29 @@ var ROLE_PERMISSIONS = {
    */
   MEMBER: [
     // — Sesi & keamanan
-    'validateSession', 'changeMyPassword',
+    "validateSession",
+    "changeMyPassword",
 
     // — Dashboard pribadi (getMyDashboard = data diri sendiri)
-    'getMyDashboard',
+    "getMyDashboard",
 
     // — Profil sendiri: lihat & edit (field terbatas)
-    'getMyProfile', 'updateMyProfile',
+    "getMyProfile",
+    "updateMyProfile",
 
     // — Riwayat sendiri
-    'getMyAttendance', 'getMyMonitoring',
+    "getMyAttendance",
+    "getMyMonitoring",
 
     // — Jadwal pengajian mendatang
-    'getUpcomingMeetings',
+    "getUpcomingMeetings",
 
     // — Foto profil sendiri
-    'uploadPhoto', 'deletePhoto',
+    "uploadPhoto",
+    "deletePhoto",
 
     // — AI (tidak bisa ganti provider)
-    'aiChat', 'getCurrentProvider',
+    "aiChat",
+    "getCurrentProvider",
   ],
 };

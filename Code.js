@@ -90,6 +90,14 @@ var ACTION_HANDLERS = {
     return setAIProvider(p.provider);
   },
 
+  invalidateDashboard: function (ctx, p) {
+    invalidateDashboardCache_();
+    if (ctx.user.member_id) {
+      invalidateMyDashboardCache_(ctx.user.member_id);
+    }
+    return ok_({ ok: true });
+  },
+
   getDashboard: getDashboard_,
   getMyDashboard: getMyDashboard_,
 
@@ -103,6 +111,7 @@ var ACTION_HANDLERS = {
   getPNKBMembers: getPNKBMembers_,
   getPNKBMembersPaged: getPNKBMembersPaged_,
   getAttendanceMembers: getAttendanceMembers_,
+  getMembersForExport: getMembersForExport_,
   getMemberDetail: getMemberDetail_,
   createMember: createMember_,
   updateMember: updateMember_,
@@ -114,8 +123,10 @@ var ACTION_HANDLERS = {
   getMeetings: getMeetings_,
   createMeeting: createMeeting_,
   updateMeeting: updateMeeting_,
+  deleteMeeting: deleteMeeting_,
 
   getAttendance: getAttendance_,
+  getAttendancePage: getAttendancePage_,
   saveAttendance: saveAttendance_,
   bulkSaveAttendance: bulkSaveAttendance_,
 

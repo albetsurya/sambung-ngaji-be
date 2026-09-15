@@ -4,18 +4,44 @@ function getMonitoring_(ctx, params) {
     var check = getMemberDetail_(ctx, { member_id: params.member_id });
     if (!check.success) return check;
   }
+
   var repo = new SheetRepository_("monitoring");
   var rows = repo.findByField("member_id", params.member_id);
+
   rows.sort(function (a, b) {
     return new Date(b.tanggal) - new Date(a.tanggal);
   });
-  return ok_(
-    rows.map(function (r) {
-      var c = Object.assign({}, r);
-      delete c._row;
-      return c;
-    }),
-  );
+
+  var isPaged = String(params.paged) === "true";
+
+  var limit =
+    params.limit !== undefined ? Number(params.limit) : isPaged ? 20 : 20;
+  if (isNaN(limit) || limit <= 0) limit = 20;
+  if (limit > 100) limit = 100;
+
+  var offset = params.offset !== undefined ? Number(params.offset) : 0;
+  if (isNaN(offset) || offset < 0) offset = 0;
+
+  var total = rows.length;
+  var paged = rows.slice(offset, offset + limit);
+
+  var items = paged.map(function (r) {
+    var c = Object.assign({}, r);
+    delete c._row;
+    return c;
+  });
+
+  if (!isPaged) {
+    return ok_(items);
+  }
+
+  return ok_({
+    items: items,
+    total: total,
+    limit: limit,
+    offset: offset,
+    has_more: offset + items.length < total,
+  });
 }
 
 function createMonitoring_(ctx, params) {
@@ -47,6 +73,9 @@ function createMonitoring_(ctx, params) {
     updated_at: now,
   });
 
+  invalidateMyDashboardCache_(params.member_id);
+  invalidateDashboardCache_();
+
   writeAuditLog_(
     ctx.user.user_id,
     "CREATE_MONITORING",
@@ -67,6 +96,10 @@ function updateMonitoring_(ctx, params) {
     if (params.hasOwnProperty(f)) patch[f] = params[f];
   });
   var updated = repo.updateById("monitoring_id", params.monitoring_id, patch);
+
+  invalidateMyDashboardCache_(existing.member_id);
+  invalidateDashboardCache_();
+
   writeAuditLog_(
     ctx.user.user_id,
     "UPDATE_MONITORING",

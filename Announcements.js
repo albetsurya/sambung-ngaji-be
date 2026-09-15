@@ -115,6 +115,7 @@ function createAnnouncement_(ctx, params) {
     updated_at: now,
   };
   repo.insert(row);
+  invalidateDashboardCache_();
   writeAuditLog_(
     ctx.user.user_id,
     "CREATE_ANNOUNCEMENT",
@@ -141,6 +142,7 @@ function updateAnnouncement_(ctx, params) {
     params.announcement_id,
     patch,
   );
+  invalidateDashboardCache_();
   writeAuditLog_(
     ctx.user.user_id,
     "UPDATE_ANNOUNCEMENT",
@@ -153,6 +155,7 @@ function updateAnnouncement_(ctx, params) {
 function getAnnouncements_(ctx, params) {
   var repo = new SheetRepository_("announcements");
   var all = repo.getAll();
+
   if (params.group_id)
     all = all.filter(function (a) {
       return a.group_id === params.group_id;
@@ -161,16 +164,40 @@ function getAnnouncements_(ctx, params) {
     all = all.filter(function (a) {
       return a.status === params.status;
     });
+
   all.sort(function (a, b) {
     return new Date(b.tanggal) - new Date(a.tanggal);
   });
-  return ok_(
-    all.map(function (a) {
-      var c = Object.assign({}, a);
-      delete c._row;
-      return c;
-    }),
-  );
+
+  var isPaged = String(params.paged) === "true";
+
+  var limit = params.limit !== undefined ? Number(params.limit) : 50;
+  if (isNaN(limit) || limit <= 0) limit = 50;
+  if (limit > 200) limit = 200;
+
+  var offset = params.offset !== undefined ? Number(params.offset) : 0;
+  if (isNaN(offset) || offset < 0) offset = 0;
+
+  var total = all.length;
+  var paged = all.slice(offset, offset + limit);
+
+  var items = paged.map(function (a) {
+    var c = Object.assign({}, a);
+    delete c._row;
+    return c;
+  });
+
+  if (!isPaged) {
+    return ok_(items);
+  }
+
+  return ok_({
+    items: items,
+    total: total,
+    limit: limit,
+    offset: offset,
+    has_more: offset + items.length < total,
+  });
 }
 
 function getAnnouncementRecipientSummary_(ctx, params) {

@@ -130,7 +130,8 @@ function submitPublicRegistration_(ctx, params) {
 
   var clientIp = String(params._client_ip || "unknown").substring(0, 50);
 
-  SpreadsheetApp.flush();
+  // FASE 2B FIX: hapus SpreadsheetApp.flush() pertama yang sia-sia.
+  // Flush hanya perlu setelah semua write selesai (di akhir fungsi).
 
   var pendingRepo = new SheetRepository_("pending_members");
   var membersRepo = new SheetRepository_("members");
@@ -227,7 +228,10 @@ function submitPublicRegistration_(ctx, params) {
 
   pendingRepo.insert(row);
 
+  // Flush di akhir (satu-satunya) — pastikan write selesai sebelum return
   SpreadsheetApp.flush();
+
+  invalidateDashboardCache_();
 
   return ok_({
     submission_id: submissionId,
@@ -254,14 +258,36 @@ function getPendingMembers_(ctx, params) {
     return new Date(b.submitted_at) - new Date(a.submitted_at);
   });
 
-  return ok_(
-    all.map(function (p) {
-      var c = Object.assign({}, p);
-      delete c._row;
-      delete c.password_hash;
-      return c;
-    }),
-  );
+  var isPaged = String(params.paged) === "true";
+
+  var limit = params.limit !== undefined ? Number(params.limit) : 50;
+  if (isNaN(limit) || limit <= 0) limit = 50;
+  if (limit > 200) limit = 200;
+
+  var offset = params.offset !== undefined ? Number(params.offset) : 0;
+  if (isNaN(offset) || offset < 0) offset = 0;
+
+  var total = all.length;
+  var paged = all.slice(offset, offset + limit);
+
+  var items = paged.map(function (p) {
+    var c = Object.assign({}, p);
+    delete c._row;
+    delete c.password_hash;
+    return c;
+  });
+
+  if (!isPaged) {
+    return ok_(items);
+  }
+
+  return ok_({
+    items: items,
+    total: total,
+    limit: limit,
+    offset: offset,
+    has_more: offset + items.length < total,
+  });
 }
 
 function getPendingMemberDetail_(ctx, params) {
@@ -369,6 +395,8 @@ function approvePendingMember_(ctx, params) {
     created_member_id: memberId,
   });
 
+  invalidateDashboardCache_();
+
   writeAuditLog_(
     ctx.user.user_id,
     "APPROVE_PENDING",
@@ -437,6 +465,8 @@ function rejectPendingMember_(ctx, params) {
     reviewed_at: now,
     rejection_reason: reason,
   });
+
+  invalidateDashboardCache_();
 
   writeAuditLog_(
     ctx.user.user_id,

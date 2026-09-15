@@ -8,20 +8,29 @@ var GEMINI_CONFIG = {
   model: "gemini-3.6-flash",
   endpoint: "https://generativelanguage.googleapis.com/v1beta/models/",
   get apiKey() {
-    return PropertiesService.getScriptProperties().getProperty("GEMINI_API_KEY");
+    return PropertiesService.getScriptProperties().getProperty(
+      "GEMINI_API_KEY",
+    );
   },
 };
 
 var OMNIROUTE_CONFIG = {
   get endpoint() {
-    return PropertiesService.getScriptProperties().getProperty("OMNIROUTE_ENDPOINT");
+    return PropertiesService.getScriptProperties().getProperty(
+      "OMNIROUTE_ENDPOINT",
+    );
   },
   get model() {
-    return PropertiesService.getScriptProperties().getProperty("OMNIROUTE_MODEL") || "auto/best-vision";
+    return (
+      PropertiesService.getScriptProperties().getProperty("OMNIROUTE_MODEL") ||
+      "auto/best-vision"
+    );
   },
   timeout: 15000,
   get apiKey() {
-    return PropertiesService.getScriptProperties().getProperty("OMNIROUTE_API_KEY");
+    return PropertiesService.getScriptProperties().getProperty(
+      "OMNIROUTE_API_KEY",
+    );
   },
 };
 
@@ -56,7 +65,10 @@ function getStoredProvider_() {
 function storeProvider_(provider) {
   try {
     if (ALLOWED_PROVIDERS.indexOf(provider) === -1) return false;
-    PropertiesService.getScriptProperties().setProperty(PROP_KEY_PROVIDER, provider);
+    PropertiesService.getScriptProperties().setProperty(
+      PROP_KEY_PROVIDER,
+      provider,
+    );
     return true;
   } catch (e) {
     console.error("Gagal simpan provider:", e);
@@ -204,10 +216,9 @@ function handleAiChatMember_(body, ctx) {
     }
   }
 
-  return fail_(
-    "Asisten AI sedang tidak tersedia. Silakan coba lagi nanti.",
-    { provider: "omniroute" }
-  );
+  return fail_("Asisten AI sedang tidak tersedia. Silakan coba lagi nanti.", {
+    provider: "omniroute",
+  });
 }
 
 function isQuotaError_(message) {
@@ -224,16 +235,22 @@ function isQuotaError_(message) {
 var AI_TOOL_DEFS_ = [
   {
     name: "get_dashboard_summary",
-    description: "Ambil ringkasan dashboard: total jamaah aktif, rata-rata kehadiran, jumlah yang perlu perhatian, dan data belum lengkap.",
+    description:
+      "Ambil ringkasan dashboard: total jamaah aktif, rata-rata kehadiran, jumlah yang perlu perhatian, dan data belum lengkap.",
     parameters: { type: "object", properties: {}, required: [] },
   },
   {
     name: "get_members_list",
-    description: "Ambil daftar jamaah. Bisa difilter berdasarkan kategori, jenis kelamin, kelompok, atau pencarian nama.",
+    description:
+      "Ambil daftar jamaah. Bisa difilter berdasarkan kategori, jenis kelamin, kelompok, atau pencarian nama.",
     parameters: {
       type: "object",
       properties: {
-        kategori: { type: "string", description: "CABERAWIT | PRA_REMAJA | REMAJA | PRA_NIKAH | DEWASA | MANULA" },
+        kategori: {
+          type: "string",
+          description:
+            "CABERAWIT | PRA_REMAJA | REMAJA | PRA_NIKAH | DEWASA | MANULA",
+        },
         jenis_kelamin: { type: "string", description: "L atau P" },
         kelompok: { type: "string", description: "group_id" },
         search: { type: "string", description: "Kata kunci nama" },
@@ -258,7 +275,8 @@ var AI_TOOL_DEFS_ = [
   },
   {
     name: "get_attendance_summary",
-    description: "Ambil ringkasan absensi: total hadir/ijin/sakit/alpa dalam periode tertentu.",
+    description:
+      "Ambil ringkasan absensi: total hadir/ijin/sakit/alpa dalam periode tertentu.",
     parameters: {
       type: "object",
       properties: {
@@ -283,17 +301,23 @@ var AI_TOOL_DEFS_ = [
     description: "Ambil daftar jadwal pengajian yang akan datang.",
     parameters: {
       type: "object",
-      properties: { limit: { type: "number", description: "Maksimal hasil, default 10" } },
+      properties: {
+        limit: { type: "number", description: "Maksimal hasil, default 10" },
+      },
       required: [],
     },
   },
   {
     name: "get_monitoring_list",
-    description: "Ambil daftar monitoring/pembinaan jamaah. Bisa filter berdasarkan status.",
+    description:
+      "Ambil daftar monitoring/pembinaan jamaah. Bisa filter berdasarkan status.",
     parameters: {
       type: "object",
       properties: {
-        status: { type: "string", description: "AKTIF | PERLU_PERHATIAN | KURANG_AKTIF | TIDAK_AKTIF" },
+        status: {
+          type: "string",
+          description: "AKTIF | PERLU_PERHATIAN | KURANG_AKTIF | TIDAK_AKTIF",
+        },
         member_id: { type: "string", description: "Filter member tertentu" },
       },
       required: [],
@@ -305,7 +329,10 @@ var AI_TOOL_DEFS_ = [
     parameters: {
       type: "object",
       properties: {
-        status: { type: "string", description: "DRAFT | READY | SHARED | CANCELLED" },
+        status: {
+          type: "string",
+          description: "DRAFT | READY | SHARED | CANCELLED",
+        },
         group_id: { type: "string", description: "Filter kelompok" },
       },
       required: [],
@@ -316,27 +343,32 @@ var AI_TOOL_DEFS_ = [
 var AI_TOOL_DEFS_MEMBER_ = [
   {
     name: "get_my_profile",
-    description: "Ambil biodata diri sendiri (nama, usia, kelompok, alamat, pendidikan, dll).",
+    description:
+      "Ambil biodata diri sendiri (nama, usia, kelompok, alamat, pendidikan, dll).",
     parameters: { type: "object", properties: {}, required: [] },
   },
   {
     name: "get_my_attendance",
-    description: "Ambil riwayat absensi pengajian diri sendiri (tanggal, acara, status hadir/ijin/sakit/alpa).",
+    description:
+      "Ambil riwayat absensi pengajian diri sendiri (tanggal, acara, status hadir/ijin/sakit/alpa).",
     parameters: { type: "object", properties: {}, required: [] },
   },
   {
     name: "get_my_attendance_stats",
-    description: "Ambil statistik kehadiran pribadi: total hadir, ijin, sakit, alpa, dan persentase kehadiran.",
+    description:
+      "Ambil statistik kehadiran pribadi: total hadir, ijin, sakit, alpa, dan persentase kehadiran.",
     parameters: { type: "object", properties: {}, required: [] },
   },
   {
     name: "get_my_monitoring",
-    description: "Ambil riwayat pembinaan/monitoring diri sendiri (tanggal, status, catatan).",
+    description:
+      "Ambil riwayat pembinaan/monitoring diri sendiri (tanggal, status, catatan).",
     parameters: { type: "object", properties: {}, required: [] },
   },
   {
     name: "get_my_upcoming_meetings",
-    description: "Ambil jadwal pengajian yang akan datang (untuk informasi pribadi).",
+    description:
+      "Ambil jadwal pengajian yang akan datang (untuk informasi pribadi).",
     parameters: {
       type: "object",
       properties: {
@@ -361,10 +393,8 @@ function executeAiTool_(name, args, ctx) {
           jenis_kelamin: args.jenis_kelamin || "",
           kelompok: args.kelompok || "",
           search: args.search || "",
+          limit: args.limit || 50,
         });
-        if (result.success && Array.isArray(result.data) && args.limit) {
-          result.data = result.data.slice(0, args.limit);
-        }
         break;
       case "get_member_detail":
         if (!args.member_id) return fail_("member_id wajib diisi");
@@ -390,6 +420,7 @@ function executeAiTool_(name, args, ctx) {
         result = getAnnouncements_(ctx, {
           status: args.status || "",
           group_id: args.group_id || "",
+          limit: 50,
         });
         break;
       default:
@@ -486,12 +517,20 @@ function getAttendanceSummaryForAi_(args) {
     return true;
   });
 
-  var summary = { HADIR: 0, IJIN: 0, SAKIT: 0, TANPA_KETERANGAN: 0, TOTAL: filtered.length };
+  var summary = {
+    HADIR: 0,
+    IJIN: 0,
+    SAKIT: 0,
+    TANPA_KETERANGAN: 0,
+    TOTAL: filtered.length,
+  };
   filtered.forEach(function (a) {
     if (summary.hasOwnProperty(a.status)) summary[a.status]++;
   });
 
-  var rate = summary.TOTAL ? Math.round((summary.HADIR / summary.TOTAL) * 100) : 0;
+  var rate = summary.TOTAL
+    ? Math.round((summary.HADIR / summary.TOTAL) * 100)
+    : 0;
 
   return ok_({
     periode: { from: from || "awal", to: to || "sekarang" },
@@ -509,34 +548,50 @@ function getUpcomingMeetingsForAi_(limit) {
   var today = formatDate(nowIso_());
   var upcoming = repo
     .getAll()
-    .filter(function (m) { return formatDate(m.tanggal) >= today; })
-    .sort(function (a, b) { return new Date(a.tanggal) - new Date(b.tanggal); })
+    .filter(function (m) {
+      return formatDate(m.tanggal) >= today;
+    })
+    .sort(function (a, b) {
+      return new Date(a.tanggal) - new Date(b.tanggal);
+    })
     .slice(0, limit);
 
-  return ok_(upcoming.map(function (m) {
-    return {
-      meeting_id: m.meeting_id,
-      tanggal: m.tanggal,
-      hari: m.hari,
-      jam: m.jam,
-      acara: m.acara,
-      group_id: m.group_id,
-    };
-  }));
+  return ok_(
+    upcoming.map(function (m) {
+      return {
+        meeting_id: m.meeting_id,
+        tanggal: m.tanggal,
+        hari: m.hari,
+        jam: m.jam,
+        acara: m.acara,
+        group_id: m.group_id,
+      };
+    }),
+  );
 }
 
 function getMonitoringListForAi_(args) {
   var repo = new SheetRepository_("monitoring");
   var all = repo.getAll();
-  if (args.member_id) all = all.filter(function (m) { return m.member_id === args.member_id; });
-  if (args.status) all = all.filter(function (m) { return m.status === args.status; });
-  all.sort(function (a, b) { return new Date(b.tanggal) - new Date(a.tanggal); });
+  if (args.member_id)
+    all = all.filter(function (m) {
+      return m.member_id === args.member_id;
+    });
+  if (args.status)
+    all = all.filter(function (m) {
+      return m.status === args.status;
+    });
+  all.sort(function (a, b) {
+    return new Date(b.tanggal) - new Date(a.tanggal);
+  });
 
-  return ok_(all.slice(0, 100).map(function (m) {
-    var c = Object.assign({}, m);
-    delete c._row;
-    return c;
-  }));
+  return ok_(
+    all.slice(0, 100).map(function (m) {
+      var c = Object.assign({}, m);
+      delete c._row;
+      return c;
+    }),
+  );
 }
 
 function capToolResultRows_(obj) {
@@ -547,7 +602,11 @@ function capToolResultRows_(obj) {
       if (node.length > AI_CHAT_MAX_ROWS) {
         var truncated = node.slice(-AI_CHAT_MAX_ROWS);
         truncated._truncatedNotice =
-          "Menampilkan " + AI_CHAT_MAX_ROWS + " dari " + node.length + " baris.";
+          "Menampilkan " +
+          AI_CHAT_MAX_ROWS +
+          " dari " +
+          node.length +
+          " baris.";
         return truncated;
       }
       return node;
@@ -643,7 +702,9 @@ function buildAiSystemPromptMember_(user) {
 function historyToChatMessages_(history) {
   if (!Array.isArray(history)) return [];
   return history
-    .filter(function (h) { return h && h.text; })
+    .filter(function (h) {
+      return h && h.text;
+    })
     .slice(-10)
     .map(function (h) {
       return {
@@ -668,7 +729,11 @@ function omnirouteChat_(body, user, ctx) {
   var tools = AI_TOOL_DEFS_.map(function (t) {
     return {
       type: "function",
-      function: { name: t.name, description: t.description, parameters: t.parameters },
+      function: {
+        name: t.name,
+        description: t.description,
+        parameters: t.parameters,
+      },
     };
   });
 
@@ -713,8 +778,11 @@ function omnirouteChat_(body, user, ctx) {
     }
 
     var data;
-    try { data = JSON.parse(responseText); }
-    catch (e) { return fail_("Respons OmniRoute bukan JSON."); }
+    try {
+      data = JSON.parse(responseText);
+    } catch (e) {
+      return fail_("Respons OmniRoute bukan JSON.");
+    }
 
     var choice = data.choices && data.choices[0];
     var message = choice && choice.message;
@@ -730,7 +798,9 @@ function omnirouteChat_(body, user, ctx) {
 
       toolCalls.forEach(function (call) {
         var args = {};
-        try { args = JSON.parse(call.function.arguments || "{}"); } catch (e) {}
+        try {
+          args = JSON.parse(call.function.arguments || "{}");
+        } catch (e) {}
         var toolResult = executeAiTool_(call.function.name, args, ctx);
         messages.push({
           role: "tool",
@@ -743,10 +813,19 @@ function omnirouteChat_(body, user, ctx) {
     }
 
     if (data.usage) {
-      logAiUsage_(ctx, "omniroute", data.usage.prompt_tokens, data.usage.completion_tokens);
+      logAiUsage_(
+        ctx,
+        "omniroute",
+        data.usage.prompt_tokens,
+        data.usage.completion_tokens,
+      );
     }
 
-    return ok_({ reply: message.content || "Maaf, saya tidak mendapatkan jawaban." });
+    incrementAiQuota_(ctx); // FASE 1 FIX: kuota AI
+
+    return ok_({
+      reply: message.content || "Maaf, saya tidak mendapatkan jawaban.",
+    });
   }
 
   return fail_("Terlalu banyak proses pengambilan data.");
@@ -767,7 +846,11 @@ function omnirouteChatMember_(body, user, ctx) {
   var tools = AI_TOOL_DEFS_MEMBER_.map(function (t) {
     return {
       type: "function",
-      function: { name: t.name, description: t.description, parameters: t.parameters },
+      function: {
+        name: t.name,
+        description: t.description,
+        parameters: t.parameters,
+      },
     };
   });
 
@@ -812,8 +895,11 @@ function omnirouteChatMember_(body, user, ctx) {
     }
 
     var data;
-    try { data = JSON.parse(responseText); }
-    catch (e) { return fail_("Respons asisten AI tidak valid."); }
+    try {
+      data = JSON.parse(responseText);
+    } catch (e) {
+      return fail_("Respons asisten AI tidak valid.");
+    }
 
     var choice = data.choices && data.choices[0];
     var message = choice && choice.message;
@@ -829,7 +915,9 @@ function omnirouteChatMember_(body, user, ctx) {
 
       toolCalls.forEach(function (call) {
         var args = {};
-        try { args = JSON.parse(call.function.arguments || "{}"); } catch (e) {}
+        try {
+          args = JSON.parse(call.function.arguments || "{}");
+        } catch (e) {}
         var toolResult = executeAiToolMember_(call.function.name, args, ctx);
         messages.push({
           role: "tool",
@@ -842,8 +930,15 @@ function omnirouteChatMember_(body, user, ctx) {
     }
 
     if (data.usage) {
-      logAiUsage_(ctx, "omniroute", data.usage.prompt_tokens, data.usage.completion_tokens);
+      logAiUsage_(
+        ctx,
+        "omniroute",
+        data.usage.prompt_tokens,
+        data.usage.completion_tokens,
+      );
     }
+
+    incrementAiQuota_(ctx); // FASE 1 FIX: kuota AI
 
     return ok_({
       reply: message.content || "Maaf, saya tidak mendapatkan jawaban.",
@@ -877,7 +972,11 @@ function geminiChat_(body, user, ctx) {
   var tools = [
     {
       functionDeclarations: AI_TOOL_DEFS_.map(function (t) {
-        return { name: t.name, description: t.description, parameters: t.parameters };
+        return {
+          name: t.name,
+          description: t.description,
+          parameters: t.parameters,
+        };
       }),
     },
   ];
@@ -911,8 +1010,11 @@ function geminiChat_(body, user, ctx) {
     }
 
     var data;
-    try { data = JSON.parse(response.getContentText()); }
-    catch (e) { return fail_("Respons Gemini bukan JSON."); }
+    try {
+      data = JSON.parse(response.getContentText());
+    } catch (e) {
+      return fail_("Respons Gemini bukan JSON.");
+    }
 
     var candidate = data.candidates && data.candidates[0];
     var parts = candidate && candidate.content && candidate.content.parts;
@@ -920,31 +1022,56 @@ function geminiChat_(body, user, ctx) {
       return fail_("Respons Gemini kosong.");
     }
 
-    var functionCalls = parts.filter(function (p) { return p.functionCall; });
+    var functionCalls = parts.filter(function (p) {
+      return p.functionCall;
+    });
 
     if (functionCalls.length > 0) {
       contents.push({
         role: "model",
         parts: functionCalls.map(function (p) {
-          return { functionCall: p.functionCall, thoughtSignature: p.thoughtSignature };
+          return {
+            functionCall: p.functionCall,
+            thoughtSignature: p.thoughtSignature,
+          };
         }),
       });
 
       var functionResponseParts = functionCalls.map(function (p) {
-        var toolResult = executeAiTool_(p.functionCall.name, p.functionCall.args || {}, ctx);
-        return { functionResponse: { name: p.functionCall.name, response: toolResult } };
+        var toolResult = executeAiTool_(
+          p.functionCall.name,
+          p.functionCall.args || {},
+          ctx,
+        );
+        return {
+          functionResponse: { name: p.functionCall.name, response: toolResult },
+        };
       });
 
       contents.push({ role: "user", parts: functionResponseParts });
       continue;
     }
 
-    var textParts = parts.filter(function (p) { return typeof p.text === "string"; });
-    var reply = textParts.map(function (p) { return p.text; }).join("\n").trim();
+    var textParts = parts.filter(function (p) {
+      return typeof p.text === "string";
+    });
+    var reply = textParts
+      .map(function (p) {
+        return p.text;
+      })
+      .join("\n")
+      .trim();
 
     if (data.usageMetadata) {
-      logAiUsage_(ctx, "gemini", data.usageMetadata.promptTokenCount, data.usageMetadata.candidatesTokenCount);
+      logAiUsage_(
+        ctx,
+        "gemini",
+        data.usageMetadata.promptTokenCount,
+        data.usageMetadata.candidatesTokenCount,
+      );
     }
+
+    incrementAiQuota_(ctx); // FASE 1 FIX: kuota AI
 
     return ok_({ reply: reply || "Maaf, saya tidak mendapatkan jawaban." });
   }
@@ -1001,7 +1128,11 @@ function groqChatWithModel_(body, user, modelName, ctx) {
   var tools = AI_TOOL_DEFS_.map(function (t) {
     return {
       type: "function",
-      function: { name: t.name, description: t.description, parameters: t.parameters },
+      function: {
+        name: t.name,
+        description: t.description,
+        parameters: t.parameters,
+      },
     };
   });
 
@@ -1039,8 +1170,11 @@ function groqChatWithModel_(body, user, modelName, ctx) {
     }
 
     var data;
-    try { data = JSON.parse(responseText); }
-    catch (e) { return fail_("Respons Groq bukan JSON."); }
+    try {
+      data = JSON.parse(responseText);
+    } catch (e) {
+      return fail_("Respons Groq bukan JSON.");
+    }
 
     var choice = data.choices && data.choices[0];
     var message = choice && choice.message;
@@ -1056,7 +1190,9 @@ function groqChatWithModel_(body, user, modelName, ctx) {
 
       toolCalls.forEach(function (call) {
         var args = {};
-        try { args = JSON.parse(call.function.arguments || "{}"); } catch (e) {}
+        try {
+          args = JSON.parse(call.function.arguments || "{}");
+        } catch (e) {}
         var toolResult = executeAiTool_(call.function.name, args, ctx);
         messages.push({
           role: "tool",
@@ -1069,8 +1205,15 @@ function groqChatWithModel_(body, user, modelName, ctx) {
     }
 
     if (data.usage) {
-      logAiUsage_(ctx, "groq", data.usage.prompt_tokens, data.usage.completion_tokens);
+      logAiUsage_(
+        ctx,
+        "groq",
+        data.usage.prompt_tokens,
+        data.usage.completion_tokens,
+      );
     }
+
+    incrementAiQuota_(ctx); // FASE 1 FIX: kuota AI
 
     return ok_({
       reply: message.content || "Maaf, saya tidak mendapatkan jawaban.",
@@ -1092,7 +1235,11 @@ function groqChatMemberWithModel_(body, user, modelName, ctx) {
   var tools = AI_TOOL_DEFS_MEMBER_.map(function (t) {
     return {
       type: "function",
-      function: { name: t.name, description: t.description, parameters: t.parameters },
+      function: {
+        name: t.name,
+        description: t.description,
+        parameters: t.parameters,
+      },
     };
   });
 
@@ -1130,8 +1277,11 @@ function groqChatMemberWithModel_(body, user, modelName, ctx) {
     }
 
     var data;
-    try { data = JSON.parse(responseText); }
-    catch (e) { return fail_("Respons asisten AI bukan JSON."); }
+    try {
+      data = JSON.parse(responseText);
+    } catch (e) {
+      return fail_("Respons asisten AI bukan JSON.");
+    }
 
     var choice = data.choices && data.choices[0];
     var message = choice && choice.message;
@@ -1147,7 +1297,9 @@ function groqChatMemberWithModel_(body, user, modelName, ctx) {
 
       toolCalls.forEach(function (call) {
         var args = {};
-        try { args = JSON.parse(call.function.arguments || "{}"); } catch (e) {}
+        try {
+          args = JSON.parse(call.function.arguments || "{}");
+        } catch (e) {}
         var toolResult = executeAiToolMember_(call.function.name, args, ctx);
         messages.push({
           role: "tool",
@@ -1160,8 +1312,15 @@ function groqChatMemberWithModel_(body, user, modelName, ctx) {
     }
 
     if (data.usage) {
-      logAiUsage_(ctx, "groq", data.usage.prompt_tokens, data.usage.completion_tokens);
+      logAiUsage_(
+        ctx,
+        "groq",
+        data.usage.prompt_tokens,
+        data.usage.completion_tokens,
+      );
     }
+
+    incrementAiQuota_(ctx); // FASE 1 FIX: kuota AI
 
     return ok_({
       reply: message.content || "Maaf, saya tidak mendapatkan jawaban.",
