@@ -317,3 +317,103 @@ function seedInitialData_() {
     });
   }
 }
+
+function setupAllTriggers() {
+  Logger.log("=== SETUP ALL TRIGGERS ===");
+  Logger.log("");
+
+  Logger.log("1. Hapus trigger lama (kalau ada)...");
+  var existing = ScriptApp.getProjectTriggers();
+  existing.forEach(function (t) {
+    if (
+      t.getHandlerFunction() === "keepAlive" ||
+      t.getHandlerFunction() === "cleanupOldAiQuota_"
+    ) {
+      ScriptApp.deleteTrigger(t);
+      Logger.log("   Hapus: " + t.getHandlerFunction());
+    }
+  });
+  Logger.log("");
+
+  Logger.log("2. Buat keepAlive trigger (setiap 5 menit)...");
+  ScriptApp.newTrigger("keepAlive").timeBased().everyMinutes(5).create();
+  Logger.log("   ✅ keepAlive dibuat");
+  Logger.log("");
+
+  Logger.log("3. Buat cleanupOldAiQuota_ trigger (setiap hari jam 2 pagi)...");
+  ScriptApp.newTrigger("cleanupOldAiQuota_")
+    .timeBased()
+    .atHour(2)
+    .everyDays(1)
+    .create();
+  Logger.log("   ✅ cleanupOldAiQuota_ dibuat");
+  Logger.log("");
+
+  Logger.log("=== VERIFIKASI ===");
+  listAllTriggers();
+
+  Logger.log("");
+  Logger.log("Yang diharapkan: 2 trigger aktif.");
+}
+
+function listAllTriggers() {
+  var triggers = ScriptApp.getProjectTriggers();
+  Logger.log("=== TRIGGERS ===");
+  Logger.log("Total: " + triggers.length);
+  Logger.log("");
+  triggers.forEach(function (t, i) {
+    Logger.log(
+      i +
+        1 +
+        ". " +
+        t.getHandlerFunction() +
+        " | " +
+        t.getEventType() +
+        " | " +
+        t.getTriggerSource(),
+    );
+  });
+  return triggers.length;
+}
+
+/**
+ * KeepAlive agresif (setiap 1 menit).
+ *
+ * Berguna kalau cold start GAS sering terjadi.
+ * Trade-off:
+ * - Consume quota trigger ~24 menit/hari (masih aman untuk akun gratis)
+ * - Log lebih banyak
+ *
+ * Kalau ingin lebih hemat, ganti .everyMinutes(1) menjadi .everyMinutes(5).
+ */
+function setupAggressiveKeepAlive() {
+  var triggers = ScriptApp.getProjectTriggers();
+  triggers.forEach(function (t) {
+    if (t.getHandlerFunction() === "keepAlive") {
+      ScriptApp.deleteTrigger(t);
+    }
+  });
+
+  ScriptApp.newTrigger("keepAlive").timeBased().everyMinutes(1).create();
+
+  Logger.log("✅ KeepAlive: setiap 1 menit");
+  listAllTriggers();
+}
+
+/**
+ * KeepAlive standar (setiap 5 menit).
+ * Sama seperti setupKeepAliveTrigger lama, tapi dengan nama lebih jelas.
+ */
+function setupStandardKeepAlive() {
+  var triggers = ScriptApp.getProjectTriggers();
+  triggers.forEach(function (t) {
+    if (t.getHandlerFunction() === "keepAlive") {
+      ScriptApp.deleteTrigger(t);
+    }
+  });
+
+  ScriptApp.newTrigger("keepAlive").timeBased().everyMinutes(5).create();
+
+  Logger.log("✅ KeepAlive: setiap 5 menit");
+  listAllTriggers();
+}

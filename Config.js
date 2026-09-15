@@ -155,6 +155,7 @@ var SHEETS = {
     headers: [
       "log_id",
       "user_id",
+      "user_nama",
       "action",
       "target_type",
       "target_id",
@@ -227,13 +228,24 @@ var ROLES = {
   MEMBER: "MEMBER",
 };
 
+/* ============ KATEGORI JAMAAH ============ */
+/* Urutan dari termuda ke tertua:
+ *   BALITA      → < 6 tahun
+ *   CABERAWIT   → 6–12 tahun (SD)
+ *   PRA_REMAJA  → 13–15 tahun (SMP)
+ *   REMAJA      → 16–18 tahun (SMA/SMK)
+ *   PRA_NIKAH   → 19+ tahun, belum menikah
+ *   DEWASA      → sudah menikah
+ *   ISTIMEWA    → sudah menikah & 60+ tahun (sebelumnya "MANULA")
+ */
 var MEMBER_CATEGORY = {
+  BALITA: "BALITA", // ← baru
   CABERAWIT: "CABERAWIT",
   PRA_REMAJA: "PRA_REMAJA",
   REMAJA: "REMAJA",
   PRA_NIKAH: "PRA_NIKAH",
   DEWASA: "DEWASA",
-  MANULA: "MANULA",
+  ISTIMEWA: "ISTIMEWA", // ← rename dari MANULA
 };
 
 var ATTENDANCE_STATUS = {

@@ -20,6 +20,16 @@
 function getAuditLogs_(ctx, params) {
   var repo = new SheetRepository_("audit_logs");
   var all = repo.getAllRecent(AUDIT_LOG_RECENT_LIMIT);
+
+  /* -------- Build users map untuk fallback enrichment -------- */
+  var usersRepo = new SheetRepository_("users");
+  var users = usersRepo.getAll();
+  var usersById = {};
+  users.forEach(function (u) {
+    usersById[u.user_id] = u;
+  });
+
+  /* -------- Filter -------- */
   if (params.user_id)
     all = all.filter(function (l) {
       return l.user_id === params.user_id;
@@ -28,13 +38,22 @@ function getAuditLogs_(ctx, params) {
     all = all.filter(function (l) {
       return l.target_type === params.target_type;
     });
+
   all.sort(function (a, b) {
     return new Date(b.timestamp) - new Date(a.timestamp);
   });
+
   var limit = params.limit ? Number(params.limit) : 200;
+
   return ok_(
     all.slice(0, limit).map(function (l) {
       var c = Object.assign({}, l);
+
+      // Fallback: kalau user_nama kosong (log lama), enrich dari users map
+      if (!c.user_nama && c.user_id && usersById[c.user_id]) {
+        c.user_nama = usersById[c.user_id].nama || "";
+      }
+
       delete c._row;
       return c;
     }),

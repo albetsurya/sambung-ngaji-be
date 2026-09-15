@@ -167,25 +167,64 @@ function getMemberAge(tanggalLahir) {
   return age;
 }
 
+/* -------------------------------------------------------------------------- */
+/*                          KATEGORI JAMAAH                                   */
+/* -------------------------------------------------------------------------- */
+/*
+ * Logika kategorisasi (urutan prioritas):
+ *
+ * 1. Sudah menikah:
+ *    - 60+ tahun          → ISTIMEWA
+ *    - < 60 tahun         → DEWASA
+ *
+ * 2. Berdasarkan jenjang pendidikan:
+ *    - PAUD / TK          → CABERAWIT  (selalu, apapun usia)
+ *    - SD                 → CABERAWIT
+ *    - SMP                → PRA_REMAJA
+ *    - SMA / SMK          → REMAJA
+ *
+ * 3. Fallback berdasarkan usia (untuk yang belum sekolah / jenjang kosong):
+ *    - < 6 tahun          → BALITA
+ *    - 6–12 tahun         → CABERAWIT
+ *    - 13–15 tahun        → PRA_REMAJA
+ *    - 16–18 tahun        → REMAJA
+ *    - 60+ tahun          → ISTIMEWA
+ *    - else               → PRA_NIKAH
+ *
+ * Catatan: BALITA hanya untuk anak yang BELUM sekolah (jenjang kosong).
+ *          Begitu tercatat PAUD/TK/SD, otomatis CABERAWIT.
+ */
 function getMemberCategory(member) {
   if (!member) return null;
 
+  /* -------- 1. Sudah menikah -------- */
   if (toBool_(member.is_nikah)) {
     var age = getMemberAge(member.tanggal_lahir);
     return age !== null && age >= 60
-      ? MEMBER_CATEGORY.MANULA
+      ? MEMBER_CATEGORY.ISTIMEWA
       : MEMBER_CATEGORY.DEWASA;
   }
 
+  /* -------- 2. Berdasarkan jenjang pendidikan -------- */
   var jenjang = String(member.jenjang_pendidikan || "").toUpperCase();
 
-  if (jenjang === "TK" || jenjang === "SD") return MEMBER_CATEGORY.CABERAWIT;
+  if (jenjang === "PAUD" || jenjang === "TK") {
+    return MEMBER_CATEGORY.CABERAWIT;
+  }
+  if (jenjang === "SD") return MEMBER_CATEGORY.CABERAWIT;
   if (jenjang === "SMP") return MEMBER_CATEGORY.PRA_REMAJA;
   if (jenjang === "SMA" || jenjang === "SMK") return MEMBER_CATEGORY.REMAJA;
 
+  /* -------- 3. Fallback berdasarkan usia -------- */
+  /* Hanya untuk yang belum punya jenjang pendidikan. */
   var age2 = getMemberAge(member.tanggal_lahir);
-  if (age2 !== null && age2 >= 60) return MEMBER_CATEGORY.MANULA;
+  if (age2 !== null && age2 >= 60) return MEMBER_CATEGORY.ISTIMEWA;
+  if (age2 !== null && age2 < 6) return MEMBER_CATEGORY.BALITA;
   if (age2 !== null && age2 < 13) return MEMBER_CATEGORY.CABERAWIT;
+  if (age2 !== null && age2 < 16) return MEMBER_CATEGORY.PRA_REMAJA;
+  if (age2 !== null && age2 < 19) return MEMBER_CATEGORY.REMAJA;
+
+  /* -------- 4. Default -------- */
   return MEMBER_CATEGORY.PRA_NIKAH;
 }
 
