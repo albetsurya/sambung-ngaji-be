@@ -125,6 +125,19 @@ var ACTION_HANDLERS = {
   updateMeeting: updateMeeting_,
   deleteMeeting: deleteMeeting_,
 
+  // ✅ BULK MEETING (sudah ada)
+  previewBulkMeetings: previewBulkMeetings_,
+  bulkCreateMeetings: bulkCreateMeetings_,
+  getBulkMeetingTemplates: getBulkMeetingTemplates_,
+
+  // ✅ WA QUEUE (BARU)
+  createWaQueue: createWaQueue_,
+  cancelWaQueue: cancelWaQueue_,
+  getWaQueueStatus: getWaQueueStatus_,
+  bulkGetWaQueueStatus: bulkGetWaQueueStatus_,
+  listWaQueue: listWaQueue_,
+  retryWaQueue: retryWaQueue_,
+
   getAttendance: getAttendance_,
   getAttendancePage: getAttendancePage_,
   saveAttendance: saveAttendance_,

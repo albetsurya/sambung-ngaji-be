@@ -417,3 +417,59 @@ function setupStandardKeepAlive() {
   Logger.log("✅ KeepAlive: setiap 5 menit");
   listAllTriggers();
 }
+
+/* -------------------------------------------------------------------------- */
+/*                          WA QUEUE TRIGGER                                  */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Setup trigger processWaQueue_ setiap 15 menit.
+ * Jalankan SEKALI dari editor GAS.
+ */
+function setupWaQueueTrigger() {
+  var triggers = ScriptApp.getProjectTriggers();
+  triggers.forEach(function (t) {
+    if (t.getHandlerFunction() === "processWaQueue_") {
+      ScriptApp.deleteTrigger(t);
+    }
+  });
+
+  ScriptApp.newTrigger("processWaQueue_")
+    .timeBased()
+    .everyMinutes(WA_QUEUE_TRIGGER_MINUTES)
+    .create();
+
+  Logger.log(
+    "✅ Trigger WA Queue dibuat: setiap " + WA_QUEUE_TRIGGER_MINUTES + " menit",
+  );
+  listAllTriggers();
+}
+
+/**
+ * Setup trigger cleanup WA queue harian (jam 2 pagi).
+ */
+function setupWaQueueCleanupTrigger() {
+  var triggers = ScriptApp.getProjectTriggers();
+  triggers.forEach(function (t) {
+    if (t.getHandlerFunction() === "cleanupOldWaQueue_") {
+      ScriptApp.deleteTrigger(t);
+    }
+  });
+
+  ScriptApp.newTrigger("cleanupOldWaQueue_")
+    .timeBased()
+    .atHour(2)
+    .everyDays(1)
+    .create();
+
+  Logger.log("✅ Trigger cleanup WA queue dibuat: setiap hari jam 2 pagi");
+  listAllTriggers();
+}
+
+/**
+ * Setup semua trigger WA queue sekaligus.
+ */
+function setupAllWaQueueTriggers() {
+  setupWaQueueTrigger();
+  setupWaQueueCleanupTrigger();
+}

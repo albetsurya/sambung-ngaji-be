@@ -4,12 +4,12 @@ function getMeetings_(ctx, params) {
 
   if (params.from) {
     all = all.filter(function (m) {
-      return String(m.tanggal) >= String(params.from);
+      return String(formatDate(m.tanggal)) >= String(params.from);
     });
   }
   if (params.to) {
     all = all.filter(function (m) {
-      return String(m.tanggal) <= String(params.to);
+      return String(formatDate(m.tanggal)) <= String(params.to);
     });
   }
   if (params.group_id) {
@@ -32,17 +32,27 @@ function createMeeting_(ctx, params) {
   var now = nowIso_();
   var meetingId = generateMeetingId();
 
+  /* Resolve jam_start: dari params, atau default dari kategori/acara. */
+  var kategoriTarget = params.kategori_target || [];
+  var jamStart =
+    params.jam_start ||
+    resolveDefaultJamStart_({
+      acara: params.acara,
+      kategori_target: kategoriTarget,
+    });
+
   var meeting = {
     meeting_id: meetingId,
     tanggal: formatDate(params.tanggal),
-    hari: getHariFromDate(params.tanggal), // FASE 2B FIX: typo getHariFromDate_ → getHariFromDate
+    hari: getHariFromDate(params.tanggal),
     jam: params.jam || "",
+    jam_start: jamStart,
     group_id: params.group_id || "",
     acara: params.acara,
     materi: params.materi || "",
     status: params.status || "SCHEDULED",
     catatan: params.catatan || "",
-    kategori_target: JSON.stringify(params.kategori_target || []),
+    kategori_target: JSON.stringify(kategoriTarget),
     created_by: ctx.user.user_id,
     created_at: now,
     updated_at: now,
@@ -69,9 +79,10 @@ function updateMeeting_(ctx, params) {
 
   if (params.hasOwnProperty("tanggal")) {
     patch.tanggal = formatDate(params.tanggal);
-    patch.hari = getHariFromDate(params.tanggal); // FASE 2B FIX: typo getHariFromDate_ → getHariFromDate
+    patch.hari = getHariFromDate(params.tanggal);
   }
   if (params.hasOwnProperty("jam")) patch.jam = params.jam;
+  if (params.hasOwnProperty("jam_start")) patch.jam_start = params.jam_start;
   if (params.hasOwnProperty("group_id")) patch.group_id = params.group_id;
   if (params.hasOwnProperty("acara")) patch.acara = params.acara;
   if (params.hasOwnProperty("materi")) patch.materi = params.materi;
@@ -100,13 +111,6 @@ function updateMeeting_(ctx, params) {
 /*                              Delete meeting                                */
 /* -------------------------------------------------------------------------- */
 
-/**
- * FASE 2B OPTIMASI:
- * Sebelumnya: delete attendance satu-per-satu via deleteById (N deleteRow calls).
- * Sesudahnya: reuse deleteAttendanceByMeeting_ yang sudah pakai batch deleteRows.
- *
- * Efek: delete meeting dengan 100 attendance = 1 batch call, bukan 100 calls.
- */
 function deleteMeeting_(ctx, params) {
   if (!params.meeting_id) return fail_("meeting_id wajib diisi");
 
@@ -114,7 +118,7 @@ function deleteMeeting_(ctx, params) {
   var existing = meetingsRepo.findById("meeting_id", params.meeting_id);
   if (!existing) return fail_("Jadwal tidak ditemukan");
 
-  // FASE 2B: hapus semua absensi terkait via batch delete (bukan loop deleteById)
+  /* Hapus semua absensi terkait via batch delete. */
   var deleteAttendanceResult = deleteAttendanceByMeeting_(ctx, {
     meeting_id: params.meeting_id,
   });
@@ -122,7 +126,6 @@ function deleteMeeting_(ctx, params) {
     ? deleteAttendanceResult.data.deleted
     : 0;
 
-  // Hapus meeting
   meetingsRepo.deleteById("meeting_id", params.meeting_id);
 
   invalidateDashboardCache_();
@@ -145,10 +148,6 @@ function publicMeeting_(m) {
   var out = Object.assign({}, m);
   delete out._row;
 
-  /* ✅ FIX: normalize tanggal.
-     Google Sheets auto-convert "YYYY-MM-DD" jadi Date object,
-     lalu JSON.stringify serializes ke ISO UTC (geser 7 jam).
-     formatDate() pakai timezone lokal → balik ke "YYYY-MM-DD" yang benar. */
   out.tanggal = formatDate(m.tanggal);
 
   try {
