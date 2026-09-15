@@ -79,6 +79,7 @@ var SHEETS = {
       "tanggal",
       "hari",
       "jam",
+      "jam_start",
       "group_id",
       "acara",
       "materi",
@@ -217,6 +218,25 @@ var SHEETS = {
       "created_member_id",
     ],
   },
+  wa_queue: {
+    name: "wa_queue",
+    headers: [
+      "queue_id",
+      "meeting_id",
+      "meeting_date",
+      "jam_start",
+      "send_at",
+      "status",
+      "template_id",
+      "member_count",
+      "sent_count",
+      "failed_count",
+      "error_log",
+      "sent_at",
+      "created_at",
+      "updated_at",
+    ],
+  },
 };
 
 var ROLES = {
@@ -228,24 +248,14 @@ var ROLES = {
   MEMBER: "MEMBER",
 };
 
-/* ============ KATEGORI JAMAAH ============ */
-/* Urutan dari termuda ke tertua:
- *   BALITA      → < 6 tahun
- *   CABERAWIT   → 6–12 tahun (SD)
- *   PRA_REMAJA  → 13–15 tahun (SMP)
- *   REMAJA      → 16–18 tahun (SMA/SMK)
- *   PRA_NIKAH   → 19+ tahun, belum menikah
- *   DEWASA      → sudah menikah
- *   ISTIMEWA    → sudah menikah & 60+ tahun (sebelumnya "MANULA")
- */
 var MEMBER_CATEGORY = {
-  BALITA: "BALITA", // ← baru
+  BALITA: "BALITA",
   CABERAWIT: "CABERAWIT",
   PRA_REMAJA: "PRA_REMAJA",
   REMAJA: "REMAJA",
   PRA_NIKAH: "PRA_NIKAH",
   DEWASA: "DEWASA",
-  ISTIMEWA: "ISTIMEWA", // ← rename dari MANULA
+  ISTIMEWA: "ISTIMEWA",
 };
 
 var ATTENDANCE_STATUS = {
@@ -274,6 +284,24 @@ var PENDING_STATUS = {
   APPROVED: "APPROVED",
   REJECTED: "REJECTED",
 };
+
+/* ====== WA QUEUE ====== */
+var WA_QUEUE_STATUS = {
+  PENDING: "PENDING",
+  SENT: "SENT",
+  FAILED: "FAILED",
+  CANCELLED: "CANCELLED",
+};
+
+var WA_QUEUE_SEND_OFFSET_HOURS = 8;
+var WA_QUEUE_BATCH_SIZE = 50;
+var WA_QUEUE_TRIGGER_MINUTES = 15;
+
+/* ====== DEFAULT JAM MAPPING ====== */
+var WA_JAM_DEFAULT = "19:00";
+var WA_JAM_CABERAWIT_BALITA = "15:00";
+var WA_JAM_MAGHRIB = "18:00";
+var WA_KATEGORI_ANAK = ["BALITA", "CABERAWIT"];
 
 var FIELD_VISIBILITY = {
   UMUM: [
@@ -324,10 +352,11 @@ var AI_DAILY_LIMIT = {
   MEMBER: 10,
 };
 
-var ATTENDANCE_CACHE_TTL = 600; // 10 menit
+var ATTENDANCE_CACHE_TTL = 600;
 var ATTENDANCE_CACHE_PREFIX = "att_";
-var ATTENDANCE_RECENT_LIMIT = 3000; // untuk dashboard (≈ 6 bulan Grup C)
-var AUDIT_LOG_RECENT_LIMIT = 500; // audit log tidak perlu semua
+var ATTENDANCE_RECENT_LIMIT = 3000;
+var AUDIT_LOG_RECENT_LIMIT = 500;
+
 var WRITE_ACTIONS = {
   createMember: true,
   updateMember: true,
@@ -358,7 +387,11 @@ var WRITE_ACTIONS = {
   approvePendingMember: true,
   rejectPendingMember: true,
   logout: true,
+  createWaQueue: true,
+  cancelWaQueue: true,
+  retryWaQueue: true,
 };
+
 var SESSION_CACHE_PREFIX = "sess:";
 var USER_SESSION_PREFIX = "usess:";
 var SESSION_CACHE_TTL = 21600;
