@@ -20,3 +20,4 @@ apps-script/.clasp.json
 *.swp
 *.swo
 *~
+go/data-csv/
