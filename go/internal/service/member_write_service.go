@@ -1,0 +1,269 @@
+package service
+
+import (
+	"context"
+	"errors"
+	"strings"
+	"time"
+
+	"pengajian-backend/internal/model"
+	"pengajian-backend/internal/repository"
+	"pengajian-backend/internal/util"
+)
+
+type CreateMemberInput struct {
+	NamaLengkap            string
+	NamaPanggilan          string
+	JenisKelamin           string
+	TempatLahir            string
+	TanggalLahir           string
+	Kelompok               string
+	Desa                   string
+	Daerah                 string
+	AlamatRumah            string
+	NoWA                   string
+	IsMuballigh            bool
+	IsKerja                bool
+	IsNikah                bool
+	TinggiBadan            string
+	BeratBadan             string
+	Hobi                   string
+	Pekerjaan              string
+	FotoURL                string
+	StatusPembinaan        string
+	TanggalMasuk           string
+	JenjangPendidikan      string
+	Sekolah                string
+	Jurusan                string
+	TahunMulaiPendidikan   string
+	TahunSelesaiPendidikan string
+}
+
+func (s *MemberService) Create(ctx context.Context, in CreateMemberInput) (*model.MemberDetailDTO, error) {
+	if strings.TrimSpace(in.NamaLengkap) == "" {
+		return nil, errors.New("nama_lengkap wajib diisi")
+	}
+
+	jk := normalizeGender(in.JenisKelamin)
+	var jkPtr *string
+	if jk != "" {
+		jkPtr = &jk
+	}
+
+	var tglLahir interface{}
+	if in.TanggalLahir != "" {
+		tglLahir = in.TanggalLahir
+	}
+
+	status := in.StatusPembinaan
+	if status == "" {
+		status = "AKTIF"
+	}
+	tglMasuk := in.TanggalMasuk
+	if tglMasuk == "" {
+		tglMasuk = time.Now().Format("2006-01-02")
+	}
+
+	noWA := ""
+	if in.NoWA != "" {
+		noWA = util.NormalizePhone(in.NoWA)
+	}
+
+	memberID := util.NewID("MBR")
+	_, err := s.repo.Pool().Exec(ctx, `
+		INSERT INTO members (
+			member_id, nama_lengkap, nama_panggilan, jenis_kelamin,
+			tempat_lahir, tanggal_lahir, foto_url, no_wa,
+			alamat_rumah, desa, daerah, kelompok,
+			is_muballigh, is_kerja, is_nikah, tinggi_badan, berat_badan,
+			hobi, pekerjaan, status_pembinaan, status_aktif, tanggal_masuk,
+			jenjang_pendidikan, sekolah, jurusan,
+			tahun_mulai_pendidikan, tahun_selesai_pendidikan,
+			created_at, updated_at
+		) VALUES (
+			$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,
+			$13,$14,$15,$16,$17,$18,$19,$20,true,$21,
+			$22,$23,$24,$25,$26,now(),now()
+		)
+	`,
+		memberID, in.NamaLengkap, in.NamaPanggilan, jkPtr,
+		in.TempatLahir, tglLahir, in.FotoURL, noWA,
+		in.AlamatRumah, in.Desa, in.Daerah, in.Kelompok,
+		in.IsMuballigh, in.IsKerja, in.IsNikah, in.TinggiBadan, in.BeratBadan,
+		in.Hobi, in.Pekerjaan, status, tglMasuk,
+		in.JenjangPendidikan, in.Sekolah, in.Jurusan,
+		in.TahunMulaiPendidikan, in.TahunSelesaiPendidikan,
+	)
+	if err != nil {
+		return nil, err
+	}
+	m, err := s.repo.FindByID(ctx, memberID)
+	if err != nil {
+		return nil, err
+	}
+	dto := s.toDetailDTO(m)
+	return &dto, nil
+}
+
+type UpdateMemberInput struct {
+	MemberID               string
+	NamaLengkap            *string
+	NamaPanggilan          *string
+	JenisKelamin           *string
+	TempatLahir            *string
+	TanggalLahir           *string
+	Kelompok               *string
+	Desa                   *string
+	Daerah                 *string
+	AlamatRumah            *string
+	NoWA                   *string
+	IsMuballigh            *bool
+	IsKerja                *bool
+	IsNikah                *bool
+	TinggiBadan            *string
+	BeratBadan             *string
+	Hobi                   *string
+	Pekerjaan              *string
+	FotoURL                *string
+	StatusPembinaan        *string
+	TanggalMasuk           *string
+	TanggalKeluar          *string
+	JenjangPendidikan      *string
+	Sekolah                *string
+	Jurusan                *string
+	TahunMulaiPendidikan   *string
+	TahunSelesaiPendidikan *string
+}
+
+func (s *MemberService) UpdateFull(ctx context.Context, in UpdateMemberInput) (*model.MemberDetailDTO, error) {
+	if in.MemberID == "" {
+		return nil, errors.New("member_id wajib diisi")
+	}
+	if _, err := s.repo.FindByID(ctx, in.MemberID); err != nil {
+		return nil, errors.New("jamaah tidak ditemukan")
+	}
+
+	patch := map[string]interface{}{}
+	addStr := func(col string, v *string) {
+		if v != nil {
+			patch[col] = *v
+		}
+	}
+	addBool := func(col string, v *bool) {
+		if v != nil {
+			patch[col] = *v
+		}
+	}
+
+	addStr("nama_lengkap", in.NamaLengkap)
+	addStr("nama_panggilan", in.NamaPanggilan)
+	if in.JenisKelamin != nil {
+		if jk := normalizeGender(*in.JenisKelamin); jk != "" {
+			patch["jenis_kelamin"] = jk
+		}
+	}
+	addStr("tempat_lahir", in.TempatLahir)
+	if in.TanggalLahir != nil {
+		patch["tanggal_lahir"] = *in.TanggalLahir
+	}
+	addStr("kelompok", in.Kelompok)
+	addStr("desa", in.Desa)
+	addStr("daerah", in.Daerah)
+	addStr("alamat_rumah", in.AlamatRumah)
+	if in.NoWA != nil && *in.NoWA != "" {
+		patch["no_wa"] = util.NormalizePhone(*in.NoWA)
+	}
+	addBool("is_muballigh", in.IsMuballigh)
+	addBool("is_kerja", in.IsKerja)
+	addBool("is_nikah", in.IsNikah)
+	addStr("tinggi_badan", in.TinggiBadan)
+	addStr("berat_badan", in.BeratBadan)
+	addStr("hobi", in.Hobi)
+	addStr("pekerjaan", in.Pekerjaan)
+	addStr("foto_url", in.FotoURL)
+	addStr("status_pembinaan", in.StatusPembinaan)
+	if in.TanggalMasuk != nil {
+		patch["tanggal_masuk"] = *in.TanggalMasuk
+	}
+	if in.TanggalKeluar != nil {
+		patch["tanggal_keluar"] = *in.TanggalKeluar
+	}
+	addStr("jenjang_pendidikan", in.JenjangPendidikan)
+	addStr("sekolah", in.Sekolah)
+	addStr("jurusan", in.Jurusan)
+	addStr("tahun_mulai_pendidikan", in.TahunMulaiPendidikan)
+	addStr("tahun_selesai_pendidikan", in.TahunSelesaiPendidikan)
+
+	if len(patch) == 0 {
+		return nil, errors.New("tidak ada perubahan")
+	}
+	if err := s.repo.Update(ctx, in.MemberID, patch); err != nil {
+		return nil, err
+	}
+	m, err := s.repo.FindByID(ctx, in.MemberID)
+	if err != nil {
+		return nil, err
+	}
+	dto := s.toDetailDTO(m)
+	return &dto, nil
+}
+
+func (s *MemberService) Deactivate(ctx context.Context, memberID string) error {
+	if memberID == "" {
+		return errors.New("member_id wajib diisi")
+	}
+	if _, err := s.repo.FindByID(ctx, memberID); err != nil {
+		return errors.New("jamaah tidak ditemukan")
+	}
+	return s.repo.Deactivate(ctx, memberID)
+}
+
+func (s *MemberService) FindForExport(ctx context.Context) ([]map[string]interface{}, error) {
+	rows, err := s.repo.FindAllIncludingInactive(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]map[string]interface{}, 0, len(rows))
+	for _, r := range rows {
+		jk := ""
+		if r.JenisKelamin != nil {
+			jk = *r.JenisKelamin
+		}
+		tgl := ""
+		if r.TanggalLahir != nil {
+			tgl = r.TanggalLahir.Format("2006-01-02")
+		}
+		out = append(out, map[string]interface{}{
+			"nama_lengkap":     r.NamaLengkap,
+			"nama_panggilan":   r.NamaPanggilan,
+			"jenis_kelamin":    jk,
+			"tempat_lahir":     r.TempatLahir,
+			"tanggal_lahir":    tgl,
+			"usia":             util.GetAge(r.TanggalLahir),
+			"kategori":         util.GetMemberCategory(r.TanggalLahir, r.JenjangPendidikan, r.IsNikah),
+			"kelompok":         r.Kelompok,
+			"desa":             r.Desa,
+			"daerah":           r.Daerah,
+			"alamat_rumah":     r.AlamatRumah,
+			"no_wa":            r.NoWA,
+			"pekerjaan":        r.Pekerjaan,
+			"hobi":             r.Hobi,
+			"status_pembinaan": r.StatusPembinaan,
+		})
+	}
+	return out, nil
+}
+
+func normalizeGender(s string) string {
+	s = strings.TrimSpace(strings.ToLower(s))
+	switch s {
+	case "l", "laki-laki", "laki laki", "pria", "male":
+		return "L"
+	case "p", "perempuan", "wanita", "female":
+		return "P"
+	}
+	return ""
+}
+
+// Handle unused import repository
+var _ = repository.NewMemberRepo

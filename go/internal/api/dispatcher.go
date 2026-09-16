@@ -25,6 +25,11 @@ var RegisteredActions = map[string]bool{
 	"getAttendanceMembers": true,
 	"getMemberDetail":      true,
 
+	"createMember":        true,
+	"updateMember":        true,
+	"deactivateMember":    true,
+	"getMembersForExport": true,
+
 	// Groups
 	"getGroups": true,
 
@@ -242,6 +247,14 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 			return handleGetAttendanceMembers(c, svc.Member)
 		case "getMemberDetail":
 			return handleGetMemberDetail(c, svc.Member)
+		case "createMember":
+			return handleCreateMember(c, svc.Member)
+		case "updateMember":
+			return handleUpdateMember(c, svc.Member)
+		case "deactivateMember":
+			return handleDeactivateMember(c, svc.Member)
+		case "getMembersForExport":
+			return handleGetMembersForExport(c, svc.Member)
 
 		// Groups
 		case "getGroups":
