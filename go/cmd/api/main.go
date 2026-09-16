@@ -12,6 +12,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
+	"pengajian-backend/internal/ai"
 	"pengajian-backend/internal/api"
 	"pengajian-backend/internal/auth"
 	"pengajian-backend/internal/config"
@@ -40,6 +41,13 @@ func main() {
 	jwtMgr := auth.NewJWTManager(cfg.JWTSecret, cfg.JWTExpiryHrs)
 	authSvc := auth.NewService(db, jwtMgr)
 
+	omniRoute := ai.NewOmniRoute(ai.OmniRouteConfig{
+		Endpoint: cfg.OmniRouteEndpoint,
+		APIKey:   cfg.OmniRouteAPIKey,
+		Model:    cfg.OmniRouteModel,
+		Timeout:  time.Duration(cfg.OmniRouteTimeout) * time.Second,
+	})
+
 	app := fiber.New(fiber.Config{
 		AppName:      "Pengajian Backend",
 		ReadTimeout:  15 * time.Second,
@@ -60,7 +68,7 @@ func main() {
 	})
 
 	handler.RegisterHealth(app, db)
-	services := api.NewServices(db, authSvc)
+	services := api.NewServices(db, authSvc, omniRoute)
 	api.RegisterAPI(app, services)
 
 	log.Info().Strs("actions", api.ListRegisteredActions()).Msg("actions terdaftar")

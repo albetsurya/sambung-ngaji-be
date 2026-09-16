@@ -6,6 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"pengajian-backend/internal/ai"
 	"pengajian-backend/internal/auth"
 	"pengajian-backend/internal/repository"
 	"pengajian-backend/internal/service"
@@ -97,6 +98,10 @@ var RegisteredActions = map[string]bool{
 
 	// Audit
 	"getAuditLogs": true,
+
+	// AI
+	"aiChat":          true,
+	"getAiUsageStats": true,
 }
 
 type Services struct {
@@ -114,9 +119,10 @@ type Services struct {
 	User         *service.UserService
 	Profile      *service.ProfileService
 	Audit        *service.AuditService
+	AI           *service.AIService
 }
 
-func NewServices(pool *pgxpool.Pool, authSvc *auth.Service) *Services {
+func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, omniRoute *ai.OmniRoute) *Services {
 	return &Services{
 		Auth:    authSvc,
 		Member:  service.NewMemberService(repository.NewMemberRepo(pool)),
@@ -167,6 +173,38 @@ func NewServices(pool *pgxpool.Pool, authSvc *auth.Service) *Services {
 			repository.NewAttendanceRepo(pool),
 			repository.NewMonitoringRepo(pool),
 			repository.NewMeetingRepo(pool),
+		),
+		AI: service.NewAIService(
+			omniRoute,
+			repository.NewAIRepo(pool),
+			service.NewAIToolExecutor(
+				service.NewDashboardService(
+					repository.NewMemberRepo(pool),
+					repository.NewMeetingRepo(pool),
+					repository.NewAttendanceRepo(pool),
+					repository.NewMonitoringRepo(pool),
+				),
+				service.NewMemberService(repository.NewMemberRepo(pool)),
+				service.NewGroupService(repository.NewGroupRepo(pool)),
+				service.NewMeetingService(repository.NewMeetingRepo(pool)),
+				service.NewAttendanceService(
+					repository.NewAttendanceRepo(pool),
+					repository.NewMeetingRepo(pool),
+					service.NewMemberService(repository.NewMemberRepo(pool)),
+				),
+				service.NewMonitoringService(repository.NewMonitoringRepo(pool)),
+				service.NewAnnouncementService(
+					repository.NewAnnouncementRepo(pool),
+					repository.NewGroupRepo(pool),
+					repository.NewMemberRepo(pool),
+				),
+				service.NewProfileService(
+					repository.NewMemberRepo(pool),
+					repository.NewAttendanceRepo(pool),
+					repository.NewMonitoringRepo(pool),
+					repository.NewMeetingRepo(pool),
+				),
+			),
 		),
 	}
 }
@@ -326,6 +364,12 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 			// Audit
 		case "getAuditLogs":
 			return handleGetAuditLogs(c, svc.Audit)
+
+		// AI
+		case "aiChat":
+			return handleAiChat(c, svc.AI)
+		case "getAiUsageStats":
+			return handleGetAiUsageStats(c, svc.AI)
 
 		}
 
