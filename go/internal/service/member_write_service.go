@@ -164,7 +164,11 @@ func (s *MemberService) UpdateFull(ctx context.Context, in UpdateMemberInput) (*
 	}
 	addStr("tempat_lahir", in.TempatLahir)
 	if in.TanggalLahir != nil {
-		patch["tanggal_lahir"] = *in.TanggalLahir
+		if *in.TanggalLahir == "" {
+			patch["tanggal_lahir"] = nil
+		} else {
+			patch["tanggal_lahir"] = *in.TanggalLahir
+		}
 	}
 	addStr("kelompok", in.Kelompok)
 	addStr("desa", in.Desa)
@@ -183,10 +187,18 @@ func (s *MemberService) UpdateFull(ctx context.Context, in UpdateMemberInput) (*
 	addStr("foto_url", in.FotoURL)
 	addStr("status_pembinaan", in.StatusPembinaan)
 	if in.TanggalMasuk != nil {
-		patch["tanggal_masuk"] = *in.TanggalMasuk
+		if *in.TanggalMasuk == "" {
+			patch["tanggal_masuk"] = nil
+		} else {
+			patch["tanggal_masuk"] = *in.TanggalMasuk
+		}
 	}
 	if in.TanggalKeluar != nil {
-		patch["tanggal_keluar"] = *in.TanggalKeluar
+		if *in.TanggalKeluar == "" {
+			patch["tanggal_keluar"] = nil
+		} else {
+			patch["tanggal_keluar"] = *in.TanggalKeluar
+		}
 	}
 	addStr("jenjang_pendidikan", in.JenjangPendidikan)
 	addStr("sekolah", in.Sekolah)
