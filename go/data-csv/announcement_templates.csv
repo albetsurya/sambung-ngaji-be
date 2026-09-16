@@ -1,0 +1,121 @@
+template_id,nama_template,kode,isi_template,status_aktif,created_at,updated_at
+TPL001,Undangan Sambung Kelompok,UNDANGAN_SAMBUNG,"●◉❀ *UNDANGAN SAMBUNG*
+*KELOMPOK* ❀ ◉●•◦
+
+Assalamu'alaikum wr. wb
+
+Diberitahukan kepada seluruh jama'ah {{nama_kelompok}}, bahwa :
+
+HARI : {{hari}}, {{tanggal}}
+
+JAM : {{jam}}
+
+ACARA : {{acara}}
+
+MATERI :
+{{materi}}
+
+NB :
+{{catatan}}
+
+Alkhamdulillahi jazakumullohu khoiro
+Wassalamualaikum wr. wb
+
+ttd
+{{penandatangan}}",TRUE,2026-09-11T11:16:34.715Z,2026-09-11T11:16:34.715Z
+TPL002,Pengumuman Pengajian,PENGUMUMAN_PENGAJIAN,"●◉❀ *UNDANGAN SAMBUNG*
+*KELOMPOK* ❀ ◉●•◦
+
+Assalamu'alaikum wr. wb
+
+Diberitahukan kepada seluruh jama'ah {{nama_kelompok}}, bahwa :
+
+HARI : {{hari}}, {{tanggal}}
+
+JAM : {{jam}}
+
+ACARA : {{acara}}
+
+MATERI :
+{{materi}}
+
+NB :
+{{catatan}}
+
+Alkhamdulillahi jazakumullohu khoiro
+Wassalamualaikum wr. wb
+
+ttd
+{{penandatangan}}",TRUE,2026-09-11T11:16:34.715Z,2026-09-11T11:16:34.715Z
+TPL003,Pengingat Pengajian,PENGINGAT_PENGAJIAN,"●◉❀ *UNDANGAN SAMBUNG*
+*KELOMPOK* ❀ ◉●•◦
+
+Assalamu'alaikum wr. wb
+
+Diberitahukan kepada seluruh jama'ah {{nama_kelompok}}, bahwa :
+
+HARI : {{hari}}, {{tanggal}}
+
+JAM : {{jam}}
+
+ACARA : {{acara}}
+
+MATERI :
+{{materi}}
+
+NB :
+{{catatan}}
+
+Alkhamdulillahi jazakumullohu khoiro
+Wassalamualaikum wr. wb
+
+ttd
+{{penandatangan}}",TRUE,2026-09-11T11:16:34.715Z,2026-09-11T11:16:34.715Z
+TPL004,Perubahan Jadwal,PERUBAHAN_JADWAL,"●◉❀ *UNDANGAN SAMBUNG*
+*KELOMPOK* ❀ ◉●•◦
+
+Assalamu'alaikum wr. wb
+
+Diberitahukan kepada seluruh jama'ah {{nama_kelompok}}, bahwa :
+
+HARI : {{hari}}, {{tanggal}}
+
+JAM : {{jam}}
+
+ACARA : {{acara}}
+
+MATERI :
+{{materi}}
+
+NB :
+{{catatan}}
+
+Alkhamdulillahi jazakumullohu khoiro
+Wassalamualaikum wr. wb
+
+ttd
+{{penandatangan}}",TRUE,2026-09-11T11:16:34.715Z,2026-09-11T11:16:34.715Z
+TPL005,Pengumuman Umum,PENGUMUMAN_UMUM,"●◉❀ *UNDANGAN SAMBUNG*
+*KELOMPOK* ❀ ◉●•◦
+
+Assalamu'alaikum wr. wb
+
+Diberitahukan kepada seluruh jama'ah {{nama_kelompok}}, bahwa :
+
+HARI : {{hari}}, {{tanggal}}
+
+JAM : {{jam}}
+
+ACARA : {{acara}}
+
+MATERI :
+{{materi}}
+
+NB :
+{{catatan}}
+
+Alkhamdulillahi jazakumullohu khoiro
+Wassalamualaikum wr. wb
+
+ttd
+{{penandatangan}}",TRUE,2026-09-11T11:16:34.715Z,2026-09-11T11:16:34.715Z
