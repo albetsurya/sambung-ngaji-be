@@ -46,6 +46,8 @@ type Services struct {
 	Group      *service.GroupService
 	Meeting    *service.MeetingService
 	Attendance *service.AttendanceService
+	Monitoring *service.MonitoringService
+	Dashboard  *service.DashboardService
 }
 
 func NewServices(pool *pgxpool.Pool, authSvc *auth.Service) *Services {
@@ -58,6 +60,13 @@ func NewServices(pool *pgxpool.Pool, authSvc *auth.Service) *Services {
 			repository.NewAttendanceRepo(pool),
 			repository.NewMeetingRepo(pool),
 			service.NewMemberService(repository.NewMemberRepo(pool)),
+		),
+		Monitoring: service.NewMonitoringService(repository.NewMonitoringRepo(pool)),
+		Dashboard: service.NewDashboardService(
+			repository.NewMemberRepo(pool),
+			repository.NewMeetingRepo(pool),
+			repository.NewAttendanceRepo(pool),
+			repository.NewMonitoringRepo(pool),
 		),
 	}
 }
@@ -116,6 +125,13 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 			return handleDeleteAttendanceByMeeting(c, svc.Attendance)
 		case "deleteAttendanceByMember":
 			return handleDeleteAttendanceByMember(c, svc.Attendance)
+
+		case "getDashboard":
+			return handleGetDashboard(c, svc.Dashboard)
+		case "getMyDashboard":
+			return handleGetMyDashboard(c, svc.Dashboard)
+		case "getMonitoring":
+			return handleGetMonitoring(c, svc.Monitoring)
 		}
 
 		if !RegisteredActions[action] {
