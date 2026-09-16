@@ -4,35 +4,75 @@ import (
 	"sort"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"pengajian-backend/internal/auth"
+	"pengajian-backend/internal/repository"
+	"pengajian-backend/internal/service"
 )
 
-// RegisteredActions — daftar action yang sudah diport ke Go.
-// Dipakai untuk mengembalikan error yang jelas kalau action belum ada.
+// RegisteredActions — daftar action yang SUDAH di-port ke Go.
 var RegisteredActions = map[string]bool{
 	"login":           true,
 	"logout":          true,
 	"validateSession": true,
+
+	// Members
+	"getMembers":           true,
+	"getMembersPaged":      true,
+	"getPNKBMembers":       true,
+	"getPNKBMembersPaged":  true,
+	"getAttendanceMembers": true,
+	"getMemberDetail":      true,
 }
 
-func RegisterAPI(app *fiber.App, svc *auth.Service) {
-	app.Post("/api", BodyParserMiddleware(), AuthMiddleware(svc), func(c *fiber.Ctx) error {
+type Services struct {
+	Auth   *auth.Service
+	Member *service.MemberService
+}
+
+func NewServices(pool *pgxpool.Pool, authSvc *auth.Service) *Services {
+	return &Services{
+		Auth:   authSvc,
+		Member: service.NewMemberService(repository.NewMemberRepo(pool)),
+	}
+}
+
+func RegisterAPI(app *fiber.App, svc *Services) {
+	app.Post("/api", BodyParserMiddleware(), AuthMiddleware(svc.Auth), func(c *fiber.Ctx) error {
 		action, _ := BodyOf(c)["action"].(string)
 		if action == "" {
 			return Fail(c, "Parameter action wajib diisi")
 		}
 
 		switch action {
+		// auth
 		case "login":
-			return handleLogin(c, svc)
+			return handleLogin(c, svc.Auth)
 		case "logout":
-			return handleLogout(c, svc)
+			return handleLogout(c, svc.Auth)
 		case "validateSession":
-			return handleValidateSession(c, svc)
+			return handleValidateSession(c, svc.Auth)
+
+		// members
+		case "getMembers":
+			return handleGetMembers(c, svc.Member)
+		case "getMembersPaged":
+			return handleGetMembersPaged(c, svc.Member)
+		case "getPNKBMembers":
+			return handleGetPNKBMembers(c, svc.Member)
+		case "getPNKBMembersPaged":
+			return handleGetPNKBMembersPaged(c, svc.Member)
+		case "getAttendanceMembers":
+			return handleGetAttendanceMembers(c, svc.Member)
+		case "getMemberDetail":
+			return handleGetMemberDetail(c, svc.Member)
 		}
 
-		return Fail(c, "Action belum diimplementasi di Go: "+action)
+		if !RegisteredActions[action] {
+			return Fail(c, "Action belum diimplementasi di Go: "+action)
+		}
+		return Fail(c, "Action tidak ditemukan: "+action)
 	})
 }
 
