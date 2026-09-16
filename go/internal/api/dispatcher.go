@@ -48,6 +48,7 @@ type Services struct {
 	Attendance *service.AttendanceService
 	Monitoring *service.MonitoringService
 	Dashboard  *service.DashboardService
+	Settings   *service.SettingsService
 }
 
 func NewServices(pool *pgxpool.Pool, authSvc *auth.Service) *Services {
@@ -68,6 +69,7 @@ func NewServices(pool *pgxpool.Pool, authSvc *auth.Service) *Services {
 			repository.NewAttendanceRepo(pool),
 			repository.NewMonitoringRepo(pool),
 		),
+		Settings: service.NewSettingsService(repository.NewSettingsRepo(pool)),
 	}
 }
 
@@ -132,6 +134,11 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 			return handleGetMyDashboard(c, svc.Dashboard)
 		case "getMonitoring":
 			return handleGetMonitoring(c, svc.Monitoring)
+
+		case "getSettings":
+			return handleGetSettings(c, svc.Settings)
+		case "updateSettings":
+			return handleUpdateSettings(c, svc.Settings)
 		}
 
 		if !RegisteredActions[action] {
