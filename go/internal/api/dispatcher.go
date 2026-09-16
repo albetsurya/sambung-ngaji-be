@@ -83,6 +83,13 @@ var RegisteredActions = map[string]bool{
 	"changeMyPassword":    true,
 	"resetUserPassword":   true,
 
+	// Profile (member self-service)
+	"getMyProfile":        true,
+	"updateMyProfile":     true,
+	"getMyAttendance":     true,
+	"getMyMonitoring":     true,
+	"getUpcomingMeetings": true,
+
 	// Audit
 	"getAuditLogs": true,
 }
@@ -99,6 +106,7 @@ type Services struct {
 	Announcement *service.AnnouncementService
 	Pending      *service.PendingService
 	User         *service.UserService
+	Profile      *service.ProfileService
 	Audit        *service.AuditService
 }
 
@@ -141,6 +149,12 @@ func NewServices(pool *pgxpool.Pool, authSvc *auth.Service) *Services {
 			repository.NewUserRepo(pool),
 			repository.NewMemberRepo(pool),
 			service.NewAuditService(repository.NewAuditRepo(pool), repository.NewUserAdminRepo(pool)),
+		),
+		Profile: service.NewProfileService(
+			repository.NewMemberRepo(pool),
+			repository.NewAttendanceRepo(pool),
+			repository.NewMonitoringRepo(pool),
+			repository.NewMeetingRepo(pool),
 		),
 	}
 }
@@ -277,7 +291,19 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 		case "resetUserPassword":
 			return handleResetUserPassword(c, svc.User)
 
-		// Audit
+		// Profile
+		case "getMyProfile":
+			return handleGetMyProfile(c, svc.Profile)
+		case "updateMyProfile":
+			return handleUpdateMyProfile(c, svc.Profile)
+		case "getMyAttendance":
+			return handleGetMyAttendance(c, svc.Profile)
+		case "getMyMonitoring":
+			return handleGetMyMonitoring(c, svc.Profile)
+		case "getUpcomingMeetings":
+			return handleGetUpcomingMeetings(c, svc.Profile)
+
+			// Audit
 		case "getAuditLogs":
 			return handleGetAuditLogs(c, svc.Audit)
 
