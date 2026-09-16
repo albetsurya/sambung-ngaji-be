@@ -41,12 +41,18 @@ func main() {
 	jwtMgr := auth.NewJWTManager(cfg.JWTSecret, cfg.JWTExpiryHrs)
 	authSvc := auth.NewService(db, jwtMgr)
 
-	omniRoute := ai.NewOmniRoute(ai.OmniRouteConfig{
-		Endpoint: cfg.OmniRouteEndpoint,
-		APIKey:   cfg.OmniRouteAPIKey,
-		Model:    cfg.OmniRouteModel,
-		Timeout:  time.Duration(cfg.OmniRouteTimeout) * time.Second,
-	})
+	providers := map[string]ai.Provider{
+		"omniroute": ai.NewOmniRoute(
+			cfg.OmniRouteEndpoint,
+			cfg.OmniRouteAPIKey,
+			cfg.OmniRouteModel,
+			time.Duration(cfg.OmniRouteTimeout)*time.Second,
+		),
+	}
+	if cfg.GroqAPIKey != "" {
+		providers["groq"] = ai.NewGroq(cfg.GroqAPIKey, cfg.GroqModel, 60*time.Second)
+	}
+	providerOrder := []string{"omniroute", "groq"}
 
 	app := fiber.New(fiber.Config{
 		AppName:      "Pengajian Backend",
@@ -68,7 +74,7 @@ func main() {
 	})
 
 	handler.RegisterHealth(app, db)
-	services := api.NewServices(db, authSvc, omniRoute)
+	services := api.NewServices(db, authSvc, providers, providerOrder)
 	api.RegisterAPI(app, services)
 
 	log.Info().Strs("actions", api.ListRegisteredActions()).Msg("actions terdaftar")

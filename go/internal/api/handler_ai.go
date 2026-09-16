@@ -57,3 +57,15 @@ func handleGetAiUsageStats(c *fiber.Ctx, svc *service.AIService) error {
 	}
 	return Ok(c, res)
 }
+
+func handleGetCurrentProvider(c *fiber.Ctx, svc *service.AIService) error {
+	return Ok(c, svc.GetProviderInfo(c.Context()))
+}
+
+func handleSetAIProvider(c *fiber.Ctx, svc *service.AIService) error {
+	provider := BodyString(c, "provider")
+	if err := svc.SetProvider(c.Context(), provider); err != nil {
+		return Fail(c, err.Error())
+	}
+	return Ok(c, svc.GetProviderInfo(c.Context()))
+}

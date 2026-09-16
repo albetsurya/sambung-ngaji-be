@@ -100,8 +100,10 @@ var RegisteredActions = map[string]bool{
 	"getAuditLogs": true,
 
 	// AI
-	"aiChat":          true,
-	"getAiUsageStats": true,
+	"aiChat":             true,
+	"getAiUsageStats":    true,
+	"getCurrentProvider": true,
+	"setAIProvider":      true,
 }
 
 type Services struct {
@@ -122,7 +124,7 @@ type Services struct {
 	AI           *service.AIService
 }
 
-func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, omniRoute *ai.OmniRoute) *Services {
+func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, providers map[string]ai.Provider, providerOrder []string) *Services {
 	return &Services{
 		Auth:    authSvc,
 		Member:  service.NewMemberService(repository.NewMemberRepo(pool)),
@@ -175,7 +177,8 @@ func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, omniRoute *ai.OmniRo
 			repository.NewMeetingRepo(pool),
 		),
 		AI: service.NewAIService(
-			omniRoute,
+			providers,
+			providerOrder,
 			repository.NewAIRepo(pool),
 			service.NewAIToolExecutor(
 				service.NewDashboardService(
@@ -205,6 +208,7 @@ func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, omniRoute *ai.OmniRo
 					repository.NewMeetingRepo(pool),
 				),
 			),
+			repository.NewSettingsRepo(pool),
 		),
 	}
 }
@@ -370,6 +374,10 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 			return handleAiChat(c, svc.AI)
 		case "getAiUsageStats":
 			return handleGetAiUsageStats(c, svc.AI)
+		case "getCurrentProvider":
+			return handleGetCurrentProvider(c, svc.AI)
+		case "setAIProvider":
+			return handleSetAIProvider(c, svc.AI)
 
 		}
 

@@ -20,6 +20,8 @@ type Config struct {
 	OmniRouteAPIKey   string
 	OmniRouteModel    string
 	OmniRouteTimeout  int
+	GroqAPIKey        string
+	GroqModel         string
 }
 
 func Load() (*Config, error) {
@@ -39,6 +41,8 @@ func Load() (*Config, error) {
 	cfg.OmniRouteAPIKey = os.Getenv("OMNIROUTE_API_KEY")
 	cfg.OmniRouteModel = getEnv("OMNIROUTE_MODEL", "auto/best-vision")
 	cfg.OmniRouteTimeout = getEnvInt("OMNIROUTE_TIMEOUT_SEC", 60)
+	cfg.GroqAPIKey = os.Getenv("GROQ_API_KEY")
+	cfg.GroqModel = getEnv("GROQ_MODEL", "llama-3.3-70b-versatile")
 
 	if cfg.DatabaseURL == "" {
 		return nil, fmt.Errorf("DATABASE_URL wajib diisi")
