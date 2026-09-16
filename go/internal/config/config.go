@@ -33,7 +33,7 @@ func Load() (*Config, error) {
 
 	cfg := &Config{
 		AppEnv:       getEnv("APP_ENV", "development"),
-    	AppPort:      getEnv("PORT", getEnv("APP_PORT", "8080")),
+		AppPort:      getEnv("PORT", getEnv("APP_PORT", "8080")),
 		DatabaseURL:  os.Getenv("DATABASE_URL"),
 		JWTSecret:    os.Getenv("JWT_SECRET"),
 		JWTExpiryHrs: getEnvInt("JWT_EXPIRY_HOURS", 12),
@@ -45,9 +45,9 @@ func Load() (*Config, error) {
 	cfg.OmniRouteModel = getEnv("OMNIROUTE_MODEL", "auto/best-vision")
 	cfg.OmniRouteTimeout = getEnvInt("OMNIROUTE_TIMEOUT_SEC", 60)
 	cfg.GroqAPIKey = os.Getenv("GROQ_API_KEY")
-	cfg.GroqModel = getEnv("GROQ_MODEL", "llama-3.3-70b-versatile")
+	cfg.GroqModel = getEnv("GROQ_MODEL", "openai/gpt-oss-120b")
 	cfg.GeminiAPIKey = os.Getenv("GEMINI_API_KEY")
-	cfg.GeminiModel = getEnv("GEMINI_MODEL", "gemini-2.0-flash")
+	cfg.GeminiModel = getEnv("GEMINI_MODEL", "gemini-3.6-flash")
 
 	if cfg.DatabaseURL == "" {
 		return nil, fmt.Errorf("DATABASE_URL wajib diisi")

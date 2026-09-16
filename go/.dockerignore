@@ -2,8 +2,6 @@
 .env.*
 !.env.example
 *.log
-.git
-.gitignore
 data-csv/
 tmp/
 run.sh
