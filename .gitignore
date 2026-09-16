@@ -1,3 +1,17 @@
+# Env & secrets
+.env
+.env.*
+!.env.example
+*.env.local
+
+# Go
+go/bin/
+go/tmp/
+go/vendor/
+
+# Clasp — aktif per branch, jangan commit
+apps-script/.clasp.json
 .clasp.json
-.CLASSPATH
-node_modules/
+
+# OS
+.DS_Store
