@@ -51,14 +51,6 @@ var RegisteredActions = map[string]bool{
 	"getSettings":    true,
 	"updateSettings": true,
 
-	// Pending
-	"getPendingMembers":         true,
-	"getPendingMemberDetail":    true,
-	"approvePendingMember":      true,
-	"rejectPendingMember":       true,
-	"submitPublicRegistration":  true,
-	"checkUsernameAvailability": true,
-
 	// Announcements
 	"getAnnouncementTemplates":        true,
 	"getAllAnnouncementTemplates":     true,
@@ -72,6 +64,27 @@ var RegisteredActions = map[string]bool{
 	"updateAnnouncement":              true,
 	"getAnnouncements":                true,
 	"getAnnouncementRecipientSummary": true,
+
+	// Pending
+	"getPendingMembers":         true,
+	"getPendingMemberDetail":    true,
+	"approvePendingMember":      true,
+	"rejectPendingMember":       true,
+	"submitPublicRegistration":  true,
+	"checkUsernameAvailability": true,
+
+	// Users
+	"getUsers":            true,
+	"getUserDetail":       true,
+	"createUser":          true,
+	"updateUser":          true,
+	"updateUserRole":      true,
+	"getMemberUserStatus": true,
+	"changeMyPassword":    true,
+	"resetUserPassword":   true,
+
+	// Audit
+	"getAuditLogs": true,
 }
 
 type Services struct {
@@ -85,6 +98,8 @@ type Services struct {
 	Settings     *service.SettingsService
 	Announcement *service.AnnouncementService
 	Pending      *service.PendingService
+	User         *service.UserService
+	Audit        *service.AuditService
 }
 
 func NewServices(pool *pgxpool.Pool, authSvc *auth.Service) *Services {
@@ -116,6 +131,16 @@ func NewServices(pool *pgxpool.Pool, authSvc *auth.Service) *Services {
 			repository.NewUserRepo(pool),
 			repository.NewMemberRepo(pool),
 			service.NewWASender(),
+		),
+		Audit: service.NewAuditService(
+			repository.NewAuditRepo(pool),
+			repository.NewUserAdminRepo(pool),
+		),
+		User: service.NewUserService(
+			repository.NewUserAdminRepo(pool),
+			repository.NewUserRepo(pool),
+			repository.NewMemberRepo(pool),
+			service.NewAuditService(repository.NewAuditRepo(pool), repository.NewUserAdminRepo(pool)),
 		),
 	}
 }
@@ -233,6 +258,29 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 			return handleApprovePendingMember(c, svc.Pending)
 		case "rejectPendingMember":
 			return handleRejectPendingMember(c, svc.Pending)
+
+		// Users
+		case "getUsers":
+			return handleGetUsers(c, svc.User)
+		case "getUserDetail":
+			return handleGetUserDetail(c, svc.User)
+		case "createUser":
+			return handleCreateUser(c, svc.User)
+		case "updateUser":
+			return handleUpdateUser(c, svc.User)
+		case "updateUserRole":
+			return handleUpdateUserRole(c, svc.User)
+		case "getMemberUserStatus":
+			return handleGetMemberUserStatus(c, svc.User)
+		case "changeMyPassword":
+			return handleChangeMyPassword(c, svc.User)
+		case "resetUserPassword":
+			return handleResetUserPassword(c, svc.User)
+
+		// Audit
+		case "getAuditLogs":
+			return handleGetAuditLogs(c, svc.Audit)
+
 		}
 
 		if !RegisteredActions[action] {
