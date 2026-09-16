@@ -1,0 +1,12 @@
+FROM golang:1.26-alpine
+
+RUN apk add --no-cache git ca-certificates tzdata
+
+WORKDIR /app
+
+# Cache deps dulu
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Source di-mount saat runtime, jadi tidak perlu COPY di sini
+CMD ["go", "run", "./cmd/api"]
