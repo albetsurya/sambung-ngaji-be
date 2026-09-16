@@ -78,6 +78,9 @@ var RegisteredActions = map[string]bool{
 
 	"saveGroup": true,
 
+	"createMonitoring": true,
+	"updateMonitoring": true,
+
 	// Pending
 	"getPendingMembers":         true,
 	"getPendingMemberDetail":    true,
@@ -148,7 +151,10 @@ func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, providers map[string
 			repository.NewMeetingRepo(pool),
 			service.NewMemberService(repository.NewMemberRepo(pool)),
 		),
-		Monitoring: service.NewMonitoringService(repository.NewMonitoringRepo(pool)),
+		Monitoring: service.NewMonitoringService(
+			repository.NewMonitoringRepo(pool),
+			repository.NewMemberRepo(pool),
+		),
 		Dashboard: service.NewDashboardService(
 			repository.NewMemberRepo(pool),
 			repository.NewMeetingRepo(pool),
@@ -202,7 +208,10 @@ func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, providers map[string
 					repository.NewMeetingRepo(pool),
 					service.NewMemberService(repository.NewMemberRepo(pool)),
 				),
-				service.NewMonitoringService(repository.NewMonitoringRepo(pool)),
+				service.NewMonitoringService(
+					repository.NewMonitoringRepo(pool),
+					repository.NewMemberRepo(pool),
+				),
 				service.NewAnnouncementService(
 					repository.NewAnnouncementRepo(pool),
 					repository.NewGroupRepo(pool),
@@ -306,6 +315,11 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 
 		case "saveGroup":
 			return handleSaveGroup(c, svc.Group)
+
+		case "createMonitoring":
+			return handleCreateMonitoring(c, svc.Monitoring)
+		case "updateMonitoring":
+			return handleUpdateMonitoring(c, svc.Monitoring)
 
 		// Settings
 		case "getSettings":
