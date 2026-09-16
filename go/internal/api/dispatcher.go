@@ -16,7 +16,6 @@ var RegisteredActions = map[string]bool{
 	"logout":          true,
 	"validateSession": true,
 
-	// Members
 	"getMembers":           true,
 	"getMembersPaged":      true,
 	"getPNKBMembers":       true,
@@ -24,21 +23,27 @@ var RegisteredActions = map[string]bool{
 	"getAttendanceMembers": true,
 	"getMemberDetail":      true,
 
-	// Groups
 	"getGroups": true,
+
+	"getMeetings":   true,
+	"createMeeting": true,
+	"updateMeeting": true,
+	"deleteMeeting": true,
 }
 
 type Services struct {
-	Auth   *auth.Service
-	Member *service.MemberService
-	Group  *service.GroupService
+	Auth    *auth.Service
+	Member  *service.MemberService
+	Group   *service.GroupService
+	Meeting *service.MeetingService
 }
 
 func NewServices(pool *pgxpool.Pool, authSvc *auth.Service) *Services {
 	return &Services{
-		Auth:   authSvc,
-		Member: service.NewMemberService(repository.NewMemberRepo(pool)),
-		Group:  service.NewGroupService(repository.NewGroupRepo(pool)),
+		Auth:    authSvc,
+		Member:  service.NewMemberService(repository.NewMemberRepo(pool)),
+		Group:   service.NewGroupService(repository.NewGroupRepo(pool)),
+		Meeting: service.NewMeetingService(repository.NewMeetingRepo(pool)),
 	}
 }
 
@@ -72,6 +77,15 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 
 		case "getGroups":
 			return handleGetGroups(c, svc.Group)
+
+		case "getMeetings":
+			return handleGetMeetings(c, svc.Meeting)
+		case "createMeeting":
+			return handleCreateMeeting(c, svc.Meeting)
+		case "updateMeeting":
+			return handleUpdateMeeting(c, svc.Meeting)
+		case "deleteMeeting":
+			return handleDeleteMeeting(c, svc.Meeting)
 		}
 
 		if !RegisteredActions[action] {
