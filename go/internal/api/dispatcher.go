@@ -11,7 +11,6 @@ import (
 	"pengajian-backend/internal/service"
 )
 
-// RegisteredActions — daftar action yang SUDAH di-port ke Go.
 var RegisteredActions = map[string]bool{
 	"login":           true,
 	"logout":          true,
@@ -24,17 +23,22 @@ var RegisteredActions = map[string]bool{
 	"getPNKBMembersPaged":  true,
 	"getAttendanceMembers": true,
 	"getMemberDetail":      true,
+
+	// Groups
+	"getGroups": true,
 }
 
 type Services struct {
 	Auth   *auth.Service
 	Member *service.MemberService
+	Group  *service.GroupService
 }
 
 func NewServices(pool *pgxpool.Pool, authSvc *auth.Service) *Services {
 	return &Services{
 		Auth:   authSvc,
 		Member: service.NewMemberService(repository.NewMemberRepo(pool)),
+		Group:  service.NewGroupService(repository.NewGroupRepo(pool)),
 	}
 }
 
@@ -46,7 +50,6 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 		}
 
 		switch action {
-		// auth
 		case "login":
 			return handleLogin(c, svc.Auth)
 		case "logout":
@@ -54,7 +57,6 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 		case "validateSession":
 			return handleValidateSession(c, svc.Auth)
 
-		// members
 		case "getMembers":
 			return handleGetMembers(c, svc.Member)
 		case "getMembersPaged":
@@ -67,6 +69,9 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 			return handleGetAttendanceMembers(c, svc.Member)
 		case "getMemberDetail":
 			return handleGetMemberDetail(c, svc.Member)
+
+		case "getGroups":
+			return handleGetGroups(c, svc.Group)
 		}
 
 		if !RegisteredActions[action] {
