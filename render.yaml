@@ -4,8 +4,8 @@ services:
     runtime: docker
     plan: free
     region: singapore
-    dockerfilePath: ./Dockerfile
-    dockerContext: .
+    dockerfilePath: ./go/Dockerfile
+    dockerContext: ./go
     healthCheckPath: /health
     autoDeploy: true
     envVars:
