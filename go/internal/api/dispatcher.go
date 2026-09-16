@@ -51,6 +51,14 @@ var RegisteredActions = map[string]bool{
 	"getSettings":    true,
 	"updateSettings": true,
 
+	// Pending
+	"getPendingMembers":         true,
+	"getPendingMemberDetail":    true,
+	"approvePendingMember":      true,
+	"rejectPendingMember":       true,
+	"submitPublicRegistration":  true,
+	"checkUsernameAvailability": true,
+
 	// Announcements
 	"getAnnouncementTemplates":        true,
 	"getAllAnnouncementTemplates":     true,
@@ -76,13 +84,14 @@ type Services struct {
 	Dashboard    *service.DashboardService
 	Settings     *service.SettingsService
 	Announcement *service.AnnouncementService
+	Pending      *service.PendingService
 }
 
 func NewServices(pool *pgxpool.Pool, authSvc *auth.Service) *Services {
 	return &Services{
-		Auth:   authSvc,
-		Member: service.NewMemberService(repository.NewMemberRepo(pool)),
-		Group:  service.NewGroupService(repository.NewGroupRepo(pool)),
+		Auth:    authSvc,
+		Member:  service.NewMemberService(repository.NewMemberRepo(pool)),
+		Group:   service.NewGroupService(repository.NewGroupRepo(pool)),
 		Meeting: service.NewMeetingService(repository.NewMeetingRepo(pool)),
 		Attendance: service.NewAttendanceService(
 			repository.NewAttendanceRepo(pool),
@@ -101,6 +110,12 @@ func NewServices(pool *pgxpool.Pool, authSvc *auth.Service) *Services {
 			repository.NewAnnouncementRepo(pool),
 			repository.NewGroupRepo(pool),
 			repository.NewMemberRepo(pool),
+		),
+		Pending: service.NewPendingService(
+			repository.NewPendingRepo(pool),
+			repository.NewUserRepo(pool),
+			repository.NewMemberRepo(pool),
+			service.NewWASender(),
 		),
 	}
 }
@@ -204,6 +219,20 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 			return handleGetAnnouncements(c, svc.Announcement)
 		case "getAnnouncementRecipientSummary":
 			return handleGetAnnouncementRecipientSummary(c, svc.Announcement)
+
+		// Pending
+		case "checkUsernameAvailability":
+			return handleCheckUsernameAvailability(c, svc.Pending)
+		case "submitPublicRegistration":
+			return handleSubmitPublicRegistration(c, svc.Pending)
+		case "getPendingMembers":
+			return handleGetPendingMembers(c, svc.Pending)
+		case "getPendingMemberDetail":
+			return handleGetPendingMemberDetail(c, svc.Pending)
+		case "approvePendingMember":
+			return handleApprovePendingMember(c, svc.Pending)
+		case "rejectPendingMember":
+			return handleRejectPendingMember(c, svc.Pending)
 		}
 
 		if !RegisteredActions[action] {
