@@ -1,9 +1,11 @@
 services:
+  # ===== Production (branch: main) =====
   - type: web
     name: pengajian-backend
     runtime: docker
     plan: free
     region: singapore
+    branch: main
     dockerfilePath: ./go/Dockerfile
     dockerContext: ./go
     healthCheckPath: /health
@@ -33,3 +35,52 @@ services:
         value: ""
       - key: GEMINI_MODEL
         value: "gemini-3.6-flash"
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_BUCKET
+        value: "member-photos"
+
+  # ===== Development (branch: develop) =====
+  - type: web
+    name: pengajian-backend-dev
+    runtime: docker
+    plan: free
+    region: singapore
+    branch: develop
+    dockerfilePath: ./go/Dockerfile
+    dockerContext: ./go
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: APP_ENV
+        value: development
+      - key: JWT_EXPIRY_HOURS
+        value: "12"
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: OMNIROUTE_ENDPOINT
+        sync: false
+      - key: OMNIROUTE_API_KEY
+        value: ""
+      - key: OMNIROUTE_MODEL
+        value: "auto/best-vision"
+      - key: OMNIROUTE_TIMEOUT_SEC
+        value: "60"
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: "openai/gpt-oss-120b"
+      - key: GEMINI_API_KEY
+        value: ""
+      - key: GEMINI_MODEL
+        value: "gemini-3.6-flash"
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_BUCKET
+        value: "member-photos"
