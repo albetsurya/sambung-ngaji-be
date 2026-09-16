@@ -8,11 +8,12 @@ import (
 )
 
 type MonitoringService struct {
-	repo *repository.MonitoringRepo
+	repo       *repository.MonitoringRepo
+	memberRepo *repository.MemberRepo
 }
 
-func NewMonitoringService(repo *repository.MonitoringRepo) *MonitoringService {
-	return &MonitoringService{repo: repo}
+func NewMonitoringService(repo *repository.MonitoringRepo, memberRepo *repository.MemberRepo) *MonitoringService {
+	return &MonitoringService{repo: repo, memberRepo: memberRepo}
 }
 
 func (s *MonitoringService) FindByMember(ctx context.Context, memberID string) ([]model.MonitoringDTO, error) {
