@@ -29,13 +29,23 @@ var RegisteredActions = map[string]bool{
 	"createMeeting": true,
 	"updateMeeting": true,
 	"deleteMeeting": true,
+
+	// Attendance
+	"getAttendance":             true,
+	"getAttendancePage":         true,
+	"saveAttendance":            true,
+	"bulkSaveAttendance":        true,
+	"deleteAttendance":          true,
+	"deleteAttendanceByMeeting": true,
+	"deleteAttendanceByMember":  true,
 }
 
 type Services struct {
-	Auth    *auth.Service
-	Member  *service.MemberService
-	Group   *service.GroupService
-	Meeting *service.MeetingService
+	Auth       *auth.Service
+	Member     *service.MemberService
+	Group      *service.GroupService
+	Meeting    *service.MeetingService
+	Attendance *service.AttendanceService
 }
 
 func NewServices(pool *pgxpool.Pool, authSvc *auth.Service) *Services {
@@ -44,6 +54,11 @@ func NewServices(pool *pgxpool.Pool, authSvc *auth.Service) *Services {
 		Member:  service.NewMemberService(repository.NewMemberRepo(pool)),
 		Group:   service.NewGroupService(repository.NewGroupRepo(pool)),
 		Meeting: service.NewMeetingService(repository.NewMeetingRepo(pool)),
+		Attendance: service.NewAttendanceService(
+			repository.NewAttendanceRepo(pool),
+			repository.NewMeetingRepo(pool),
+			service.NewMemberService(repository.NewMemberRepo(pool)),
+		),
 	}
 }
 
@@ -86,6 +101,21 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 			return handleUpdateMeeting(c, svc.Meeting)
 		case "deleteMeeting":
 			return handleDeleteMeeting(c, svc.Meeting)
+
+		case "getAttendance":
+			return handleGetAttendance(c, svc.Attendance)
+		case "getAttendancePage":
+			return handleGetAttendancePage(c, svc.Attendance)
+		case "saveAttendance":
+			return handleSaveAttendance(c, svc.Attendance)
+		case "bulkSaveAttendance":
+			return handleBulkSaveAttendance(c, svc.Attendance)
+		case "deleteAttendance":
+			return handleDeleteAttendance(c, svc.Attendance)
+		case "deleteAttendanceByMeeting":
+			return handleDeleteAttendanceByMeeting(c, svc.Attendance)
+		case "deleteAttendanceByMember":
+			return handleDeleteAttendanceByMember(c, svc.Attendance)
 		}
 
 		if !RegisteredActions[action] {

@@ -1,0 +1,210 @@
+package service
+
+import (
+	"context"
+	"errors"
+
+	"pengajian-backend/internal/model"
+	"pengajian-backend/internal/repository"
+	"pengajian-backend/internal/util"
+)
+
+type AttendanceService struct {
+	repo        *repository.AttendanceRepo
+	meetingRepo *repository.MeetingRepo
+	memberSvc   *MemberService
+}
+
+func NewAttendanceService(repo *repository.AttendanceRepo, meetingRepo *repository.MeetingRepo, memberSvc *MemberService) *AttendanceService {
+	return &AttendanceService{
+		repo:        repo,
+		meetingRepo: meetingRepo,
+		memberSvc:   memberSvc,
+	}
+}
+
+var validAttendanceStatuses = map[string]bool{
+	"HADIR":            true,
+	"IJIN":             true,
+	"SAKIT":            true,
+	"TANPA_KETERANGAN": true,
+}
+
+func (s *AttendanceService) GetAttendance(ctx context.Context, meetingID, memberID string) ([]model.AttendanceDTO, error) {
+	if meetingID != "" {
+		rows, err := s.repo.FindByMeeting(ctx, meetingID)
+		if err != nil {
+			return nil, err
+		}
+		return toAttendanceDTOs(rows), nil
+	}
+	if memberID != "" {
+		rows, err := s.repo.FindByMember(ctx, memberID)
+		if err != nil {
+			return nil, err
+		}
+		return toAttendanceDTOs(rows), nil
+	}
+	return nil, errors.New("meeting_id atau member_id wajib diisi")
+}
+
+func (s *AttendanceService) GetAttendancePage(ctx context.Context, meetingID string) (*model.AttendancePageDTO, error) {
+	if meetingID == "" {
+		return nil, errors.New("meeting_id wajib diisi")
+	}
+	meeting, err := s.meetingRepo.FindByID(ctx, meetingID)
+	if err != nil {
+		return nil, errors.New("meeting tidak ditemukan")
+	}
+	members, err := s.memberSvc.GetAttendanceMembers(ctx, model.MemberListFilter{})
+	if err != nil {
+		return nil, err
+	}
+	attendance, err := s.repo.FindByMeeting(ctx, meetingID)
+	if err != nil {
+		return nil, err
+	}
+	return &model.AttendancePageDTO{
+		Meeting:    toMeetingDTO(*meeting),
+		Members:    members,
+		Attendance: toAttendanceDTOs(attendance),
+	}, nil
+}
+
+type SaveAttendanceInput struct {
+	MeetingID string
+	MemberID  string
+	Status    string
+	Catatan   string
+	UserID    string
+}
+
+func (s *AttendanceService) SaveAttendance(ctx context.Context, in SaveAttendanceInput) (*model.AttendanceDTO, error) {
+	if in.MeetingID == "" || in.MemberID == "" || in.Status == "" {
+		return nil, errors.New("meeting_id, member_id, dan status wajib diisi")
+	}
+	if !validAttendanceStatuses[in.Status] {
+		return nil, errors.New("status absensi tidak valid")
+	}
+
+	existing, err := s.repo.FindByMeetingAndMember(ctx, in.MeetingID, in.MemberID)
+	if err == nil && existing != nil {
+		catatan := in.Catatan
+		if catatan == "" {
+			catatan = existing.Catatan
+		}
+		if err := s.repo.Update(ctx, existing.AttendanceID, in.Status, catatan); err != nil {
+			return nil, err
+		}
+		fresh, _ := s.repo.FindByMeetingAndMember(ctx, in.MeetingID, in.MemberID)
+		if fresh != nil {
+			dto := toAttendanceDTO(*fresh)
+			return &dto, nil
+		}
+	}
+
+	a := &model.Attendance{
+		AttendanceID: util.NewID("ATD"),
+		MeetingID:    in.MeetingID,
+		MemberID:     in.MemberID,
+		Status:       in.Status,
+		Catatan:      in.Catatan,
+	}
+	if in.UserID != "" {
+		a.CreatedBy = &in.UserID
+	}
+	if err := s.repo.Insert(ctx, a); err != nil {
+		return nil, err
+	}
+	fresh, _ := s.repo.FindByMeetingAndMember(ctx, in.MeetingID, in.MemberID)
+	if fresh == nil {
+		return nil, errors.New("gagal ambil data setelah insert")
+	}
+	dto := toAttendanceDTO(*fresh)
+	return &dto, nil
+}
+
+type BulkSaveInput struct {
+	MeetingID string
+	Items     []repository.BulkItem
+	UserID    string
+}
+
+type BulkSaveResult struct {
+	Inserted int `json:"inserted"`
+	Updated  int `json:"updated"`
+}
+
+func (s *AttendanceService) BulkSave(ctx context.Context, in BulkSaveInput) (*BulkSaveResult, error) {
+	if in.MeetingID == "" {
+		return nil, errors.New("meeting_id wajib diisi")
+	}
+	if len(in.Items) == 0 {
+		return nil, errors.New("items wajib diisi")
+	}
+	validItems := make([]repository.BulkItem, 0, len(in.Items))
+	for _, it := range in.Items {
+		if !validAttendanceStatuses[it.Status] {
+			continue
+		}
+		validItems = append(validItems, it)
+	}
+	inserted, updated, err := s.repo.BulkUpsert(ctx, in.MeetingID, validItems, in.UserID)
+	if err != nil {
+		return nil, err
+	}
+	return &BulkSaveResult{Inserted: inserted, Updated: updated}, nil
+}
+
+func (s *AttendanceService) DeleteAttendance(ctx context.Context, meetingID, memberID string) (int64, error) {
+	if meetingID == "" || memberID == "" {
+		return 0, errors.New("meeting_id dan member_id wajib diisi")
+	}
+	existing, err := s.repo.FindByMeetingAndMember(ctx, meetingID, memberID)
+	if err != nil || existing == nil {
+		return 0, nil
+	}
+	if err := s.repo.Delete(ctx, existing.AttendanceID); err != nil {
+		return 0, err
+	}
+	return 1, nil
+}
+
+func (s *AttendanceService) DeleteByMeeting(ctx context.Context, meetingID string) (int64, error) {
+	if meetingID == "" {
+		return 0, errors.New("meeting_id wajib diisi")
+	}
+	return s.repo.DeleteByMeeting(ctx, meetingID)
+}
+
+func (s *AttendanceService) DeleteByMember(ctx context.Context, memberID string) (int64, error) {
+	if memberID == "" {
+		return 0, errors.New("member_id wajib diisi")
+	}
+	return s.repo.DeleteByMember(ctx, memberID)
+}
+
+func toAttendanceDTOs(rows []model.Attendance) []model.AttendanceDTO {
+	out := make([]model.AttendanceDTO, 0, len(rows))
+	for _, a := range rows {
+		out = append(out, toAttendanceDTO(a))
+	}
+	return out
+}
+
+func toAttendanceDTO(a model.Attendance) model.AttendanceDTO {
+	cby := ""
+	if a.CreatedBy != nil {
+		cby = *a.CreatedBy
+	}
+	return model.AttendanceDTO{
+		AttendanceID: a.AttendanceID,
+		MeetingID:    a.MeetingID,
+		MemberID:     a.MemberID,
+		Status:       a.Status,
+		Catatan:      a.Catatan,
+		CreatedBy:    cby,
+		CreatedAt:    a.CreatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
+		UpdatedAt:    a.UpdatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
+	}
+}
