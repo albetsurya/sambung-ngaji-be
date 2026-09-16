@@ -12,6 +12,8 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
+	"pengajian-backend/internal/api"
+	"pengajian-backend/internal/auth"
 	"pengajian-backend/internal/config"
 	"pengajian-backend/internal/database"
 	"pengajian-backend/internal/handler"
@@ -35,6 +37,9 @@ func main() {
 	defer db.Close()
 	log.Info().Msg("database connected")
 
+	jwtMgr := auth.NewJWTManager(cfg.JWTSecret, cfg.JWTExpiryHrs)
+	authSvc := auth.NewService(db, jwtMgr)
+
 	app := fiber.New(fiber.Config{
 		AppName:      "Pengajian Backend",
 		ReadTimeout:  15 * time.Second,
@@ -55,6 +60,9 @@ func main() {
 	})
 
 	handler.RegisterHealth(app, db)
+	api.RegisterAPI(app, authSvc)
+
+	log.Info().Strs("actions", api.ListRegisteredActions()).Msg("actions terdaftar")
 
 	go func() {
 		addr := ":" + cfg.AppPort
