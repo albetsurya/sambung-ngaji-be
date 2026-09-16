@@ -60,7 +60,8 @@ func main() {
 	})
 
 	handler.RegisterHealth(app, db)
-	api.RegisterAPI(app, authSvc)
+	services := api.NewServices(db, authSvc)
+	api.RegisterAPI(app, services)
 
 	log.Info().Strs("actions", api.ListRegisteredActions()).Msg("actions terdaftar")
 

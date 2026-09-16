@@ -1,0 +1,108 @@
+package api
+
+import (
+	"github.com/gofiber/fiber/v2"
+
+	"pengajian-backend/internal/model"
+	"pengajian-backend/internal/service"
+)
+
+func parseMemberFilter(c *fiber.Ctx) model.MemberListFilter {
+	return model.MemberListFilter{
+		Search:          BodyString(c, "search"),
+		Kelompok:        BodyString(c, "kelompok"),
+		JenisKelamin:    BodyString(c, "jenis_kelamin"),
+		Desa:            BodyString(c, "desa"),
+		Kategori:        BodyString(c, "kategori"),
+		IncludeInactive: BodyBool(c, "includeInactive"),
+		Limit:           int(BodyFloat(c, "limit")),
+		Offset:          int(BodyFloat(c, "offset")),
+	}
+}
+
+func handleGetMembers(c *fiber.Ctx, svc *service.MemberService) error {
+	f := parseMemberFilter(c)
+	items, err := svc.GetMembers(c.Context(), f)
+	if err != nil {
+		return Fail(c, "Gagal ambil members: "+err.Error())
+	}
+	return Ok(c, items)
+}
+
+func handleGetMembersPaged(c *fiber.Ctx, svc *service.MemberService) error {
+	f := parseMemberFilter(c)
+	items, total, err := svc.GetMembersPaged(c.Context(), f)
+	if err != nil {
+		return Fail(c, "Gagal ambil members: "+err.Error())
+	}
+	limit := f.Limit
+	if limit <= 0 {
+		limit = 30
+	}
+	offset := f.Offset
+	if offset < 0 {
+		offset = 0
+	}
+	return Ok(c, fiber.Map{
+		"items":    items,
+		"total":    total,
+		"limit":    limit,
+		"offset":   offset,
+		"has_more": offset+len(items) < total,
+	})
+}
+
+func handleGetPNKBMembers(c *fiber.Ctx, svc *service.MemberService) error {
+	f := parseMemberFilter(c)
+	f.Kategori = "PRA_NIKAH"
+	items, err := svc.GetMembers(c.Context(), f)
+	if err != nil {
+		return Fail(c, err.Error())
+	}
+	return Ok(c, items)
+}
+
+func handleGetPNKBMembersPaged(c *fiber.Ctx, svc *service.MemberService) error {
+	f := parseMemberFilter(c)
+	f.Kategori = "PRA_NIKAH"
+	items, total, err := svc.GetMembersPaged(c.Context(), f)
+	if err != nil {
+		return Fail(c, err.Error())
+	}
+	limit := f.Limit
+	if limit <= 0 {
+		limit = 30
+	}
+	offset := f.Offset
+	if offset < 0 {
+		offset = 0
+	}
+	return Ok(c, fiber.Map{
+		"items":    items,
+		"total":    total,
+		"limit":    limit,
+		"offset":   offset,
+		"has_more": offset+len(items) < total,
+	})
+}
+
+func handleGetAttendanceMembers(c *fiber.Ctx, svc *service.MemberService) error {
+	f := parseMemberFilter(c)
+	items, err := svc.GetAttendanceMembers(c.Context(), f)
+	if err != nil {
+		return Fail(c, err.Error())
+	}
+	return Ok(c, items)
+}
+
+func handleGetMemberDetail(c *fiber.Ctx, svc *service.MemberService) error {
+	id := BodyString(c, "member_id")
+	if id == "" {
+		return Fail(c, "member_id wajib diisi")
+	}
+	dto, err := svc.GetMemberDetail(c.Context(), id)
+	if err != nil {
+		return Fail(c, "Jamaah tidak ditemukan")
+	}
+	return Ok(c, dto)
+}
