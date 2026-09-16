@@ -52,7 +52,10 @@ func main() {
 	if cfg.GroqAPIKey != "" {
 		providers["groq"] = ai.NewGroq(cfg.GroqAPIKey, cfg.GroqModel, 60*time.Second)
 	}
-	providerOrder := []string{"omniroute", "groq"}
+	if cfg.GeminiAPIKey != "" {
+		providers["gemini"] = ai.NewGemini(cfg.GeminiAPIKey, cfg.GeminiModel, 60*time.Second)
+	}
+	providerOrder := []string{"omniroute", "gemini", "groq"}
 
 	app := fiber.New(fiber.Config{
 		AppName:      "Pengajian Backend",
