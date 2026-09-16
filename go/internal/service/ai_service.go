@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -21,20 +20,26 @@ const (
 )
 
 type AIService struct {
-	omniroute *ai.OmniRoute
+	providers map[string]ai.Provider
+	order     []string // urutan fallback
 	repo      *repository.AIRepo
 	executor  *AIToolExecutor
+	settings  *repository.SettingsRepo
 }
 
 func NewAIService(
-	omniroute *ai.OmniRoute,
+	providers map[string]ai.Provider,
+	order []string,
 	repo *repository.AIRepo,
 	executor *AIToolExecutor,
+	settings *repository.SettingsRepo,
 ) *AIService {
 	return &AIService{
-		omniroute: omniroute,
+		providers: providers,
+		order:     order,
 		repo:      repo,
 		executor:  executor,
+		settings:  settings,
 	}
 }
 
@@ -45,6 +50,81 @@ var aiDailyLimit = map[string]int{
 	"TIM_ABSENSI": 30,
 	"MEMBER":      10,
 	"PENGAWAS":    30,
+}
+
+// getStoredProvider: baca preferensi dari settings. Default "auto".
+func (s *AIService) getStoredProvider(ctx context.Context) string {
+	if s.settings == nil {
+		return "auto"
+	}
+	all, err := s.settings.GetAll(ctx)
+	if err != nil {
+		return "auto"
+	}
+	p := strings.ToLower(strings.TrimSpace(all["AI_PROVIDER"]))
+	if p == "" {
+		return "auto"
+	}
+	return p
+}
+
+// SetProvider: simpan preferensi provider.
+func (s *AIService) SetProvider(ctx context.Context, provider string) error {
+	provider = strings.ToLower(strings.TrimSpace(provider))
+	allowed := map[string]bool{"omniroute": true, "gemini": true, "groq": true, "auto": true}
+	if !allowed[provider] {
+		return errors.New("provider tidak valid")
+	}
+	return s.settings.Upsert(ctx, "AI_PROVIDER", provider)
+}
+
+// GetProviderInfo: return stored + active.
+func (s *AIService) GetProviderInfo(ctx context.Context) map[string]string {
+	stored := s.getStoredProvider(ctx)
+	active := stored
+	if stored == "auto" {
+		active = s.firstAvailable()
+	}
+	return map[string]string{
+		"provider": stored,
+		"active":   active,
+	}
+}
+
+// firstAvailable: pilih provider pertama yang tersedia.
+func (s *AIService) firstAvailable() string {
+	for _, name := range s.order {
+		if _, ok := s.providers[name]; ok {
+			return name
+		}
+	}
+	return "omniroute"
+}
+
+// buildChain: tentukan urutan provider yang dicoba.
+// Kalau requested != "auto", provider itu dulu, lalu fallback ke sisanya.
+func (s *AIService) buildChain(requested string) []string {
+	requested = strings.ToLower(strings.TrimSpace(requested))
+	chain := []string{}
+	seen := map[string]bool{}
+
+	addIfAvail := func(name string) {
+		if seen[name] {
+			return
+		}
+		if _, ok := s.providers[name]; ok {
+			chain = append(chain, name)
+			seen[name] = true
+		}
+	}
+
+	if requested != "" && requested != "auto" {
+		addIfAvail(requested)
+	}
+	for _, name := range s.order {
+		addIfAvail(name)
+	}
+	return chain
 }
 
 // Chat: entry point utama.
@@ -86,7 +166,7 @@ func (s *AIService) Chat(ctx context.Context, user *model.User, req model.ChatRe
 		}
 		messages = append(messages, model.LLMMessage{
 			Role:    role,
-			Content: truncateStr(h.Text, 1000),
+			Content: shortStr(h.Text, 1000),
 		})
 	}
 	messages = append(messages, model.LLMMessage{
@@ -94,46 +174,85 @@ func (s *AIService) Chat(ctx context.Context, user *model.User, req model.ChatRe
 		Content: req.Message,
 	})
 
-	// 4. Loop tool calling
-	provider := "omniroute"
-	rounds := 0
+	// 4. Tentukan provider chain
+	requested := req.Provider
+	if requested == "" {
+		requested = s.getStoredProvider(ctx)
+	}
+	chain := s.buildChain(requested)
+	if len(chain) == 0 {
+		return nil, errors.New("tidak ada provider AI yang tersedia")
+	}
+
+	// 5. Coba setiap provider sampai sukses
+	var lastErr error
+	for _, name := range chain {
+		provider := s.providers[name]
+		resp, err := s.runProvider(ctx, provider, messages, tools, user, memberID, isMember)
+		if err == nil {
+			resp.Provider = name
+			if name != requested && requested != "auto" {
+				resp.RequestedProvider = requested
+			}
+			return resp, nil
+		}
+		lastErr = err
+		// Kalau bukan quota error, tidak usah fallback
+		if !ai.IsQuotaError(err) {
+			return nil, fmt.Errorf("%s: %w", name, err)
+		}
+	}
+	return nil, fmt.Errorf("semua provider gagal: %w", lastErr)
+}
+
+// runProvider: jalankan loop tool calling untuk satu provider.
+func (s *AIService) runProvider(
+	ctx context.Context,
+	provider ai.Provider,
+	messages []model.LLMMessage,
+	tools []model.LLMToolDef,
+	user *model.User,
+	memberID string,
+	isMember bool,
+) (*model.ChatResponse, error) {
+	// copy messages biar tidak mengganggu fallback berikutnya
+	msgs := make([]model.LLMMessage, len(messages))
+	copy(msgs, messages)
+
 	var lastResult *ai.LLMResult
+	rounds := 0
 
 	for rounds < maxToolRounds {
 		rounds++
-
-		result, err := s.omniroute.Chat(ctx, messages, tools)
+		result, err := provider.Chat(ctx, msgs, tools)
 		if err != nil {
-			return nil, fmt.Errorf("omniroute: %w", err)
+			return nil, err
 		}
 		lastResult = result
 
-		// Kalau tidak ada tool call, selesai
 		if len(result.ToolCalls) == 0 {
 			break
 		}
 
-		// Push assistant message dengan tool_calls
-		messages = append(messages, model.LLMMessage{
+		msgs = append(msgs, model.LLMMessage{
 			Role:      "assistant",
 			Content:   result.Content,
 			ToolCalls: result.ToolCalls,
 		})
 
-		// Eksekusi setiap tool call
 		for _, tc := range result.ToolCalls {
 			args := map[string]interface{}{}
 			if tc.Function.Arguments != "" {
 				_ = json.Unmarshal([]byte(tc.Function.Arguments), &args)
 			}
-			toolResult, err := s.executor.Execute(ctx, tc.Function.Name, args, user.UserID, memberID, isMember)
+			toolResult, terr := s.executor.Execute(ctx, tc.Function.Name, args, user.UserID, memberID, isMember)
 			var payload string
-			if err != nil {
-				payload = `{"success":false,"message":` + jsonStr(err.Error()) + `}`
+			if terr != nil {
+				payload = `{"success":false,"message":` + jsonQuote(terr.Error()) + `}`
 			} else {
 				payload = toJSON(toolResult)
 			}
-			messages = append(messages, model.LLMMessage{
+			msgs = append(msgs, model.LLMMessage{
 				Role:       "tool",
 				ToolCallID: tc.ID,
 				Content:    payload,
@@ -145,28 +264,26 @@ func (s *AIService) Chat(ctx context.Context, user *model.User, req model.ChatRe
 		return nil, errors.New("tidak ada respons dari provider")
 	}
 
-	// 5. Log usage
+	// Log usage (fire-and-forget)
 	_ = s.repo.InsertUsage(ctx, &model.AIUsageLog{
 		UsageID:      util.NewID("USE"),
 		UserID:       &user.UserID,
 		UserNama:     user.Nama,
 		Role:         user.Role,
-		Provider:     provider,
+		Provider:     provider.Name(),
 		InputTokens:  lastResult.InputTokens,
 		OutputTokens: lastResult.OutputTokens,
 		TotalTokens:  lastResult.TotalTokens,
 	})
 	_ = s.repo.IncrementQuota(ctx, user.UserID, time.Now())
 
-	// 6. Response
 	reply := strings.TrimSpace(lastResult.Content)
 	if reply == "" {
 		reply = "Maaf, saya tidak mendapatkan jawaban."
 	}
 	return &model.ChatResponse{
-		Reply:    reply,
-		Provider: provider,
-		Model:    lastResult.Model,
+		Reply: reply,
+		Model: lastResult.Model,
 	}, nil
 }
 
@@ -259,7 +376,7 @@ func (s *AIService) GetUsageStats(ctx context.Context, user *model.User) (*model
 	}, nil
 }
 
-// ===== helpers =====
+/* ===== Helpers ===== */
 
 func buildSystemPrompt(user string) string {
 	today := time.Now().Format("Monday, 2 January 2006")
@@ -302,7 +419,7 @@ func trimHistory(h []model.ChatHistory, max int) []model.ChatHistory {
 	return h[len(h)-max:]
 }
 
-func truncateStr(s string, n int) string {
+func shortStr(s string, n int) string {
 	if len(s) <= n {
 		return s
 	}
@@ -317,7 +434,7 @@ func toJSON(v interface{}) string {
 	return string(b)
 }
 
-func jsonStr(s string) string {
+func jsonQuote(s string) string {
 	b, _ := json.Marshal(s)
 	return string(b)
 }
@@ -336,5 +453,3 @@ func topN(list []model.AIUsageByUser, n int) []model.AIUsageByUser {
 	}
 	return list[:n]
 }
-
-var _ = strconv.Itoa
