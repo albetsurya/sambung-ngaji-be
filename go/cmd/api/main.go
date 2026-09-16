@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
@@ -76,6 +77,14 @@ func main() {
 			})
 		},
 	})
+
+	// CORS — izinkan semua origin frontend (token dikirim di body, bukan cookie)
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "*",
+		AllowMethods: "GET,POST,PUT,DELETE,OPTIONS",
+		AllowHeaders: "Content-Type,Authorization,ngrok-skip-browser-warning",
+		MaxAge:       3600,
+	}))
 
 	handler.RegisterHealth(app, db)
 	storageSvc := service.NewStorageService(
