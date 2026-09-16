@@ -10,7 +10,7 @@ var rolePermissions = map[string][]string{
 
 	// — Dashboard
 	"getDashboard":   {"ADMIN", "TIM_PNKB", "TIM_ABSENSI", "PENGAWAS"},
-	"getMyDashboard": {"MEMBER"},
+	"getMyDashboard": {"SUPER_ADMIN", "ADMIN", "TIM_PNKB", "TIM_ABSENSI", "PENGAWAS", "MEMBER"},
 
 	// — Members
 	"getMembers":           {"ADMIN", "PENGAWAS"},
@@ -71,8 +71,8 @@ var rolePermissions = map[string][]string{
 	"getAnnouncementRecipientSummary": {"ADMIN"},
 
 	// — Foto & pengaturan
-	"uploadPhoto": {"SUPER_ADMIN", "ADMIN", "MEMBER"},
-	"deletePhoto": {"SUPER_ADMIN", "ADMIN", "MEMBER"},
+	"uploadPhoto": {"SUPER_ADMIN", "ADMIN", "TIM_PNKB", "TIM_ABSENSI", "PENGAWAS", "MEMBER"},
+	"deletePhoto": {"SUPER_ADMIN", "ADMIN", "TIM_PNKB", "TIM_ABSENSI", "PENGAWAS", "MEMBER"},
 	"getSettings": {"ADMIN"},
 
 	// — Users
@@ -98,12 +98,12 @@ var rolePermissions = map[string][]string{
 	"approvePendingMember":   {"ADMIN"},
 	"rejectPendingMember":    {"ADMIN"},
 
-	// — Profile sendiri (member)
-	"getMyProfile":        {"MEMBER"},
-	"updateMyProfile":     {"MEMBER"},
-	"getMyAttendance":     {"MEMBER"},
-	"getMyMonitoring":     {"MEMBER"},
-	"getUpcomingMeetings": {"MEMBER"},
+	// — Profile sendiri (semua role, backend cek member_id)
+	"getMyProfile":        {"SUPER_ADMIN", "ADMIN", "TIM_PNKB", "TIM_ABSENSI", "PENGAWAS", "MEMBER"},
+	"updateMyProfile":     {"SUPER_ADMIN", "ADMIN", "TIM_PNKB", "TIM_ABSENSI", "PENGAWAS", "MEMBER"},
+	"getMyAttendance":     {"SUPER_ADMIN", "ADMIN", "TIM_PNKB", "TIM_ABSENSI", "PENGAWAS", "MEMBER"},
+	"getMyMonitoring":     {"SUPER_ADMIN", "ADMIN", "TIM_PNKB", "TIM_ABSENSI", "PENGAWAS", "MEMBER"},
+	"getUpcomingMeetings": {"SUPER_ADMIN", "ADMIN", "TIM_PNKB", "TIM_ABSENSI", "PENGAWAS", "MEMBER"},
 
 	// — WA Queue
 	"createWaQueue":        {"ADMIN", "TIM_ABSENSI"},
