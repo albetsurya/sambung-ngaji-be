@@ -75,6 +75,7 @@ var RegisteredActions = map[string]bool{
 	"updateAnnouncement":              true,
 	"getAnnouncements":                true,
 	"getAnnouncementRecipientSummary": true,
+	"generateWeeklyAnnouncements":     true,
 
 	"saveGroup": true,
 
@@ -352,6 +353,8 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 			return handleGetAnnouncements(c, svc.Announcement)
 		case "getAnnouncementRecipientSummary":
 			return handleGetAnnouncementRecipientSummary(c, svc.Announcement)
+		case "generateWeeklyAnnouncements":
+			return handleGenerateWeeklyAnnouncements(c, svc.Announcement)
 
 		// Pending
 		case "checkUsernameAvailability":

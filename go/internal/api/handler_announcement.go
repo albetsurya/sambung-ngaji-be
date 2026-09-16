@@ -179,3 +179,21 @@ func handleGetAnnouncementRecipientSummary(c *fiber.Ctx, svc *service.Announceme
 	}
 	return Ok(c, res)
 }
+
+func handleGenerateWeeklyAnnouncements(c *fiber.Ctx, svc *service.AnnouncementService) error {
+	in := service.WeeklyGenerateInput{
+		TemplateID:    BodyString(c, "template_id"),
+		GroupID:       BodyString(c, "group_id"),
+		WeekStart:     BodyString(c, "week_start"),
+		Jam:           BodyString(c, "jam"),
+		Acara:         BodyString(c, "acara"),
+		Materi:        BodyString(c, "materi"),
+		Catatan:       BodyString(c, "catatan"),
+		Penandatangan: BodyString(c, "penandatangan"),
+	}
+	res, err := svc.GenerateWeekly(c.Context(), in)
+	if err != nil {
+		return Fail(c, err.Error())
+	}
+	return Ok(c, res)
+}

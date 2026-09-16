@@ -479,3 +479,68 @@ func containsString(arr []string, s string) bool {
 	}
 	return false
 }
+
+type WeeklyGenerateInput struct {
+	TemplateID    string
+	GroupID       string
+	WeekStart     string
+	Jam           string
+	Acara         string
+	Materi        string
+	Catatan       string
+	Penandatangan string
+}
+
+type WeeklyGenerateResult struct {
+	Hari          string                 `json:"hari"`
+	Tanggal       string                 `json:"tanggal"`
+	GeneratedText string                 `json:"generated_text"`
+	Warning       string                 `json:"warning"`
+	Data          map[string]interface{} `json:"data"`
+}
+
+func (s *AnnouncementService) GenerateWeekly(ctx context.Context, in WeeklyGenerateInput) ([]WeeklyGenerateResult, error) {
+	if in.TemplateID == "" || in.GroupID == "" || in.WeekStart == "" {
+		return nil, errors.New("template_id, group_id, dan week_start wajib diisi")
+	}
+
+	base, err := time.Parse("2006-01-02", in.WeekStart)
+	if err != nil {
+		return nil, errors.New("week_start tidak valid (YYYY-MM-DD)")
+	}
+
+	dayOffsets := []struct {
+		Hari  string
+		Delta int
+	}{
+		{"Minggu", 0},
+		{"Selasa", 2},
+		{"Kamis", 4},
+	}
+
+	out := make([]WeeklyGenerateResult, 0, len(dayOffsets))
+	for _, d := range dayOffsets {
+		tanggal := base.AddDate(0, 0, d.Delta)
+		res, err := s.Generate(ctx, GenerateAnnouncementInput{
+			TemplateID:    in.TemplateID,
+			GroupID:       in.GroupID,
+			Tanggal:       tanggal.Format("2006-01-02"),
+			Jam:           in.Jam,
+			Acara:         in.Acara,
+			Materi:        in.Materi,
+			Catatan:       in.Catatan,
+			Penandatangan: in.Penandatangan,
+		})
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, WeeklyGenerateResult{
+			Hari:          d.Hari,
+			Tanggal:       tanggal.Format("2006-01-02"),
+			GeneratedText: res.GeneratedText,
+			Warning:       res.Warning,
+			Data:          res.Data,
+		})
+	}
+	return out, nil
+}
