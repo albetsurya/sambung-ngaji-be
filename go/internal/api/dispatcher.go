@@ -133,9 +133,10 @@ type Services struct {
 	Profile      *service.ProfileService
 	Audit        *service.AuditService
 	AI           *service.AIService
+	Photo        *PhotoHandler
 }
 
-func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, providers map[string]ai.Provider, providerOrder []string) *Services {
+func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, providers map[string]ai.Provider, providerOrder []string, storage *service.StorageService) *Services {
 	return &Services{
 		Auth:    authSvc,
 		Member:  service.NewMemberService(repository.NewMemberRepo(pool)),
@@ -226,6 +227,16 @@ func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, providers map[string
 				),
 			),
 			repository.NewSettingsRepo(pool),
+		),
+		Photo: NewPhotoHandler(
+			storage,
+			service.NewMemberService(repository.NewMemberRepo(pool)),
+			service.NewProfileService(
+				repository.NewMemberRepo(pool),
+				repository.NewAttendanceRepo(pool),
+				repository.NewMonitoringRepo(pool),
+				repository.NewMeetingRepo(pool),
+			),
 		),
 	}
 }
@@ -413,6 +424,11 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 			return handleGetCurrentProvider(c, svc.AI)
 		case "setAIProvider":
 			return handleSetAIProvider(c, svc.AI)
+
+		case "uploadPhoto":
+			return svc.Photo.Upload(c)
+		case "deletePhoto":
+			return svc.Photo.Delete(c)
 
 		}
 

@@ -18,6 +18,7 @@ import (
 	"pengajian-backend/internal/config"
 	"pengajian-backend/internal/database"
 	"pengajian-backend/internal/handler"
+	"pengajian-backend/internal/service"
 )
 
 func main() {
@@ -77,7 +78,12 @@ func main() {
 	})
 
 	handler.RegisterHealth(app, db)
-	services := api.NewServices(db, authSvc, providers, providerOrder)
+	storageSvc := service.NewStorageService(
+		cfg.SupabaseURL,
+		cfg.SupabaseServiceKey,
+		cfg.SupabaseBucket,
+	)
+	services := api.NewServices(db, authSvc, providers, providerOrder, storageSvc)
 	api.RegisterAPI(app, services)
 
 	log.Info().Strs("actions", api.ListRegisteredActions()).Msg("actions terdaftar")
