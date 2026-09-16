@@ -267,3 +267,11 @@ func normalizeGender(s string) string {
 
 // Handle unused import repository
 var _ = repository.NewMemberRepo
+
+func (s *MemberService) UpdateFotoURL(ctx context.Context, memberID, url string) error {
+	return s.repo.UpdateFotoURL(ctx, memberID, url)
+}
+
+func (s *MemberService) GetFotoURL(ctx context.Context, memberID string) (string, error) {
+	return s.repo.GetFotoURL(ctx, memberID)
+}

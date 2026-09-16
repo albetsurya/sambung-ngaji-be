@@ -67,3 +67,20 @@ func (r *MemberRepo) FindAllIncludingInactive(ctx context.Context) ([]MemberExpo
 }
 
 func (r *MemberRepo) Pool() *pgxpool.Pool { return r.pool }
+func (r *MemberRepo) UpdateFotoURL(ctx context.Context, memberID, url string) error {
+	_, err := r.pool.Exec(ctx, `
+		UPDATE members SET foto_url = $1, updated_at = now() WHERE member_id = $2
+	`, url, memberID)
+	return err
+}
+
+func (r *MemberRepo) GetFotoURL(ctx context.Context, memberID string) (string, error) {
+	var url string
+	err := r.pool.QueryRow(ctx,
+		`SELECT COALESCE(foto_url, '') FROM members WHERE member_id = $1`, memberID,
+	).Scan(&url)
+	if err != nil {
+		return "", err
+	}
+	return url, nil
+}

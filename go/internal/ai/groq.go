@@ -7,7 +7,7 @@ import (
 // Groq: provider OpenAI-compatible.
 // Endpoint default: https://api.groq.com/openai/v1
 func NewGroq(apiKey, model string, timeout time.Duration) Provider {
-		if model == "" {
+	if model == "" {
 		model = "openai/gpt-oss-120b"
 	}
 	return NewOpenAICompat(OpenAICompatConfig{

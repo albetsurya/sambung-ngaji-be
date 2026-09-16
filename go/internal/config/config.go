@@ -25,6 +25,10 @@ type Config struct {
 	GroqModel         string
 	GeminiAPIKey      string
 	GeminiModel       string
+
+	SupabaseURL        string
+	SupabaseServiceKey string
+	SupabaseBucket     string
 }
 
 func Load() (*Config, error) {
@@ -49,6 +53,9 @@ func Load() (*Config, error) {
 	cfg.GeminiAPIKey = envTrim("GEMINI_API_KEY")
 	cfg.GeminiModel = getEnv("GEMINI_MODEL", "gemini-3.6-flash")
 
+	cfg.SupabaseURL = envTrim("SUPABASE_URL")
+	cfg.SupabaseServiceKey = envTrim("SUPABASE_SERVICE_ROLE_KEY")
+	cfg.SupabaseBucket = envTrim("SUPABASE_BUCKET")
 	if cfg.DatabaseURL == "" {
 		return nil, fmt.Errorf("DATABASE_URL wajib diisi")
 	}
