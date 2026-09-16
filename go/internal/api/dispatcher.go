@@ -33,6 +33,11 @@ var RegisteredActions = map[string]bool{
 	"updateMeeting": true,
 	"deleteMeeting": true,
 
+	// Bulk Meeting
+	"previewBulkMeetings":     true,
+	"bulkCreateMeetings":      true,
+	"getBulkMeetingTemplates": true,
+
 	// Attendance
 	"getAttendance":             true,
 	"getAttendancePage":         true,
@@ -99,6 +104,7 @@ type Services struct {
 	Member       *service.MemberService
 	Group        *service.GroupService
 	Meeting      *service.MeetingService
+	BulkMeeting  *service.BulkMeetingService
 	Attendance   *service.AttendanceService
 	Monitoring   *service.MonitoringService
 	Dashboard    *service.DashboardService
@@ -116,6 +122,12 @@ func NewServices(pool *pgxpool.Pool, authSvc *auth.Service) *Services {
 		Member:  service.NewMemberService(repository.NewMemberRepo(pool)),
 		Group:   service.NewGroupService(repository.NewGroupRepo(pool)),
 		Meeting: service.NewMeetingService(repository.NewMeetingRepo(pool)),
+		BulkMeeting: service.NewBulkMeetingService(
+			repository.NewMeetingRepo(pool),
+			repository.NewGroupRepo(pool),
+			repository.NewAnnouncementRepo(pool),
+		),
+
 		Attendance: service.NewAttendanceService(
 			repository.NewAttendanceRepo(pool),
 			repository.NewMeetingRepo(pool),
@@ -202,6 +214,14 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 			return handleUpdateMeeting(c, svc.Meeting)
 		case "deleteMeeting":
 			return handleDeleteMeeting(c, svc.Meeting)
+
+		// Bulk Meeting
+		case "previewBulkMeetings":
+			return handlePreviewBulkMeetings(c, svc.BulkMeeting)
+		case "bulkCreateMeetings":
+			return handleBulkCreateMeetings(c, svc.BulkMeeting)
+		case "getBulkMeetingTemplates":
+			return handleGetBulkMeetingTemplates(c, svc.BulkMeeting)
 
 		// Attendance
 		case "getAttendance":
