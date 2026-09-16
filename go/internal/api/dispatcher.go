@@ -76,6 +76,8 @@ var RegisteredActions = map[string]bool{
 	"getAnnouncements":                true,
 	"getAnnouncementRecipientSummary": true,
 
+	"saveGroup": true,
+
 	// Pending
 	"getPendingMembers":         true,
 	"getPendingMemberDetail":    true,
@@ -301,6 +303,9 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 			return handleGetMyDashboard(c, svc.Dashboard)
 		case "getMonitoring":
 			return handleGetMonitoring(c, svc.Monitoring)
+
+		case "saveGroup":
+			return handleSaveGroup(c, svc.Group)
 
 		// Settings
 		case "getSettings":
