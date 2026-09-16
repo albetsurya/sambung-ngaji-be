@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -22,31 +23,30 @@ type Config struct {
 	OmniRouteTimeout  int
 	GroqAPIKey        string
 	GroqModel         string
-
-	GeminiAPIKey string
-	GeminiModel  string
+	GeminiAPIKey      string
+	GeminiModel       string
 }
 
 func Load() (*Config, error) {
-	// .env opsional — di Fly.io pakai secrets
+	// .env opsional — di production pakai secrets platform
 	_ = godotenv.Load()
 
 	cfg := &Config{
 		AppEnv:       getEnv("APP_ENV", "development"),
 		AppPort:      getEnv("PORT", getEnv("APP_PORT", "8080")),
-		DatabaseURL:  os.Getenv("DATABASE_URL"),
-		JWTSecret:    os.Getenv("JWT_SECRET"),
+		DatabaseURL:  envTrim("DATABASE_URL"),
+		JWTSecret:    envTrim("JWT_SECRET"),
 		JWTExpiryHrs: getEnvInt("JWT_EXPIRY_HOURS", 12),
 	}
 
 	cfg.AIProvider = getEnv("AI_PROVIDER", "omniroute")
-	cfg.OmniRouteEndpoint = os.Getenv("OMNIROUTE_ENDPOINT")
-	cfg.OmniRouteAPIKey = os.Getenv("OMNIROUTE_API_KEY")
+	cfg.OmniRouteEndpoint = envTrim("OMNIROUTE_ENDPOINT")
+	cfg.OmniRouteAPIKey = envTrim("OMNIROUTE_API_KEY")
 	cfg.OmniRouteModel = getEnv("OMNIROUTE_MODEL", "auto/best-vision")
 	cfg.OmniRouteTimeout = getEnvInt("OMNIROUTE_TIMEOUT_SEC", 60)
-	cfg.GroqAPIKey = os.Getenv("GROQ_API_KEY")
+	cfg.GroqAPIKey = envTrim("GROQ_API_KEY")
 	cfg.GroqModel = getEnv("GROQ_MODEL", "openai/gpt-oss-120b")
-	cfg.GeminiAPIKey = os.Getenv("GEMINI_API_KEY")
+	cfg.GeminiAPIKey = envTrim("GEMINI_API_KEY")
 	cfg.GeminiModel = getEnv("GEMINI_MODEL", "gemini-3.6-flash")
 
 	if cfg.DatabaseURL == "" {
@@ -60,15 +60,20 @@ func Load() (*Config, error) {
 	return cfg, nil
 }
 
+// envTrim: baca env var + trim whitespace (proteksi newline dari paste).
+func envTrim(key string) string {
+	return strings.TrimSpace(os.Getenv(key))
+}
+
 func getEnv(key, fallback string) string {
-	if v := os.Getenv(key); v != "" {
+	if v := strings.TrimSpace(os.Getenv(key)); v != "" {
 		return v
 	}
 	return fallback
 }
 
 func getEnvInt(key string, fallback int) int {
-	v := os.Getenv(key)
+	v := strings.TrimSpace(os.Getenv(key))
 	if v == "" {
 		return fallback
 	}
