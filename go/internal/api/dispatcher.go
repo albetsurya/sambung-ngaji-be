@@ -16,6 +16,7 @@ var RegisteredActions = map[string]bool{
 	"logout":          true,
 	"validateSession": true,
 
+	// Members
 	"getMembers":           true,
 	"getMembersPaged":      true,
 	"getPNKBMembers":       true,
@@ -23,8 +24,10 @@ var RegisteredActions = map[string]bool{
 	"getAttendanceMembers": true,
 	"getMemberDetail":      true,
 
+	// Groups
 	"getGroups": true,
 
+	// Meetings
 	"getMeetings":   true,
 	"createMeeting": true,
 	"updateMeeting": true,
@@ -38,24 +41,48 @@ var RegisteredActions = map[string]bool{
 	"deleteAttendance":          true,
 	"deleteAttendanceByMeeting": true,
 	"deleteAttendanceByMember":  true,
+
+	// Dashboard & Monitoring
+	"getDashboard":   true,
+	"getMyDashboard": true,
+	"getMonitoring":  true,
+
+	// Settings
+	"getSettings":    true,
+	"updateSettings": true,
+
+	// Announcements
+	"getAnnouncementTemplates":        true,
+	"getAllAnnouncementTemplates":     true,
+	"getAnnouncementTemplateDetail":   true,
+	"createAnnouncementTemplate":      true,
+	"updateAnnouncementTemplate":      true,
+	"deleteAnnouncementTemplate":      true,
+	"createTemplateFromAnnouncement":  true,
+	"generateAnnouncement":            true,
+	"createAnnouncement":              true,
+	"updateAnnouncement":              true,
+	"getAnnouncements":                true,
+	"getAnnouncementRecipientSummary": true,
 }
 
 type Services struct {
-	Auth       *auth.Service
-	Member     *service.MemberService
-	Group      *service.GroupService
-	Meeting    *service.MeetingService
-	Attendance *service.AttendanceService
-	Monitoring *service.MonitoringService
-	Dashboard  *service.DashboardService
-	Settings   *service.SettingsService
+	Auth         *auth.Service
+	Member       *service.MemberService
+	Group        *service.GroupService
+	Meeting      *service.MeetingService
+	Attendance   *service.AttendanceService
+	Monitoring   *service.MonitoringService
+	Dashboard    *service.DashboardService
+	Settings     *service.SettingsService
+	Announcement *service.AnnouncementService
 }
 
 func NewServices(pool *pgxpool.Pool, authSvc *auth.Service) *Services {
 	return &Services{
-		Auth:    authSvc,
-		Member:  service.NewMemberService(repository.NewMemberRepo(pool)),
-		Group:   service.NewGroupService(repository.NewGroupRepo(pool)),
+		Auth:   authSvc,
+		Member: service.NewMemberService(repository.NewMemberRepo(pool)),
+		Group:  service.NewGroupService(repository.NewGroupRepo(pool)),
 		Meeting: service.NewMeetingService(repository.NewMeetingRepo(pool)),
 		Attendance: service.NewAttendanceService(
 			repository.NewAttendanceRepo(pool),
@@ -70,6 +97,11 @@ func NewServices(pool *pgxpool.Pool, authSvc *auth.Service) *Services {
 			repository.NewMonitoringRepo(pool),
 		),
 		Settings: service.NewSettingsService(repository.NewSettingsRepo(pool)),
+		Announcement: service.NewAnnouncementService(
+			repository.NewAnnouncementRepo(pool),
+			repository.NewGroupRepo(pool),
+			repository.NewMemberRepo(pool),
+		),
 	}
 }
 
@@ -81,6 +113,7 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 		}
 
 		switch action {
+		// Auth
 		case "login":
 			return handleLogin(c, svc.Auth)
 		case "logout":
@@ -88,6 +121,7 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 		case "validateSession":
 			return handleValidateSession(c, svc.Auth)
 
+		// Members
 		case "getMembers":
 			return handleGetMembers(c, svc.Member)
 		case "getMembersPaged":
@@ -101,9 +135,11 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 		case "getMemberDetail":
 			return handleGetMemberDetail(c, svc.Member)
 
+		// Groups
 		case "getGroups":
 			return handleGetGroups(c, svc.Group)
 
+		// Meetings
 		case "getMeetings":
 			return handleGetMeetings(c, svc.Meeting)
 		case "createMeeting":
@@ -113,6 +149,7 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 		case "deleteMeeting":
 			return handleDeleteMeeting(c, svc.Meeting)
 
+		// Attendance
 		case "getAttendance":
 			return handleGetAttendance(c, svc.Attendance)
 		case "getAttendancePage":
@@ -128,6 +165,7 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 		case "deleteAttendanceByMember":
 			return handleDeleteAttendanceByMember(c, svc.Attendance)
 
+		// Dashboard & Monitoring
 		case "getDashboard":
 			return handleGetDashboard(c, svc.Dashboard)
 		case "getMyDashboard":
@@ -135,10 +173,37 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 		case "getMonitoring":
 			return handleGetMonitoring(c, svc.Monitoring)
 
+		// Settings
 		case "getSettings":
 			return handleGetSettings(c, svc.Settings)
 		case "updateSettings":
 			return handleUpdateSettings(c, svc.Settings)
+
+		// Announcements
+		case "getAnnouncementTemplates":
+			return handleGetAnnouncementTemplates(c, svc.Announcement)
+		case "getAllAnnouncementTemplates":
+			return handleGetAllAnnouncementTemplates(c, svc.Announcement)
+		case "getAnnouncementTemplateDetail":
+			return handleGetAnnouncementTemplateDetail(c, svc.Announcement)
+		case "createAnnouncementTemplate":
+			return handleCreateAnnouncementTemplate(c, svc.Announcement)
+		case "updateAnnouncementTemplate":
+			return handleUpdateAnnouncementTemplate(c, svc.Announcement)
+		case "deleteAnnouncementTemplate":
+			return handleDeleteAnnouncementTemplate(c, svc.Announcement)
+		case "createTemplateFromAnnouncement":
+			return handleCreateTemplateFromAnnouncement(c, svc.Announcement)
+		case "generateAnnouncement":
+			return handleGenerateAnnouncement(c, svc.Announcement)
+		case "createAnnouncement":
+			return handleCreateAnnouncement(c, svc.Announcement)
+		case "updateAnnouncement":
+			return handleUpdateAnnouncement(c, svc.Announcement)
+		case "getAnnouncements":
+			return handleGetAnnouncements(c, svc.Announcement)
+		case "getAnnouncementRecipientSummary":
+			return handleGetAnnouncementRecipientSummary(c, svc.Announcement)
 		}
 
 		if !RegisteredActions[action] {
