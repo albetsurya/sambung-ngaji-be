@@ -14,6 +14,12 @@ type Config struct {
 	DatabaseURL  string
 	JWTSecret    string
 	JWTExpiryHrs int
+	// AI
+	AIProvider        string
+	OmniRouteEndpoint string
+	OmniRouteAPIKey   string
+	OmniRouteModel    string
+	OmniRouteTimeout  int
 }
 
 func Load() (*Config, error) {
@@ -27,6 +33,12 @@ func Load() (*Config, error) {
 		JWTSecret:    os.Getenv("JWT_SECRET"),
 		JWTExpiryHrs: getEnvInt("JWT_EXPIRY_HOURS", 12),
 	}
+
+	cfg.AIProvider = getEnv("AI_PROVIDER", "omniroute")
+	cfg.OmniRouteEndpoint = os.Getenv("OMNIROUTE_ENDPOINT")
+	cfg.OmniRouteAPIKey = os.Getenv("OMNIROUTE_API_KEY")
+	cfg.OmniRouteModel = getEnv("OMNIROUTE_MODEL", "auto/best-vision")
+	cfg.OmniRouteTimeout = getEnvInt("OMNIROUTE_TIMEOUT_SEC", 60)
 
 	if cfg.DatabaseURL == "" {
 		return nil, fmt.Errorf("DATABASE_URL wajib diisi")
