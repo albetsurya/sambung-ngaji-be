@@ -14,6 +14,7 @@ type Meeting struct {
 	Status         string
 	Catatan        string
 	KategoriTarget []string
+	GenderTarget   *string // ← BARU
 	CreatedBy      *string
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
@@ -31,6 +32,7 @@ type MeetingDTO struct {
 	Status         string   `json:"status"`
 	Catatan        string   `json:"catatan"`
 	KategoriTarget []string `json:"kategori_target"`
+	GenderTarget   string   `json:"gender_target"` // ← BARU
 	CreatedBy      string   `json:"created_by"`
 	CreatedAt      string   `json:"created_at"`
 	UpdatedAt      string   `json:"updated_at"`

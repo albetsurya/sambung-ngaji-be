@@ -18,7 +18,7 @@ func NewMeetingRepo(pool *pgxpool.Pool) *MeetingRepo {
 
 const meetingSelectCols = `
 	meeting_id, tanggal, hari, jam, jam_start, group_id, acara, materi,
-	status, catatan, kategori_target, created_by, created_at, updated_at`
+	status, catatan, kategori_target, gender_target, created_by, created_at, updated_at`
 
 func (r *MeetingRepo) FindAll(ctx context.Context, f model.MeetingListFilter) ([]model.Meeting, error) {
 	q := `SELECT ` + meetingSelectCols + ` FROM meetings WHERE 1=1`
@@ -61,7 +61,7 @@ func scanMeeting(s rowScanner) (*model.Meeting, error) {
 	var kat string
 	err := s.Scan(
 		&m.MeetingID, &m.Tanggal, &m.Hari, &m.Jam, &m.JamStart, &m.GroupID,
-		&m.Acara, &m.Materi, &m.Status, &m.Catatan, &kat,
+		&m.Acara, &m.Materi, &m.Status, &m.Catatan, &kat, &m.GenderTarget,
 		&m.CreatedBy, &m.CreatedAt, &m.UpdatedAt,
 	)
 	if err != nil {
@@ -78,7 +78,7 @@ func scanMeetings(rows rowsScanner) ([]model.Meeting, error) {
 		var kat string
 		err := rows.Scan(
 			&m.MeetingID, &m.Tanggal, &m.Hari, &m.Jam, &m.JamStart, &m.GroupID,
-			&m.Acara, &m.Materi, &m.Status, &m.Catatan, &kat,
+			&m.Acara, &m.Materi, &m.Status, &m.Catatan, &kat, &m.GenderTarget,
 			&m.CreatedBy, &m.CreatedAt, &m.UpdatedAt,
 		)
 		if err != nil {
@@ -95,10 +95,10 @@ func (r *MeetingRepo) Create(ctx context.Context, m *model.Meeting) error {
 	_, err := r.pool.Exec(ctx, `
 		INSERT INTO meetings
 		(meeting_id, tanggal, hari, jam, jam_start, group_id, acara, materi,
-		 status, catatan, kategori_target, created_by, created_at, updated_at)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb,$12,now(),now())
+		 status, catatan, kategori_target, gender_target, created_by, created_at, updated_at)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb,$12,$13,now(),now())
 	`, m.MeetingID, m.Tanggal, m.Hari, m.Jam, m.JamStart, m.GroupID,
-		m.Acara, m.Materi, m.Status, m.Catatan, kat, m.CreatedBy)
+		m.Acara, m.Materi, m.Status, m.Catatan, kat, m.GenderTarget, m.CreatedBy)
 	return err
 }
 
@@ -113,6 +113,7 @@ type MeetingPatch struct {
 	Status         *string
 	Catatan        *string
 	KategoriTarget *[]string
+	GenderTarget   *string // ← BARU
 }
 
 func (r *MeetingRepo) Update(ctx context.Context, id string, p MeetingPatch) error {
@@ -136,6 +137,11 @@ func (r *MeetingRepo) Update(ctx context.Context, id string, p MeetingPatch) err
 	addStr("materi", p.Materi)
 	addStr("status", p.Status)
 	addStr("catatan", p.Catatan)
+	if p.GenderTarget != nil {
+		q += `, gender_target = $` + itoa(n)
+		args = append(args, *p.GenderTarget)
+		n++
+	}
 
 	if p.KategoriTarget != nil {
 		q += `, kategori_target = $` + itoa(n) + `::jsonb`
