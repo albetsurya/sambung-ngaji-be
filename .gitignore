@@ -22,3 +22,4 @@ apps-script/.clasp.json
 *~
 go/data-csv/
 .env.docker
+data/
