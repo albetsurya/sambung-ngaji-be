@@ -43,6 +43,7 @@ type CreateMeetingInput struct {
 	Status         string
 	Catatan        string
 	KategoriTarget []string
+	GenderTarget   string // ← BARU: "L" / "P" / ""
 	CreatedBy      string
 }
 
@@ -69,6 +70,10 @@ func (s *MeetingService) CreateMeeting(ctx context.Context, in CreateMeetingInpu
 		Status:         strDef(in.Status, "SCHEDULED"),
 		Catatan:        in.Catatan,
 		KategoriTarget: in.KategoriTarget,
+	}
+	if in.GenderTarget == "L" || in.GenderTarget == "P" {
+		gt := in.GenderTarget
+		m.GenderTarget = &gt
 	}
 	if in.GroupID != "" {
 		m.GroupID = &in.GroupID
@@ -103,6 +108,7 @@ type UpdateMeetingInput struct {
 	Status         string
 	Catatan        string
 	KategoriTarget *[]string
+	GenderTarget   *string // ← BARU
 }
 
 func (s *MeetingService) UpdateMeeting(ctx context.Context, in UpdateMeetingInput) (*model.MeetingDTO, error) {
@@ -149,7 +155,12 @@ func (s *MeetingService) UpdateMeeting(ctx context.Context, in UpdateMeetingInpu
 		patch.Catatan = &in.Catatan
 	}
 	patch.KategoriTarget = in.KategoriTarget
-
+	if in.GenderTarget != nil {
+		val := *in.GenderTarget
+		if val == "L" || val == "P" || val == "" {
+			patch.GenderTarget = &val
+		}
+	}
 	if err := s.repo.Update(ctx, in.MeetingID, patch); err != nil {
 		return nil, err
 	}
@@ -192,6 +203,10 @@ func toMeetingDTO(m model.Meeting) model.MeetingDTO {
 	if m.CreatedBy != nil {
 		cby = *m.CreatedBy
 	}
+	gt := ""
+	if m.GenderTarget != nil {
+		gt = *m.GenderTarget
+	}
 	kat := m.KategoriTarget
 	if kat == nil {
 		kat = []string{}
@@ -208,6 +223,7 @@ func toMeetingDTO(m model.Meeting) model.MeetingDTO {
 		Status:         m.Status,
 		Catatan:        m.Catatan,
 		KategoriTarget: kat,
+		GenderTarget:   gt, // ← BARU
 		CreatedBy:      cby,
 		CreatedAt:      m.CreatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
 		UpdatedAt:      m.UpdatedAt.Format("2006-01-02T15:04:05.000Z07:00"),

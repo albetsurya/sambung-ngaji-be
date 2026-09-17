@@ -205,6 +205,15 @@ func (s *AIService) Chat(ctx context.Context, user *model.User, req model.ChatRe
 	return nil, fmt.Errorf("semua provider gagal: %w", lastErr)
 }
 
+// ActiveProvider: return provider yang aktif saat ini (untuk dipakai service lain).
+func (s *AIService) ActiveProvider() ai.Provider {
+	chain := s.buildChain(s.getStoredProvider(context.Background()))
+	if len(chain) == 0 {
+		return nil
+	}
+	return s.providers[chain[0]]
+}
+
 // runProvider: jalankan loop tool calling untuk satu provider.
 func (s *AIService) runProvider(
 	ctx context.Context,

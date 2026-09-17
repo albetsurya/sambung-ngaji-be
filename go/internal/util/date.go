@@ -1,6 +1,11 @@
 package util
 
-import "time"
+import (
+	"errors"
+	"fmt"
+	"strings"
+	"time"
+)
 
 // GetAge: hitung usia dari tanggal lahir.
 // Return -1 kalau tanggal invalid/nil.
@@ -23,4 +28,30 @@ func FormatDate(t *time.Time) string {
 		return ""
 	}
 	return t.Format("2006-01-02")
+}
+
+// ParseFlexibleDate mencoba beberapa format tanggal umum.
+func ParseFlexibleDate(s string) (*time.Time, error) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return nil, errors.New("tanggal kosong")
+	}
+
+	formats := []string{
+		"2006-01-02",
+		"02-01-2006",
+		"02/01/2006",
+		"2 January 2006",
+		"02 January 2006",
+		"January 2, 2006",
+		"2006/01/02",
+		"02-Jan-2006",
+		"02 Jan 2006",
+	}
+	for _, f := range formats {
+		if t, err := time.Parse(f, s); err == nil {
+			return &t, nil
+		}
+	}
+	return nil, fmt.Errorf("format tanggal tidak dikenal: %s", s)
 }

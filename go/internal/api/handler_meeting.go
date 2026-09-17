@@ -58,6 +58,7 @@ func handleCreateMeeting(c *fiber.Ctx, svc *service.MeetingService) error {
 		Status:         BodyString(c, "status"),
 		Catatan:        BodyString(c, "catatan"),
 		KategoriTarget: parseKategoriTarget(c),
+		GenderTarget:   BodyString(c, "gender_target"), // ← BARU
 		CreatedBy:      createdBy,
 	}
 	dto, err := svc.CreateMeeting(c.Context(), in)
@@ -78,6 +79,14 @@ func handleUpdateMeeting(c *fiber.Ctx, svc *service.MeetingService) error {
 		Materi:    BodyString(c, "materi"),
 		Status:    BodyString(c, "status"),
 		Catatan:   BodyString(c, "catatan"),
+	}
+	if _, ok := BodyOf(c)["kategori_target"]; ok {
+		kat := parseKategoriTarget(c)
+		in.KategoriTarget = &kat
+	}
+	if _, ok := BodyOf(c)["gender_target"]; ok { // ← BARU
+		gt := BodyString(c, "gender_target")
+		in.GenderTarget = &gt
 	}
 	if _, ok := BodyOf(c)["kategori_target"]; ok {
 		kat := parseKategoriTarget(c)

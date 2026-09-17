@@ -115,6 +115,8 @@ var RegisteredActions = map[string]bool{
 	"getAiUsageStats":    true,
 	"getCurrentProvider": true,
 	"setAIProvider":      true,
+
+	"parsePdfMeeting": true,
 }
 
 type Services struct {
@@ -134,9 +136,45 @@ type Services struct {
 	Audit        *service.AuditService
 	AI           *service.AIService
 	Photo        *PhotoHandler
+	PDFImport    *service.PDFImportService
 }
 
 func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, providers map[string]ai.Provider, providerOrder []string, storage *service.StorageService) *Services {
+	aiSvc := service.NewAIService(
+		providers,
+		providerOrder,
+		repository.NewAIRepo(pool),
+		service.NewAIToolExecutor(
+			service.NewDashboardService(
+				repository.NewMemberRepo(pool),
+				repository.NewMeetingRepo(pool),
+				repository.NewAttendanceRepo(pool),
+				repository.NewMonitoringRepo(pool),
+			),
+			service.NewMemberService(repository.NewMemberRepo(pool)),
+			service.NewGroupService(repository.NewGroupRepo(pool)),
+			service.NewMeetingService(repository.NewMeetingRepo(pool)),
+			service.NewAttendanceService(
+				repository.NewAttendanceRepo(pool),
+				repository.NewMeetingRepo(pool),
+				service.NewMemberService(repository.NewMemberRepo(pool)),
+			),
+			service.NewMonitoringService(repository.NewMonitoringRepo(pool), repository.NewMemberRepo(pool)),
+			service.NewAnnouncementService(
+				repository.NewAnnouncementRepo(pool),
+				repository.NewGroupRepo(pool),
+				repository.NewMemberRepo(pool),
+			),
+			service.NewProfileService(
+				repository.NewMemberRepo(pool),
+				repository.NewAttendanceRepo(pool),
+				repository.NewMonitoringRepo(pool),
+				repository.NewMeetingRepo(pool),
+			),
+		),
+		repository.NewSettingsRepo(pool),
+	)
+
 	return &Services{
 		Auth:    authSvc,
 		Member:  service.NewMemberService(repository.NewMemberRepo(pool)),
@@ -191,43 +229,7 @@ func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, providers map[string
 			repository.NewMonitoringRepo(pool),
 			repository.NewMeetingRepo(pool),
 		),
-		AI: service.NewAIService(
-			providers,
-			providerOrder,
-			repository.NewAIRepo(pool),
-			service.NewAIToolExecutor(
-				service.NewDashboardService(
-					repository.NewMemberRepo(pool),
-					repository.NewMeetingRepo(pool),
-					repository.NewAttendanceRepo(pool),
-					repository.NewMonitoringRepo(pool),
-				),
-				service.NewMemberService(repository.NewMemberRepo(pool)),
-				service.NewGroupService(repository.NewGroupRepo(pool)),
-				service.NewMeetingService(repository.NewMeetingRepo(pool)),
-				service.NewAttendanceService(
-					repository.NewAttendanceRepo(pool),
-					repository.NewMeetingRepo(pool),
-					service.NewMemberService(repository.NewMemberRepo(pool)),
-				),
-				service.NewMonitoringService(
-					repository.NewMonitoringRepo(pool),
-					repository.NewMemberRepo(pool),
-				),
-				service.NewAnnouncementService(
-					repository.NewAnnouncementRepo(pool),
-					repository.NewGroupRepo(pool),
-					repository.NewMemberRepo(pool),
-				),
-				service.NewProfileService(
-					repository.NewMemberRepo(pool),
-					repository.NewAttendanceRepo(pool),
-					repository.NewMonitoringRepo(pool),
-					repository.NewMeetingRepo(pool),
-				),
-			),
-			repository.NewSettingsRepo(pool),
-		),
+		AI: aiSvc,
 		Photo: NewPhotoHandler(
 			storage,
 			service.NewMemberService(repository.NewMemberRepo(pool)),
@@ -236,6 +238,45 @@ func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, providers map[string
 				repository.NewAttendanceRepo(pool),
 				repository.NewMonitoringRepo(pool),
 				repository.NewMeetingRepo(pool),
+			),
+		),
+		PDFImport: service.NewPDFImportService(
+			service.NewAIService(
+				providers,
+				providerOrder,
+				repository.NewAIRepo(pool),
+				service.NewAIToolExecutor(
+					service.NewDashboardService(
+						repository.NewMemberRepo(pool),
+						repository.NewMeetingRepo(pool),
+						repository.NewAttendanceRepo(pool),
+						repository.NewMonitoringRepo(pool),
+					),
+					service.NewMemberService(repository.NewMemberRepo(pool)),
+					service.NewGroupService(repository.NewGroupRepo(pool)),
+					service.NewMeetingService(repository.NewMeetingRepo(pool)),
+					service.NewAttendanceService(
+						repository.NewAttendanceRepo(pool),
+						repository.NewMeetingRepo(pool),
+						service.NewMemberService(repository.NewMemberRepo(pool)),
+					),
+					service.NewMonitoringService(
+						repository.NewMonitoringRepo(pool),
+						repository.NewMemberRepo(pool),
+					),
+					service.NewAnnouncementService(
+						repository.NewAnnouncementRepo(pool),
+						repository.NewGroupRepo(pool),
+						repository.NewMemberRepo(pool),
+					),
+					service.NewProfileService(
+						repository.NewMemberRepo(pool),
+						repository.NewAttendanceRepo(pool),
+						repository.NewMonitoringRepo(pool),
+						repository.NewMeetingRepo(pool),
+					),
+				),
+				repository.NewSettingsRepo(pool),
 			),
 		),
 	}
@@ -429,6 +470,9 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 			return svc.Photo.Upload(c)
 		case "deletePhoto":
 			return svc.Photo.Delete(c)
+
+		case "parsePdfMeeting":
+			return handleParsePdfMeeting(c, svc.PDFImport)
 
 		}
 
