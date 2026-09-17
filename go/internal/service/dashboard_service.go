@@ -49,11 +49,46 @@ type GeneralDashboard struct {
 	DataBelumLengkap     int                    `json:"data_belum_lengkap"`
 }
 
+// GetGeneral: total 4 query (members, meetings, attendance-by-meeting, attendance-by-member).
+// Sebelumnya N+1 — sekarang O(1) query.
 func (s *DashboardService) GetGeneral(ctx context.Context) (*GeneralDashboard, error) {
 	members, err := s.memberRepo.FindAll(ctx)
 	if err != nil {
 		return nil, err
 	}
+
+	meetings, err := s.meetingRepo.FindAll(ctx, model.MeetingListFilter{})
+	if err != nil {
+		return nil, err
+	}
+
+	// ===== Batch fetch attendance =====
+
+	meetingIDs := make([]string, 0, len(meetings))
+	for _, m := range meetings {
+		meetingIDs = append(meetingIDs, m.MeetingID)
+	}
+	attByMeeting, err := s.attendanceRepo.FindByMeetingIDs(ctx, meetingIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	memberIDs := make([]string, 0, len(members))
+	for _, m := range members {
+		memberIDs = append(memberIDs, m.MemberID)
+	}
+	attByMember, err := s.attendanceRepo.FindByMemberIDs(ctx, memberIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	// Group attendance per member (urutan tetap DESC by created_at).
+	attGrouped := make(map[string][]model.Attendance, len(members))
+	for _, a := range attByMember {
+		attGrouped[a.MemberID] = append(attGrouped[a.MemberID], a)
+	}
+
+	// ===== Kategori =====
 
 	perKategori := map[string]int{
 		util.KatBalita: 0, util.KatCaberawit: 0, util.KatPraRemaja: 0,
@@ -64,10 +99,7 @@ func (s *DashboardService) GetGeneral(ctx context.Context) (*GeneralDashboard, e
 		perKategori[k]++
 	}
 
-	meetings, err := s.meetingRepo.FindAll(ctx, model.MeetingListFilter{})
-	if err != nil {
-		return nil, err
-	}
+	// ===== Pengajian terdekat =====
 
 	today := time.Now().Format("2006-01-02")
 	var upcoming *model.Meeting
@@ -84,18 +116,13 @@ func (s *DashboardService) GetGeneral(ctx context.Context) (*GeneralDashboard, e
 		upcoming = &futureMeetings[0]
 	}
 
-	// Attendance rate (semua attendance)
+	// ===== Rata-rata kehadiran (pakai attByMeeting flat) =====
+
 	allCount, hadirCount := 0, 0
-	for _, m := range meetings {
-		rows, err := s.attendanceRepo.FindByMeeting(ctx, m.MeetingID)
-		if err != nil {
-			continue
-		}
-		for _, a := range rows {
-			allCount++
-			if a.Status == "HADIR" {
-				hadirCount++
-			}
+	for _, a := range attByMeeting {
+		allCount++
+		if a.Status == "HADIR" {
+			hadirCount++
 		}
 	}
 	rate := 0
@@ -103,7 +130,11 @@ func (s *DashboardService) GetGeneral(ctx context.Context) (*GeneralDashboard, e
 		rate = (hadirCount * 100) / allCount
 	}
 
-	attention := s.buildAttentionList(ctx, members)
+	// ===== Attention list (pakai attGrouped) =====
+
+	attention := s.buildAttentionList(members, attGrouped)
+
+	// ===== Data belum lengkap =====
 
 	incomplete := 0
 	for _, m := range members {
@@ -134,15 +165,17 @@ func (s *DashboardService) GetGeneral(ctx context.Context) (*GeneralDashboard, e
 	}, nil
 }
 
-func (s *DashboardService) buildAttentionList(ctx context.Context, members []model.Member) []AttentionItem {
+// buildAttentionList: sekarang terima attendance yang sudah di-preload per member.
+// Tidak ada query di dalam loop.
+func (s *DashboardService) buildAttentionList(
+	members []model.Member,
+	attByMember map[string][]model.Attendance,
+) []AttentionItem {
 	out := []AttentionItem{}
 	sixMonthsAgo := time.Now().AddDate(0, -6, 0)
 
 	for _, m := range members {
-		rows, err := s.attendanceRepo.FindByMember(ctx, m.MemberID)
-		if err != nil {
-			continue
-		}
+		rows := attByMember[m.MemberID]
 
 		reasons := []string{}
 		if len(rows) >= 3 {
@@ -156,6 +189,8 @@ func (s *DashboardService) buildAttentionList(ctx context.Context, members []mod
 			if rate < 60 {
 				reasons = append(reasons, "Kehadiran rendah ("+strconv.Itoa(rate)+"%)")
 			}
+
+			// rows sudah DESC by created_at → 3 pertama = 3 terbaru
 			last3 := rows
 			if len(last3) > 3 {
 				last3 = last3[:3]
