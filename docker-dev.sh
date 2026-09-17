@@ -13,7 +13,7 @@ case "${1:-}" in
     docker compose ps
     echo ""
     echo "✅ Backend:  http://localhost:8080"
-    echo "✅ Adminer:  http://localhost:8081"
+    echo "✅ Adminer:  http://localhost:8091"
     echo ""
     echo "Login Adminer:"
     echo "  System: PostgreSQL"
