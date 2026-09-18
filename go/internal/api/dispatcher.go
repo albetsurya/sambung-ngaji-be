@@ -283,7 +283,7 @@ func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, providers map[string
 }
 
 func RegisterAPI(app *fiber.App, svc *Services) {
-	app.Post("/api", BodyParserMiddleware(), AuthMiddleware(svc.Auth), func(c *fiber.Ctx) error {
+	app.Post("/api", BodyParserMiddleware(), AuthMiddleware(svc.Auth), AuditMiddleware(svc.Audit), func(c *fiber.Ctx) error {
 		action, _ := BodyOf(c)["action"].(string)
 		if action == "" {
 			return Fail(c, "Parameter action wajib diisi")
@@ -292,7 +292,7 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 		switch action {
 		// Auth
 		case "login":
-			return handleLogin(c, svc.Auth)
+			return handleLogin(c, svc.Auth, svc.Audit)
 		case "logout":
 			return handleLogout(c, svc.Auth)
 		case "validateSession":
