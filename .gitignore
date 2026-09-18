@@ -23,3 +23,9 @@ apps-script/.clasp.json
 go/data-csv/
 .env.docker
 data/
+
+# Local backup files
+*.bak
+docker-compose.yml.bak
+
+*.bak

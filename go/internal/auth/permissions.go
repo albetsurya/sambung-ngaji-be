@@ -5,8 +5,10 @@ package auth
 // SUPER_ADMIN punya akses ke SEMUA action (dicek di CanAccess).
 var rolePermissions = map[string][]string{
 	// — Sesi & keamanan
+	"logout":           {"SUPER_ADMIN", "ADMIN", "TIM_PNKB", "TIM_ABSENSI", "PENGAWAS", "MEMBER"},
 	"validateSession":  {"SUPER_ADMIN", "ADMIN", "TIM_PNKB", "TIM_ABSENSI", "PENGAWAS", "MEMBER"},
 	"changeMyPassword": {"SUPER_ADMIN", "ADMIN", "TIM_PNKB", "TIM_ABSENSI", "PENGAWAS", "MEMBER"},
+	"changeMyUsername": {"SUPER_ADMIN", "ADMIN", "TIM_PNKB", "TIM_ABSENSI", "PENGAWAS", "MEMBER"},
 
 	// — Dashboard
 	"getDashboard":   {"ADMIN", "TIM_PNKB", "TIM_ABSENSI", "PENGAWAS"},
@@ -31,10 +33,11 @@ var rolePermissions = map[string][]string{
 	"saveGroup": {"ADMIN"},
 
 	// — Meetings
-	"getMeetings":   {"ADMIN", "TIM_ABSENSI", "PENGAWAS"},
-	"createMeeting": {"ADMIN", "TIM_ABSENSI"},
-	"updateMeeting": {"ADMIN", "TIM_ABSENSI"},
-	"deleteMeeting": {"ADMIN", "TIM_ABSENSI"},
+	"getMeetings":        {"ADMIN", "TIM_ABSENSI", "PENGAWAS"},
+	"createMeeting":      {"ADMIN", "TIM_ABSENSI"},
+	"updateMeeting":      {"ADMIN", "TIM_ABSENSI"},
+	"deleteMeeting":      {"ADMIN", "TIM_ABSENSI"},
+	"deleteMeetingsBulk": {"ADMIN", "TIM_ABSENSI"},
 
 	// — Bulk Meeting
 	"previewBulkMeetings":     {"ADMIN"},
@@ -71,15 +74,17 @@ var rolePermissions = map[string][]string{
 	"getAnnouncementRecipientSummary": {"ADMIN"},
 
 	// — Foto & pengaturan
-	"uploadPhoto": {"SUPER_ADMIN", "ADMIN", "TIM_PNKB", "TIM_ABSENSI", "PENGAWAS", "MEMBER"},
-	"deletePhoto": {"SUPER_ADMIN", "ADMIN", "TIM_PNKB", "TIM_ABSENSI", "PENGAWAS", "MEMBER"},
-	"getSettings": {"ADMIN"},
+	"uploadPhoto":    {"SUPER_ADMIN", "ADMIN", "TIM_PNKB", "TIM_ABSENSI", "PENGAWAS", "MEMBER"},
+	"deletePhoto":    {"SUPER_ADMIN", "ADMIN", "TIM_PNKB", "TIM_ABSENSI", "PENGAWAS", "MEMBER"},
+	"getSettings":    {"ADMIN", "TIM_ABSENSI", "TIM_PNKB", "PENGAWAS"},
+	"updateSettings": {"SUPER_ADMIN"},
 
-	// — Users
-	"getUsers":       {"SUPER_ADMIN"},
-	"createUser":     {"SUPER_ADMIN"},
-	"updateUser":     {"SUPER_ADMIN"},
-	"updateUserRole": {"SUPER_ADMIN"},
+	// — Users (SUPER_ADMIN only — konsisten dengan SuperAdminOnlyActions)
+	"getUsers":          {"SUPER_ADMIN"},
+	"createUser":        {"SUPER_ADMIN"},
+	"updateUser":        {"SUPER_ADMIN"},
+	"updateUserRole":    {"SUPER_ADMIN"},
+	"resetUserPassword": {"SUPER_ADMIN"},
 
 	// — Audit
 	"getAuditLogs": {"SUPER_ADMIN"},
@@ -91,6 +96,9 @@ var rolePermissions = map[string][]string{
 
 	// — AI usage (admin only)
 	"getAiUsageStats": {"SUPER_ADMIN", "ADMIN"},
+
+	// — PDF Import (parse jadwal dari PDF)
+	"parsePdfMeeting": {"ADMIN", "TIM_ABSENSI"},
 
 	// — Pending
 	"getPendingMembers":      {"ADMIN"},
