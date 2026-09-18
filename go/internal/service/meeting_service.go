@@ -173,6 +173,45 @@ func (s *MeetingService) UpdateMeeting(ctx context.Context, in UpdateMeetingInpu
 	return &dto, nil
 }
 
+type DeleteMeetingsBulkInput struct {
+	MeetingIDs []string
+}
+
+type DeleteMeetingsBulkResult struct {
+	Requested int   `json:"requested"`
+	Deleted   int64 `json:"deleted"`
+}
+
+func (s *MeetingService) DeleteMeetingBulk(ctx context.Context, in DeleteMeetingsBulkInput) (*DeleteMeetingsBulkResult, error) {
+	// Dedup + filter kosong
+	seen := map[string]bool{}
+	ids := make([]string, 0, len(in.MeetingIDs))
+	for _, id := range in.MeetingIDs {
+		id = strings.TrimSpace(id)
+		if id == "" || seen[id] {
+			continue
+		}
+		seen[id] = true
+		ids = append(ids, id)
+	}
+	if len(ids) == 0 {
+		return nil, errors.New("meeting_ids wajib diisi")
+	}
+	if len(ids) > 100 {
+		return nil, errors.New("maksimal 100 jadwal per request")
+	}
+
+	deleted, err := s.repo.DeleteMany(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+
+	return &DeleteMeetingsBulkResult{
+		Requested: len(ids),
+		Deleted:   deleted,
+	}, nil
+}
+
 type DeleteMeetingResult struct {
 	MeetingID         string `json:"meeting_id"`
 	DeletedAttendance int64  `json:"deleted_attendance"`

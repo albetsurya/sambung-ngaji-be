@@ -107,3 +107,27 @@ func handleDeleteMeeting(c *fiber.Ctx, svc *service.MeetingService) error {
 	}
 	return Ok(c, res)
 }
+
+func handleDeleteMeetingsBulk(c *fiber.Ctx, svc *service.MeetingService) error {
+	body := BodyOf(c)
+	raw, ok := body["meeting_ids"].([]interface{})
+	if !ok {
+		return Fail(c, "meeting_ids wajib diisi (array)")
+	}
+	ids := make([]string, 0, len(raw))
+	for _, x := range raw {
+		if s, ok := x.(string); ok && s != "" {
+			ids = append(ids, s)
+		}
+	}
+	if len(ids) == 0 {
+		return Fail(c, "meeting_ids tidak boleh kosong")
+	}
+
+	in := service.DeleteMeetingsBulkInput{MeetingIDs: ids}
+	res, err := svc.DeleteMeetingBulk(c.Context(), in)
+	if err != nil {
+		return Fail(c, err.Error())
+	}
+	return Ok(c, res)
+}
