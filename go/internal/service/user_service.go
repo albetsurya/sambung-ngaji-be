@@ -285,6 +285,71 @@ func (s *UserService) ChangeMyPassword(ctx context.Context, in ChangePasswordInp
 	return nil
 }
 
+/* ===== Username ===== */
+
+type ChangeUsernameInput struct {
+	UserID      string
+	OldPassword string
+	NewUsername string
+}
+
+func (s *UserService) ChangeMyUsername(ctx context.Context, in ChangeUsernameInput) (*model.UserDTO, error) {
+	if in.UserID == "" {
+		return nil, errors.New("user tidak terautentikasi")
+	}
+	if in.OldPassword == "" {
+		return nil, errors.New("password wajib diisi untuk konfirmasi")
+	}
+
+	username := strings.ToLower(strings.TrimSpace(in.NewUsername))
+	if !usernameRegex.MatchString(username) {
+		return nil, errors.New("username harus 3-20 karakter (huruf kecil, angka, underscore)")
+	}
+
+	u, err := s.repo.FindByID(ctx, in.UserID)
+	if err != nil {
+		return nil, errors.New("user tidak ditemukan")
+	}
+
+	if username == u.Username {
+		return nil, errors.New("username baru sama dengan username lama")
+	}
+
+	// Konfirmasi password lama
+	match, _ := auth.VerifyPassword(in.OldPassword, u.PasswordHash)
+	if !match {
+		return nil, errors.New("password salah")
+	}
+
+	// Cek ketersediaan username baru
+	exists, err := s.authRepo.UsernameExists(ctx, username)
+	if err != nil {
+		return nil, err
+	}
+	if exists {
+		return nil, errors.New("username sudah digunakan")
+	}
+
+	// Update
+	if err := s.repo.Update(ctx, in.UserID, map[string]interface{}{
+		"username": username,
+	}); err != nil {
+		// Handle unique constraint violation (race condition, double-tap, dll)
+		msg := strings.ToLower(err.Error())
+		if strings.Contains(msg, "duplicate key") || strings.Contains(msg, "unique") {
+			return nil, errors.New("username sudah digunakan")
+		}
+		return nil, err
+	}
+
+	fresh, err := s.repo.FindByID(ctx, in.UserID)
+	if err != nil {
+		return nil, err
+	}
+	dto := toUserDTO(*fresh)
+	return &dto, nil
+}
+
 func (s *UserService) ResetPassword(ctx context.Context, userID, newPassword string) error {
 	if userID == "" {
 		return errors.New("user_id wajib diisi")

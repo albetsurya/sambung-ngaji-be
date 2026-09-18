@@ -104,6 +104,26 @@ func handleChangeMyPassword(c *fiber.Ctx, svc *service.UserService) error {
 	return Ok(c, fiber.Map{"changed": true})
 }
 
+func handleChangeMyUsername(c *fiber.Ctx, svc *service.UserService) error {
+	u := UserOf(c)
+	if u == nil {
+		return Fail(c, "Unauthorized")
+	}
+	in := service.ChangeUsernameInput{
+		UserID:      u.UserID,
+		OldPassword: BodyString(c, "password"),
+		NewUsername: BodyString(c, "new_username"),
+	}
+	dto, err := svc.ChangeMyUsername(c.Context(), in)
+	if err != nil {
+		return Fail(c, err.Error())
+	}
+	return Ok(c, fiber.Map{
+		"changed":  true,
+		"username": dto.Username,
+	})
+}
+
 func handleResetUserPassword(c *fiber.Ctx, svc *service.UserService) error {
 	if err := svc.ResetPassword(c.Context(),
 		BodyString(c, "user_id"),

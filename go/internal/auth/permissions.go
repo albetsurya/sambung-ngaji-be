@@ -7,6 +7,7 @@ var rolePermissions = map[string][]string{
 	// — Sesi & keamanan
 	"validateSession":  {"SUPER_ADMIN", "ADMIN", "TIM_PNKB", "TIM_ABSENSI", "PENGAWAS", "MEMBER"},
 	"changeMyPassword": {"SUPER_ADMIN", "ADMIN", "TIM_PNKB", "TIM_ABSENSI", "PENGAWAS", "MEMBER"},
+	"changeMyUsername": {"SUPER_ADMIN", "ADMIN", "TIM_PNKB", "TIM_ABSENSI", "PENGAWAS", "MEMBER"},
 
 	// — Dashboard
 	"getDashboard":   {"ADMIN", "TIM_PNKB", "TIM_ABSENSI", "PENGAWAS"},
