@@ -4,9 +4,10 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"pengajian-backend/internal/auth"
+	"pengajian-backend/internal/service"
 )
 
-func handleLogin(c *fiber.Ctx, svc *auth.Service) error {
+func handleLogin(c *fiber.Ctx, svc *auth.Service, auditSvc *service.AuditService) error {
 	username := BodyString(c, "username")
 	password := BodyString(c, "password")
 
@@ -20,6 +21,12 @@ func handleLogin(c *fiber.Ctx, svc *auth.Service) error {
 		default:
 			return Fail(c, "Gagal login: "+err.Error())
 		}
+	}
+
+	// Audit login manual (public action, UserOf kosong di middleware)
+	if auditSvc != nil {
+		uid := u.UserID
+		auditSvc.Log(c.Context(), uid, "login", "session", uid)
 	}
 
 	public := svc.ToPublic(c.Context(), u)
