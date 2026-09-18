@@ -160,3 +160,26 @@ func (r *MeetingRepo) Delete(ctx context.Context, id string) error {
 	_, err := r.pool.Exec(ctx, `DELETE FROM meetings WHERE meeting_id = $1`, id)
 	return err
 }
+
+// DeleteMany: hapus multiple meetings dalam transaction.
+// Return: jumlah meeting terhapus, error.
+func (r *MeetingRepo) DeleteMany(ctx context.Context, ids []string) (int64, error) {
+	if len(ids) == 0 {
+		return 0, nil
+	}
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return 0, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	tag, err := tx.Exec(ctx,
+		`DELETE FROM meetings WHERE meeting_id = ANY($1)`, ids)
+	if err != nil {
+		return 0, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return 0, err
+	}
+	return tag.RowsAffected(), nil
+}

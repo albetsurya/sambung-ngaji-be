@@ -34,10 +34,11 @@ var RegisteredActions = map[string]bool{
 	"getGroups": true,
 
 	// Meetings
-	"getMeetings":   true,
-	"createMeeting": true,
-	"updateMeeting": true,
-	"deleteMeeting": true,
+	"getMeetings":        true,
+	"createMeeting":      true,
+	"updateMeeting":      true,
+	"deleteMeeting":      true,
+	"deleteMeetingsBulk": true,
 
 	// Bulk Meeting
 	"previewBulkMeetings":     true,
@@ -334,6 +335,8 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 			return handleUpdateMeeting(c, svc.Meeting)
 		case "deleteMeeting":
 			return handleDeleteMeeting(c, svc.Meeting)
+		case "deleteMeetingsBulk":
+			return handleDeleteMeetingsBulk(c, svc.Meeting)
 
 		// Bulk Meeting
 		case "previewBulkMeetings":

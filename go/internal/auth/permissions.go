@@ -33,10 +33,11 @@ var rolePermissions = map[string][]string{
 	"saveGroup": {"ADMIN"},
 
 	// — Meetings
-	"getMeetings":   {"ADMIN", "TIM_ABSENSI", "PENGAWAS"},
-	"createMeeting": {"ADMIN", "TIM_ABSENSI"},
-	"updateMeeting": {"ADMIN", "TIM_ABSENSI"},
-	"deleteMeeting": {"ADMIN", "TIM_ABSENSI"},
+	"getMeetings":        {"ADMIN", "TIM_ABSENSI", "PENGAWAS"},
+	"createMeeting":      {"ADMIN", "TIM_ABSENSI"},
+	"updateMeeting":      {"ADMIN", "TIM_ABSENSI"},
+	"deleteMeeting":      {"ADMIN", "TIM_ABSENSI"},
+	"deleteMeetingsBulk": {"ADMIN", "TIM_ABSENSI"},
 
 	// — Bulk Meeting
 	"previewBulkMeetings":     {"ADMIN"},

@@ -1,0 +1,56 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: pengajian-postgres
+    restart: unless-stopped
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: pengajian
+      POSTGRES_PASSWORD: dev_password
+      POSTGRES_DB: pengajian
+      TZ: Asia/Jakarta
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - pengajian-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pengajian"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+    api:
+    build:
+      context: ./go
+      dockerfile: Dockerfile.dev
+    container_name: pengajian-api
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./go:/app
+    env_file:
+      - ./go/.env.docker
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      TZ: Asia/Jakarta  
+
+  adminer:
+    image: adminer:latest
+    container_name: pengajian-adminer
+    restart: unless-stopped
+    ports:
+      - "8091:8080"
+    depends_on:
+      - postgres
+    networks:
+      - pengajian-net
+
+volumes:
+  pgdata:
+
+networks:
+  pengajian-net:
+    driver: bridge
