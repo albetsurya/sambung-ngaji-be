@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -24,6 +25,7 @@ type PendingService struct {
 	userRepo   *repository.UserRepo
 	memberRepo *repository.MemberRepo
 	wa         *WASender
+	waEnabled  bool
 }
 
 func NewPendingService(
@@ -37,7 +39,16 @@ func NewPendingService(
 		userRepo:   userRepo,
 		memberRepo: memberRepo,
 		wa:         wa,
+		waEnabled:  os.Getenv("WA_NOTIF_ENABLED") == "true",
 	}
+}
+
+/* sendWA — soft-fail, hanya kirim kalau WA_NOTIF_ENABLED=true */
+func (s *PendingService) sendWA(ctx context.Context, to, msg string) {
+	if !s.waEnabled || s.wa == nil {
+		return
+	}
+	_ = s.wa.Send(ctx, to, msg)
 }
 
 /* ===== Public: check username ===== */
@@ -352,7 +363,7 @@ func (s *PendingService) Approve(ctx context.Context, submissionID, kelompok, re
 			"Alhamdulillah, pendaftaran " + sapaan + " di *Sambung Ngaji* sudah disetujui.\n\n" +
 			"Silakan masuk menggunakan:\nUsername: *" + username + "*\nPassword: sesuai yang " + sapaan + " daftarkan\n\n" +
 			"Barakallahu fiik.\n" + doa + " 🤍"
-		_ = s.wa.Send(ctx, p.NoWA, msg)
+		s.sendWA(ctx, p.NoWA, msg)
 	}
 
 	return &ApproveResult{
@@ -391,7 +402,7 @@ func (s *PendingService) Reject(ctx context.Context, submissionID, reviewerID, r
 			"Mohon maaf, pendaftaran " + sapaan + " di *Sambung Ngaji* belum bisa kami setujui.\n\n" +
 			"Alasan: " + reason + "\n\n" +
 			"Silakan hubungi admin untuk informasi lebih lanjut.\n\n" + doa + " 🙏"
-		_ = s.wa.Send(ctx, p.NoWA, msg)
+		s.sendWA(ctx, p.NoWA, msg)
 	}
 
 	return nil
