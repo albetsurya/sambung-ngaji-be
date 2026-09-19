@@ -12,50 +12,76 @@ const (
 	KatIstimewa  = "ISTIMEWA"
 )
 
-// GetMemberCategory — port persis dari utils.js.
-// Input: tanggalLahir, jenjangPendidikan (SD/SMP/SMA/SMK/PAUD/TK), isNikah.
+// Ambang jendela umur: jenjang valid selama umur masih masuk rentang wajar.
+// Kalau umur melewati ambang, jenjang dianggap "pendidikan terakhir" →
+// jatuh ke klasifikasi umur.
+const (
+	caberawitMaxAge = 13 // PAUD - Kelas 6 SD, tipikal 4-12
+	praRemajaMaxAge = 16 // SMP, tipikal 12-15
+	remajaMaxAge    = 19 // SMA/SMK, tipikal 15-18
+	istimewaMinAge  = 60
+	balitaMaxAge    = 6 // 0-5, belum sekolah
+)
+
+// GetMemberCategory — klasifikasi kohort member.
+// Input: tanggalLahir, jenjangPendidikan (PAUD/TK/SD/SMP/SMA/SMK), isNikah.
+// Strategi: jenjang jadi penentu utama; umur jadi fallback + pengaman.
 func GetMemberCategory(tanggalLahir *time.Time, jenjangPendidikan string, isNikah bool) string {
 	age := GetAge(tanggalLahir)
 
 	if isNikah {
-		if age >= 0 && age >= 60 {
+		if age >= istimewaMinAge {
 			return KatIstimewa
 		}
 		return KatDewasa
 	}
 
-	jenjang := ""
-	for _, c := range jenjangPendidikan {
-		if c >= 'a' && c <= 'z' {
-			jenjang += string(c - 32)
-		} else {
-			jenjang += string(c)
-		}
-	}
+	jenjang := upper(jenjangPendidikan)
 
 	switch jenjang {
 	case "PAUD", "TK", "SD":
-		return KatCaberawit
+		if age >= 0 && age < caberawitMaxAge {
+			return KatCaberawit
+		}
 	case "SMP":
-		return KatPraRemaja
+		if age >= 0 && age <= praRemajaMaxAge {
+			return KatPraRemaja
+		}
 	case "SMA", "SMK":
-		return KatRemaja
+		if age >= 0 && age <= remajaMaxAge {
+			return KatRemaja
+		}
 	}
 
-	if age >= 0 && age >= 60 {
+	// Tanpa jenjang (atau jenjang = "pendidikan terakhir" di luar jendela) → pakai umur.
+	if age >= istimewaMinAge {
 		return KatIstimewa
 	}
-	if age >= 0 && age < 6 {
+	if age >= 0 && age < balitaMaxAge {
 		return KatBalita
 	}
-	if age >= 0 && age < 13 {
+	if age >= 0 && age < caberawitMaxAge {
 		return KatCaberawit
 	}
-	if age >= 0 && age < 16 {
+	if age >= 0 && age <= praRemajaMaxAge {
 		return KatPraRemaja
 	}
-	if age >= 0 && age < 19 {
+	if age >= 0 && age <= remajaMaxAge {
 		return KatRemaja
 	}
+	// Termasuk umur -1 (tanpa TTL) → default Pra Nikah.
 	return KatPraNikah
+}
+
+// upper mengubah string ke uppercase (pendukung jenjang, ASCII-safe).
+func upper(s string) string {
+	out := make([]byte, len(s))
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if c >= 'a' && c <= 'z' {
+			c -= 32
+		}
+		out[i] = c
+	}
+	return string(out)
 }
