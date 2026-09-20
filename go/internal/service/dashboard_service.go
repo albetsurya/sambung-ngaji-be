@@ -132,7 +132,12 @@ func (s *DashboardService) GetGeneral(ctx context.Context) (*GeneralDashboard, e
 
 	// ===== Attention list (pakai attGrouped) =====
 
-	attention := s.buildAttentionList(members, attGrouped)
+	meetingDates := make(map[string]time.Time, len(meetings))
+	for _, m := range meetings {
+		meetingDates[m.MeetingID] = m.Tanggal
+	}
+
+	attention := s.buildAttentionList(members, attGrouped, meetingDates)
 
 	// ===== Data belum lengkap =====
 
@@ -165,48 +170,63 @@ func (s *DashboardService) GetGeneral(ctx context.Context) (*GeneralDashboard, e
 	}, nil
 }
 
-// buildAttentionList: sekarang terima attendance yang sudah di-preload per member.
-// Tidak ada query di dalam loop.
+// buildAttentionList: terima attendance yang sudah di-preload per member + map tanggal meeting.
+// Aturan flag (window rolling 30 hari terakhir dari hari ini):
+//   - Kehadiran < 50% dalam 30 hari (minimal 3 absensi di window)
+//   - SAKIT >= 3 pertemuan berturut-turut (run maksimal di window)
+//   - ALPA >= 5 pertemuan berturut-turut (run maksimal di window)
+//
+// Plus status pembinaan & data lama (dari logika sebelumnya).
 func (s *DashboardService) buildAttentionList(
 	members []model.Member,
 	attByMember map[string][]model.Attendance,
+	meetingDates map[string]time.Time,
 ) []AttentionItem {
 	out := []AttentionItem{}
-	sixMonthsAgo := time.Now().AddDate(0, -6, 0)
+	cutoff := time.Now().AddDate(0, 0, -30)
 
 	for _, m := range members {
 		rows := attByMember[m.MemberID]
 
+		// Ambil absensi dalam window 30 hari + urutkan tanggal meeting terbaru dulu
+		window := make([]model.Attendance, 0, len(rows))
+		for _, r := range rows {
+			if d, ok := meetingDates[r.MeetingID]; ok && d.After(cutoff) {
+				window = append(window, r)
+			}
+		}
+		sort.Slice(window, func(i, j int) bool {
+			return meetingDates[window[i].MeetingID].After(meetingDates[window[j].MeetingID])
+		})
+
 		reasons := []string{}
-		if len(rows) >= 3 {
+
+		// 1. Kehadiran < 50% dalam 30 hari
+		if len(window) >= 3 {
 			hadir := 0
-			for _, r := range rows {
+			for _, r := range window {
 				if r.Status == "HADIR" {
 					hadir++
 				}
 			}
-			rate := (hadir * 100) / len(rows)
-			if rate < 60 {
-				reasons = append(reasons, "Kehadiran rendah ("+strconv.Itoa(rate)+"%)")
-			}
-
-			// rows sudah DESC by created_at → 3 pertama = 3 terbaru
-			last3 := rows
-			if len(last3) > 3 {
-				last3 = last3[:3]
-			}
-			nonHadir := 0
-			for _, r := range last3 {
-				if r.Status != "HADIR" {
-					nonHadir++
-				}
-			}
-			if nonHadir == 3 && len(last3) == 3 {
-				reasons = append(reasons, "3x berturut-turut tidak hadir")
+			rate := (hadir * 100) / len(window)
+			if rate < 50 {
+				reasons = append(reasons, "Kehadiran 30 hari terakhir <50% ("+strconv.Itoa(rate)+"%)")
 			}
 		}
-		if m.UpdatedAt.Before(sixMonthsAgo) {
-			reasons = append(reasons, "Data belum diperbarui > 6 bulan")
+
+		// 2. SAKIT >= 3 berturut dalam window
+		if run := maxConsecutiveRun(window, "SAKIT"); run >= 3 {
+			reasons = append(reasons, "Sakit "+strconv.Itoa(run)+" pertemuan berturut-turut")
+		}
+
+		// 3. ALPA >= 5 berturut dalam window
+		if run := maxConsecutiveRun(window, "ALPA"); run >= 5 {
+			reasons = append(reasons, "Tanpa keterangan "+strconv.Itoa(run)+" pertemuan berturut-turut")
+		}
+
+		if m.UpdatedAt.Before(cutoff) {
+			reasons = append(reasons, "Data belum diperbarui > 30 hari")
 		}
 		if m.StatusPembinaan == "PERLU_PERHATIAN" || m.StatusPembinaan == "TIDAK_AKTIF" {
 			reasons = append(reasons, "Status pembinaan: "+m.StatusPembinaan)
@@ -225,6 +245,25 @@ func (s *DashboardService) buildAttentionList(
 		}
 	}
 	return out
+}
+
+// maxConsecutiveRun: panjang run terpanjang status tertentu pada window yang
+// sudah diurutkan tanggal terbaru→terlama. "Berturut-turut" = record absensi
+// yang urut (pertemuan berurutan), bukan adjacency hari kalender (pengajian
+// tidak harian).
+func maxConsecutiveRun(window []model.Attendance, status string) int {
+	maxRun, cur := 0, 0
+	for _, r := range window {
+		if r.Status == status {
+			cur++
+			if cur > maxRun {
+				maxRun = cur
+			}
+		} else {
+			cur = 0
+		}
+	}
+	return maxRun
 }
 
 /* ===== My Dashboard (MEMBER) ===== */
