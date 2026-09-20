@@ -75,6 +75,16 @@ type openAIChatResponse struct {
 func (o *OpenAICompat) Name() string { return o.name }
 
 func (o *OpenAICompat) Chat(ctx context.Context, messages []model.LLMMessage, tools []model.LLMToolDef) (*LLMResult, error) {
+	var result *LLMResult
+	err := Retry(ctx, DefaultRetryConfig(), func() error {
+		var err error
+		result, err = o.doChat(ctx, messages, tools)
+		return err
+	})
+	return result, err
+}
+
+func (o *OpenAICompat) doChat(ctx context.Context, messages []model.LLMMessage, tools []model.LLMToolDef) (*LLMResult, error) {
 	if o.baseURL == "" {
 		return nil, fmt.Errorf("%s: base URL belum diatur", o.name)
 	}

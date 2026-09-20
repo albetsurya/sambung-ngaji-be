@@ -123,7 +123,6 @@ func (r *AnnouncementRepo) FindAnnouncements(ctx context.Context, groupID, statu
 	if status != "" {
 		q += ` AND status = $` + itoa(n)
 		args = append(args, status)
-		n++
 	}
 	q += ` ORDER BY tanggal DESC`
 	rows, err := r.pool.Query(ctx, q, args...)

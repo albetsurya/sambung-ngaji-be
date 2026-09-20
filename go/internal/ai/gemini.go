@@ -101,6 +101,17 @@ func (g *Gemini) Chat(ctx context.Context, messages []model.LLMMessage, tools []
 		return nil, fmt.Errorf("gemini: API key belum diatur")
 	}
 
+	var result *LLMResult
+	err := Retry(ctx, DefaultRetryConfig(), func() error {
+		var err error
+		result, err = g.doChat(ctx, messages, tools)
+		return err
+	})
+
+	return result, err
+}
+
+func (g *Gemini) doChat(ctx context.Context, messages []model.LLMMessage, tools []model.LLMToolDef) (*LLMResult, error) {
 	req := gemRequest{
 		GenerationConfig: &gemGenConfig{Temperature: 0.3},
 	}
