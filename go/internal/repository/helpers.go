@@ -1,9 +1,21 @@
 package repository
 
 import (
+	"context"
 	"encoding/json"
 	"strconv"
+	"time"
 )
+
+const (
+	// DefaultQueryTimeout is the default timeout for database queries
+	DefaultQueryTimeout = 10 * time.Second
+)
+
+// WithQueryTimeout returns a context with the default query timeout
+func WithQueryTimeout(ctx context.Context) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(ctx, DefaultQueryTimeout)
+}
 
 func itoa(n int) string {
 	return strconv.Itoa(n)
