@@ -109,6 +109,11 @@ var RegisteredActions = map[string]bool{
 	"getMyMonitoring":     true,
 	"getUpcomingMeetings": true,
 
+	// Mood (member tracker)
+	"saveMood":       true,
+	"getMyMoods":     true,
+	"getMemberMoods": true,
+
 	// Audit
 	"getAuditLogs": true,
 
@@ -135,6 +140,7 @@ type Services struct {
 	Pending      *service.PendingService
 	User         *service.UserService
 	Profile      *service.ProfileService
+	Mood         *service.MoodService
 	Audit        *service.AuditService
 	AI           *service.AIService
 	Photo        *PhotoHandler
@@ -230,6 +236,10 @@ func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, providers map[string
 			repository.NewAttendanceRepo(pool),
 			repository.NewMonitoringRepo(pool),
 			repository.NewMeetingRepo(pool),
+		),
+		Mood: service.NewMoodService(
+			repository.NewMoodRepo(pool),
+			repository.NewMemberRepo(pool),
 		),
 		AI: aiSvc,
 		Photo: NewPhotoHandler(
@@ -457,6 +467,14 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 			return handleGetMyMonitoring(c, svc.Profile)
 		case "getUpcomingMeetings":
 			return handleGetUpcomingMeetings(c, svc.Profile)
+
+		// Mood
+		case "saveMood":
+			return handleSaveMood(c, svc.Mood)
+		case "getMyMoods":
+			return handleGetMyMoods(c, svc.Mood)
+		case "getMemberMoods":
+			return handleGetMemberMoods(c, svc.Mood)
 
 			// Audit
 		case "getAuditLogs":

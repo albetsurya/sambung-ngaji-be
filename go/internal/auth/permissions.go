@@ -113,6 +113,11 @@ var rolePermissions = map[string][]string{
 	"getMyMonitoring":     {"SUPER_ADMIN", "ADMIN", "TIM_PNKB", "TIM_ABSENSI", "PENGAWAS", "MEMBER"},
 	"getUpcomingMeetings": {"SUPER_ADMIN", "ADMIN", "TIM_PNKB", "TIM_ABSENSI", "PENGAWAS", "MEMBER"},
 
+	// — Mood (tracker member; backend cek member_id sendiri utk save/getMy)
+	"saveMood":       {"SUPER_ADMIN", "ADMIN", "TIM_PNKB", "TIM_ABSENSI", "PENGAWAS", "MEMBER"},
+	"getMyMoods":     {"SUPER_ADMIN", "ADMIN", "TIM_PNKB", "TIM_ABSENSI", "PENGAWAS", "MEMBER"},
+	"getMemberMoods": {"SUPER_ADMIN", "ADMIN", "TIM_PNKB", "PENGAWAS"},
+
 	// — WA Queue
 	"createWaQueue":        {"ADMIN", "TIM_ABSENSI"},
 	"cancelWaQueue":        {"ADMIN", "TIM_ABSENSI"},
