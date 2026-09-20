@@ -2,10 +2,10 @@ package service
 
 import (
 	"context"
-	"errors"
 	"strings"
 	"time"
 
+	apperrors "pengajian-backend/internal/errors"
 	"pengajian-backend/internal/model"
 	"pengajian-backend/internal/repository"
 	"pengajian-backend/internal/util"
@@ -40,8 +40,15 @@ type CreateMemberInput struct {
 }
 
 func (s *MemberService) Create(ctx context.Context, in CreateMemberInput) (*model.MemberDetailDTO, error) {
+
+	// Title Case normalisasi field nama & tempat
+	in.NamaLengkap = util.TitleCaseID(in.NamaLengkap)
+	in.NamaPanggilan = util.TitleCaseID(in.NamaPanggilan)
+	in.TempatLahir = util.TitleCaseID(in.TempatLahir)
+	in.Desa = util.TitleCaseID(in.Desa)
+	in.Daerah = util.TitleCaseID(in.Daerah)
 	if strings.TrimSpace(in.NamaLengkap) == "" {
-		return nil, errors.New("nama_lengkap wajib diisi")
+		return nil, apperrors.Wrap(apperrors.ErrValidation, "nama_lengkap wajib diisi")
 	}
 
 	jk := normalizeGender(in.JenisKelamin)
@@ -136,11 +143,33 @@ type UpdateMemberInput struct {
 }
 
 func (s *MemberService) UpdateFull(ctx context.Context, in UpdateMemberInput) (*model.MemberDetailDTO, error) {
+
+	// Title Case normalisasi field nama & tempat (hanya yang di-set)
+	if in.NamaLengkap != nil {
+		v := util.TitleCaseID(*in.NamaLengkap)
+		in.NamaLengkap = &v
+	}
+	if in.NamaPanggilan != nil {
+		v := util.TitleCaseID(*in.NamaPanggilan)
+		in.NamaPanggilan = &v
+	}
+	if in.TempatLahir != nil {
+		v := util.TitleCaseID(*in.TempatLahir)
+		in.TempatLahir = &v
+	}
+	if in.Desa != nil {
+		v := util.TitleCaseID(*in.Desa)
+		in.Desa = &v
+	}
+	if in.Daerah != nil {
+		v := util.TitleCaseID(*in.Daerah)
+		in.Daerah = &v
+	}
 	if in.MemberID == "" {
-		return nil, errors.New("member_id wajib diisi")
+		return nil, apperrors.Wrap(apperrors.ErrValidation, "member_id wajib diisi")
 	}
 	if _, err := s.repo.FindByID(ctx, in.MemberID); err != nil {
-		return nil, errors.New("jamaah tidak ditemukan")
+		return nil, apperrors.Wrap(apperrors.ErrNotFound, "jamaah tidak ditemukan")
 	}
 
 	patch := map[string]interface{}{}
@@ -207,7 +236,7 @@ func (s *MemberService) UpdateFull(ctx context.Context, in UpdateMemberInput) (*
 	addStr("tahun_selesai_pendidikan", in.TahunSelesaiPendidikan)
 
 	if len(patch) == 0 {
-		return nil, errors.New("tidak ada perubahan")
+		return nil, apperrors.Wrap(apperrors.ErrValidation, "tidak ada perubahan")
 	}
 	if err := s.repo.Update(ctx, in.MemberID, patch); err != nil {
 		return nil, err
@@ -222,10 +251,10 @@ func (s *MemberService) UpdateFull(ctx context.Context, in UpdateMemberInput) (*
 
 func (s *MemberService) Deactivate(ctx context.Context, memberID string) error {
 	if memberID == "" {
-		return errors.New("member_id wajib diisi")
+		return apperrors.Wrap(apperrors.ErrValidation, "member_id wajib diisi")
 	}
 	if _, err := s.repo.FindByID(ctx, memberID); err != nil {
-		return errors.New("jamaah tidak ditemukan")
+		return apperrors.Wrap(apperrors.ErrNotFound, "jamaah tidak ditemukan")
 	}
 	return s.repo.Deactivate(ctx, memberID)
 }
