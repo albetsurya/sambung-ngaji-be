@@ -57,7 +57,7 @@ func AdminTools() []model.LLMToolDef {
 			Type: "function",
 			Function: model.LLMToolDefFunc{
 				Name:        "get_attendance_summary",
-				Description: "Ambil ringkasan absensi: total hadir/ijin/sakit/alpa dalam periode tertentu.",
+				Description: "Ambil ringkasan absensi: total hadir/izin/sakit/alpa/dispensasi dalam periode tertentu.",
 				Parameters: map[string]interface{}{
 					"type": "object",
 					"properties": map[string]interface{}{
