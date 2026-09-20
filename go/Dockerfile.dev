@@ -8,5 +8,7 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 
+ENV TZ=Asia/Jakarta
+
 # Source di-mount saat runtime, jadi tidak perlu COPY di sini
 CMD ["go", "run", "./cmd/api"]

@@ -6,21 +6,27 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"pengajian-backend/internal/config"
 )
 
-func Connect(ctx context.Context, url string) (*pgxpool.Pool, error) {
-	cfg, err := pgxpool.ParseConfig(url)
+func Connect(ctx context.Context, url string, cfg *config.Config) (*pgxpool.Pool, error) {
+	pgCfg, err := pgxpool.ParseConfig(url)
 	if err != nil {
 		return nil, fmt.Errorf("parse config: %w", err)
 	}
 
-	cfg.MaxConns = 10
-	cfg.MinConns = 1
-	cfg.MaxConnLifetime = time.Hour
-	cfg.MaxConnIdleTime = 30 * time.Minute
-	cfg.HealthCheckPeriod = 30 * time.Second
+	// Parse duration strings
+	maxConnLifetime, _ := time.ParseDuration(cfg.DBMaxConnLifetime)
+	maxConnIdleTime, _ := time.ParseDuration(cfg.DBMaxConnIdleTime)
+	healthCheckPeriod, _ := time.ParseDuration(cfg.DBHealthCheckPeriod)
 
-	pool, err := pgxpool.NewWithConfig(ctx, cfg)
+	pgCfg.MaxConns = int32(cfg.DBMaxConns)
+	pgCfg.MinConns = int32(cfg.DBMinConns)
+	pgCfg.MaxConnLifetime = maxConnLifetime
+	pgCfg.MaxConnIdleTime = maxConnIdleTime
+	pgCfg.HealthCheckPeriod = healthCheckPeriod
+
+	pool, err := pgxpool.NewWithConfig(ctx, pgCfg)
 	if err != nil {
 		return nil, fmt.Errorf("connect: %w", err)
 	}
