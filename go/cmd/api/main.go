@@ -30,10 +30,8 @@ func main() {
 		log.Fatal().Err(err).Msg("gagal load config")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-
-	db, err := database.Connect(ctx, cfg.DatabaseURL)
+	// Use background context for DB connection (no timeout on startup)
+	db, err := database.Connect(context.Background(), cfg.DatabaseURL, cfg)
 	if err != nil {
 		log.Fatal().Err(err).Msg("gagal koneksi database")
 	}
@@ -86,6 +84,18 @@ func main() {
 		MaxAge:       3600,
 	}))
 
+	// Request ID middleware for correlation logging
+	app.Use(api.RequestIDMiddleware())
+
+	// Prometheus metrics middleware
+	app.Use(api.MetricsMiddleware())
+
+	// Rate limiting middleware
+	app.Use(api.RateLimiterMiddleware(api.DefaultRateLimiterConfig()))
+
+	// Logging middleware with correlation ID
+	app.Use(api.LoggingMiddleware(&log.Logger))
+
 	handler.RegisterHealth(app, db)
 	storageSvc := service.NewStorageService(
 		cfg.SupabaseURL,
@@ -96,6 +106,9 @@ func main() {
 	api.RegisterAPI(app, services)
 
 	log.Info().Strs("actions", api.ListRegisteredActions()).Msg("actions terdaftar")
+
+	// Create a context that will be cancelled on shutdown signal
+	_, shutdownCancel := context.WithCancel(context.Background())
 
 	go func() {
 		addr := ":" + cfg.AppPort
@@ -109,9 +122,15 @@ func main() {
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 	<-quit
 
-	log.Info().Msg("shutting down...")
-	if err := app.ShutdownWithTimeout(10 * time.Second); err != nil {
+	log.Info().Msg("shutdown signal received, draining connections...")
+	shutdownCancel() // Cancel context for any background work
+
+	// Graceful shutdown with timeout
+	shutdownTimeout := 15 * time.Second
+	if err := app.ShutdownWithTimeout(shutdownTimeout); err != nil {
 		log.Error().Err(err).Msg("shutdown error")
+	} else {
+		log.Info().Msg("graceful shutdown completed")
 	}
 	log.Info().Msg("bye")
 }
