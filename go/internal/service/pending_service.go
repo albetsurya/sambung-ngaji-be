@@ -116,6 +116,13 @@ type SubmitRegistrationResult struct {
 }
 
 func (s *PendingService) SubmitRegistration(ctx context.Context, in SubmitRegistrationInput) (*SubmitRegistrationResult, error) {
+
+	// Title Case normalisasi field nama & tempat
+	in.NamaLengkap = util.TitleCaseID(in.NamaLengkap)
+	in.NamaPanggilan = util.TitleCaseID(in.NamaPanggilan)
+	in.TempatLahir = util.TitleCaseID(in.TempatLahir)
+	in.Desa = util.TitleCaseID(in.Desa)
+	in.Daerah = util.TitleCaseID(in.Daerah)
 	nama := strings.TrimSpace(in.NamaLengkap)
 	jk := strings.ToUpper(strings.TrimSpace(in.JenisKelamin))
 	noWA := strings.TrimSpace(in.NoWA)
@@ -308,6 +315,13 @@ func (s *PendingService) Approve(ctx context.Context, submissionID, kelompok, re
 	if exists {
 		return nil, errors.New("Username sudah dipakai. Tolak pendaftar dan minta daftar ulang dengan username lain.")
 	}
+
+	// Title Case normalisasi nama sebelum copy ke members
+	p.NamaLengkap = util.TitleCaseID(p.NamaLengkap)
+	p.NamaPanggilan = util.TitleCaseID(p.NamaPanggilan)
+	p.TempatLahir = util.TitleCaseID(p.TempatLahir)
+	p.Desa = util.TitleCaseID(p.Desa)
+	p.Daerah = util.TitleCaseID(p.Daerah)
 
 	memberID := util.NewID("MBR")
 	memberIn := repository.NewMemberInput{
