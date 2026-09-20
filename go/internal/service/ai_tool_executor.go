@@ -163,9 +163,12 @@ func (e *AIToolExecutor) attendanceSummary(ctx context.Context, from, to, groupI
 	if err != nil {
 		return nil, err
 	}
-	counts := map[string]int{"HADIR": 0, "IJIN": 0, "SAKIT": 0, "TANPA_KETERANGAN": 0}
+	counts := map[string]int{"HADIR": 0, "IZIN": 0, "SAKIT": 0, "ALPA": 0, "DISPENSASI": 0}
 	total := 0
 	for _, m := range meetings {
+		if strings.EqualFold(m.Status, meetingStatusLibur) {
+			continue
+		}
 		rows, err := e.attendance.GetAttendance(ctx, m.MeetingID, "")
 		if err != nil {
 			continue
@@ -185,9 +188,10 @@ func (e *AIToolExecutor) attendanceSummary(ctx context.Context, from, to, groupI
 		"periode":          map[string]string{"from": orDefault(from, "awal"), "to": orDefault(to, "sekarang")},
 		"total_absensi":    total,
 		"hadir":            counts["HADIR"],
-		"ijin":             counts["IJIN"],
+		"izin":             counts["IZIN"],
 		"sakit":            counts["SAKIT"],
-		"tanpa_keterangan": counts["TANPA_KETERANGAN"],
+		"alpa":             counts["ALPA"],
+		"dispensasi":       counts["DISPENSASI"],
 		"persentase_hadir": fmt.Sprintf("%d%%", rate),
 	}, nil
 }
@@ -197,8 +201,11 @@ func (e *AIToolExecutor) myAttendanceStats(ctx context.Context, memberID string)
 	if err != nil {
 		return nil, err
 	}
-	counts := map[string]int{"HADIR": 0, "IJIN": 0, "SAKIT": 0, "TANPA_KETERANGAN": 0}
+	counts := map[string]int{"HADIR": 0, "IZIN": 0, "SAKIT": 0, "ALPA": 0, "DISPENSASI": 0}
 	for _, r := range rows {
+		if ms, ok := r["status_meeting"].(string); ok && strings.EqualFold(ms, meetingStatusLibur) {
+			continue
+		}
 		if status, ok := r["status"].(string); ok {
 			if _, exists := counts[status]; exists {
 				counts[status]++
@@ -206,6 +213,11 @@ func (e *AIToolExecutor) myAttendanceStats(ctx context.Context, memberID string)
 		}
 	}
 	total := len(rows)
+	for _, r := range rows {
+		if ms, ok := r["status_meeting"].(string); ok && strings.EqualFold(ms, meetingStatusLibur) {
+			total--
+		}
+	}
 	rate := 0
 	if total > 0 {
 		rate = counts["HADIR"] * 100 / total
@@ -213,9 +225,10 @@ func (e *AIToolExecutor) myAttendanceStats(ctx context.Context, memberID string)
 	return map[string]interface{}{
 		"total_absensi":    total,
 		"hadir":            counts["HADIR"],
-		"ijin":             counts["IJIN"],
+		"izin":             counts["IZIN"],
 		"sakit":            counts["SAKIT"],
-		"tanpa_keterangan": counts["TANPA_KETERANGAN"],
+		"alpa":             counts["ALPA"],
+		"dispensasi":       counts["DISPENSASI"],
 		"persentase_hadir": fmt.Sprintf("%d%%", rate),
 	}, nil
 }

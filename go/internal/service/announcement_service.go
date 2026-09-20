@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	apperrors "pengajian-backend/internal/errors"
 	"pengajian-backend/internal/model"
 	"pengajian-backend/internal/repository"
 	"pengajian-backend/internal/util"
@@ -50,7 +51,7 @@ func (s *AnnouncementService) GetTemplates(ctx context.Context, includeInactive 
 func (s *AnnouncementService) GetTemplateDetail(ctx context.Context, id string) (*model.AnnouncementTemplateDTO, error) {
 	t, err := s.repo.FindTemplateByID(ctx, id)
 	if err != nil {
-		return nil, errors.New("template tidak ditemukan")
+		return nil, apperrors.Wrap(apperrors.ErrNotFound, "template tidak ditemukan")
 	}
 	dto := toTemplateDTO(*t)
 	return &dto, nil
@@ -67,18 +68,18 @@ var kodeRegex = regexp.MustCompile(`^[A-Z0-9_]{3,30}$`)
 
 func (s *AnnouncementService) CreateTemplate(ctx context.Context, in CreateTemplateInput) (*model.AnnouncementTemplateDTO, error) {
 	if strings.TrimSpace(in.NamaTemplate) == "" {
-		return nil, errors.New("nama template wajib diisi")
+		return nil, apperrors.Wrap(apperrors.ErrValidation, "nama template wajib diisi")
 	}
 	kode := strings.ToUpper(strings.TrimSpace(in.Kode))
 	if !kodeRegex.MatchString(kode) {
-		return nil, errors.New("kode harus 3-30 karakter (huruf, angka, underscore)")
+		return nil, apperrors.Wrap(apperrors.ErrValidation, "kode harus 3-30 karakter (huruf, angka, underscore)")
 	}
 	if strings.TrimSpace(in.IsiTemplate) == "" {
-		return nil, errors.New("isi template wajib diisi")
+		return nil, apperrors.Wrap(apperrors.ErrValidation, "isi template wajib diisi")
 	}
 
 	if existing, _ := s.repo.FindTemplateByKode(ctx, kode); existing != nil {
-		return nil, errors.New("kode template sudah dipakai")
+		return nil, apperrors.Wrap(apperrors.ErrConflict, "kode template sudah dipakai")
 	}
 
 	t := &model.AnnouncementTemplate{
@@ -106,10 +107,10 @@ type UpdateTemplateInput struct {
 
 func (s *AnnouncementService) UpdateTemplate(ctx context.Context, in UpdateTemplateInput) (*model.AnnouncementTemplateDTO, error) {
 	if in.TemplateID == "" {
-		return nil, errors.New("template_id wajib diisi")
+		return nil, apperrors.Wrap(apperrors.ErrValidation, "template_id wajib diisi")
 	}
 	if _, err := s.repo.FindTemplateByID(ctx, in.TemplateID); err != nil {
-		return nil, errors.New("template tidak ditemukan")
+		return nil, apperrors.Wrap(apperrors.ErrNotFound, "template tidak ditemukan")
 	}
 
 	patch := map[string]interface{}{}
@@ -119,10 +120,10 @@ func (s *AnnouncementService) UpdateTemplate(ctx context.Context, in UpdateTempl
 	if in.Kode != nil {
 		kode := strings.ToUpper(strings.TrimSpace(*in.Kode))
 		if !kodeRegex.MatchString(kode) {
-			return nil, errors.New("kode tidak valid")
+			return nil, apperrors.Wrap(apperrors.ErrValidation, "kode tidak valid")
 		}
 		if existing, _ := s.repo.FindTemplateByKode(ctx, kode); existing != nil && existing.TemplateID != in.TemplateID {
-			return nil, errors.New("kode template sudah dipakai")
+			return nil, apperrors.Wrap(apperrors.ErrConflict, "kode template sudah dipakai")
 		}
 		patch["kode"] = kode
 	}
@@ -143,10 +144,10 @@ func (s *AnnouncementService) UpdateTemplate(ctx context.Context, in UpdateTempl
 
 func (s *AnnouncementService) DeleteTemplate(ctx context.Context, id string) error {
 	if id == "" {
-		return errors.New("template_id wajib diisi")
+		return apperrors.Wrap(apperrors.ErrValidation, "template_id wajib diisi")
 	}
 	if _, err := s.repo.FindTemplateByID(ctx, id); err != nil {
-		return errors.New("template tidak ditemukan")
+		return apperrors.Wrap(apperrors.ErrNotFound, "template tidak ditemukan")
 	}
 	return s.repo.SoftDeleteTemplate(ctx, id)
 }
@@ -156,14 +157,14 @@ func (s *AnnouncementService) CreateTemplateFromAnnouncement(ctx context.Context
 	if sourceAnnouncementID != "" {
 		a, err := s.repo.FindAnnouncementByID(ctx, sourceAnnouncementID)
 		if err != nil {
-			return nil, errors.New("pengumuman sumber tidak ditemukan")
+			return nil, apperrors.Wrap(apperrors.ErrNotFound, "pengumuman sumber tidak ditemukan")
 		}
 		text = a.GeneratedText
 	} else if isiTemplate != "" {
 		text = isiTemplate
 	}
 	if strings.TrimSpace(text) == "" {
-		return nil, errors.New("isi template kosong")
+		return nil, apperrors.Wrap(apperrors.ErrValidation, "isi template kosong")
 	}
 	return s.CreateTemplate(ctx, CreateTemplateInput{
 		NamaTemplate: namaTemplate,

@@ -29,6 +29,9 @@ const memberSelectCols = `
 	created_at, updated_at`
 
 func (r *MemberRepo) FindAll(ctx context.Context) ([]model.Member, error) {
+	ctx, cancel := WithQueryTimeout(ctx)
+	defer cancel()
+
 	rows, err := r.pool.Query(ctx,
 		`SELECT `+memberSelectCols+` FROM members WHERE status_aktif = true ORDER BY nama_lengkap`)
 	if err != nil {
@@ -39,6 +42,9 @@ func (r *MemberRepo) FindAll(ctx context.Context) ([]model.Member, error) {
 }
 
 func (r *MemberRepo) FindByID(ctx context.Context, id string) (*model.Member, error) {
+	ctx, cancel := WithQueryTimeout(ctx)
+	defer cancel()
+
 	row := r.pool.QueryRow(ctx,
 		`SELECT `+memberSelectCols+` FROM members WHERE member_id = $1`, id)
 	return scanMember(row)

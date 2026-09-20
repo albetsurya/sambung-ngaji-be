@@ -109,6 +109,17 @@ var RegisteredActions = map[string]bool{
 	"getMyMonitoring":     true,
 	"getUpcomingMeetings": true,
 
+	// Mood (member tracker)
+	"saveMood":       true,
+	"getMyMoods":     true,
+	"getMemberMoods": true,
+
+	// Member request (user tanpa member)
+	"requestBecomeMember":  true,
+	"getMemberRequests":    true,
+	"approveMemberRequest": true,
+	"rejectMemberRequest":  true,
+
 	// Audit
 	"getAuditLogs": true,
 
@@ -135,6 +146,8 @@ type Services struct {
 	Pending      *service.PendingService
 	User         *service.UserService
 	Profile      *service.ProfileService
+	Mood         *service.MoodService
+	MemberReq    *service.MemberRequestService
 	Audit        *service.AuditService
 	AI           *service.AIService
 	Photo        *PhotoHandler
@@ -230,6 +243,15 @@ func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, providers map[string
 			repository.NewAttendanceRepo(pool),
 			repository.NewMonitoringRepo(pool),
 			repository.NewMeetingRepo(pool),
+		),
+		Mood: service.NewMoodService(
+			repository.NewMoodRepo(pool),
+			repository.NewMemberRepo(pool),
+		),
+		MemberReq: service.NewMemberRequestService(
+			repository.NewMemberRequestRepo(pool),
+			repository.NewMemberRepo(pool),
+			repository.NewUserAdminRepo(pool),
 		),
 		AI: aiSvc,
 		Photo: NewPhotoHandler(
@@ -457,6 +479,24 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 			return handleGetMyMonitoring(c, svc.Profile)
 		case "getUpcomingMeetings":
 			return handleGetUpcomingMeetings(c, svc.Profile)
+
+		// Mood
+		case "saveMood":
+			return handleSaveMood(c, svc.Mood)
+		case "getMyMoods":
+			return handleGetMyMoods(c, svc.Mood)
+		case "getMemberMoods":
+			return handleGetMemberMoods(c, svc.Mood)
+
+		// Member request
+		case "requestBecomeMember":
+			return handleRequestBecomeMember(c, svc.MemberReq)
+		case "getMemberRequests":
+			return handleListMemberRequests(c, svc.MemberReq)
+		case "approveMemberRequest":
+			return handleApproveMemberRequest(c, svc.MemberReq)
+		case "rejectMemberRequest":
+			return handleRejectMemberRequest(c, svc.MemberReq)
 
 			// Audit
 		case "getAuditLogs":

@@ -38,7 +38,6 @@ func (r *MeetingRepo) FindAll(ctx context.Context, f model.MeetingListFilter) ([
 	if f.GroupID != "" {
 		q += ` AND group_id = $` + itoa(n)
 		args = append(args, f.GroupID)
-		n++
 	}
 	q += ` ORDER BY tanggal DESC`
 

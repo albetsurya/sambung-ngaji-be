@@ -105,15 +105,16 @@ func (s *ProfileService) GetMyAttendance(ctx context.Context, memberID string) (
 	for _, a := range attRows {
 		mt := meetingsByID[a.MeetingID]
 		out = append(out, map[string]interface{}{
-			"attendance_id": a.AttendanceID,
-			"meeting_id":    a.MeetingID,
-			"status":        a.Status,
-			"catatan":       a.Catatan,
-			"tanggal":       mt.Tanggal.Format("2006-01-02"),
-			"hari":          mt.Hari,
-			"acara":         mt.Acara,
-			"jam":           mt.Jam,
-			"created_at":    a.CreatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
+			"attendance_id":  a.AttendanceID,
+			"meeting_id":     a.MeetingID,
+			"status":         a.Status,
+			"status_meeting": mt.Status,
+			"catatan":        a.Catatan,
+			"tanggal":        mt.Tanggal.Format("2006-01-02"),
+			"hari":           mt.Hari,
+			"acara":          mt.Acara,
+			"jam":            mt.Jam,
+			"created_at":     a.CreatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
 		})
 	}
 	return out, nil

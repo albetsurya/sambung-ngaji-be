@@ -2,9 +2,9 @@ package service
 
 import (
 	"context"
-	"errors"
 	"time"
 
+	apperrors "pengajian-backend/internal/errors"
 	"pengajian-backend/internal/model"
 	"pengajian-backend/internal/repository"
 	"pengajian-backend/internal/util"
@@ -47,25 +47,25 @@ type BulkParams struct {
 
 func validateBulk(p BulkParams) error {
 	if p.Tahun == 0 || p.Bulan == 0 {
-		return errors.New("tahun dan bulan wajib diisi")
+		return apperrors.Wrap(apperrors.ErrValidation, "tahun dan bulan wajib diisi")
 	}
 	if p.Tahun < 2020 || p.Tahun > 2100 {
-		return errors.New("tahun tidak valid")
+		return apperrors.Wrap(apperrors.ErrValidation, "tahun tidak valid")
 	}
 	if p.Bulan < 1 || p.Bulan > 12 {
-		return errors.New("bulan tidak valid")
+		return apperrors.Wrap(apperrors.ErrValidation, "bulan tidak valid")
 	}
 	if len(p.Hari) == 0 {
-		return errors.New("hari wajib dipilih minimal 1")
+		return apperrors.Wrap(apperrors.ErrValidation, "hari wajib dipilih minimal 1")
 	}
 	if p.Jam == "" {
-		return errors.New("jam wajib diisi")
+		return apperrors.Wrap(apperrors.ErrValidation, "jam wajib diisi")
 	}
 	if p.Acara == "" {
-		return errors.New("acara wajib diisi")
+		return apperrors.Wrap(apperrors.ErrValidation, "acara wajib diisi")
 	}
 	if p.GroupID == "" {
-		return errors.New("kelompok wajib dipilih")
+		return apperrors.Wrap(apperrors.ErrValidation, "kelompok wajib dipilih")
 	}
 	return nil
 }
@@ -117,7 +117,7 @@ func (s *BulkMeetingService) Preview(ctx context.Context, p BulkParams) (*BulkPr
 	}
 	dates := buildDateList(p)
 	if len(dates) == 0 {
-		return nil, errors.New("tidak ada tanggal valid di bulan ini untuk hari yang dipilih")
+		return nil, apperrors.Wrap(apperrors.ErrValidation, "tidak ada tanggal valid di bulan ini untuk hari yang dipilih")
 	}
 
 	existing, err := s.meetingRepo.FindAll(ctx, model.MeetingListFilter{})
@@ -193,7 +193,7 @@ func (s *BulkMeetingService) BulkCreate(ctx context.Context, p BulkParams, userI
 		}
 	}
 	if len(toCreate) == 0 {
-		return nil, errors.New("semua tanggal sudah ada. tidak ada yang dibuat")
+		return nil, apperrors.Wrap(apperrors.ErrConflict, "semua tanggal sudah ada. tidak ada yang dibuat")
 	}
 
 	created := []BulkCreatedItem{}
