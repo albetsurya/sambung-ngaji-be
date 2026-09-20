@@ -118,6 +118,12 @@ var rolePermissions = map[string][]string{
 	"getMyMoods":     {"SUPER_ADMIN", "ADMIN", "TIM_PNKB", "TIM_ABSENSI", "PENGAWAS", "MEMBER"},
 	"getMemberMoods": {"SUPER_ADMIN", "ADMIN", "TIM_PNKB", "PENGAWAS"},
 
+	// — Member request (user tanpa member)
+	"requestBecomeMember":  {"SUPER_ADMIN", "ADMIN", "TIM_PNKB", "TIM_ABSENSI", "PENGAWAS", "MEMBER"},
+	"getMemberRequests":    {"SUPER_ADMIN", "ADMIN"},
+	"approveMemberRequest": {"SUPER_ADMIN", "ADMIN"},
+	"rejectMemberRequest":  {"SUPER_ADMIN", "ADMIN"},
+
 	// — WA Queue
 	"createWaQueue":        {"ADMIN", "TIM_ABSENSI"},
 	"cancelWaQueue":        {"ADMIN", "TIM_ABSENSI"},
