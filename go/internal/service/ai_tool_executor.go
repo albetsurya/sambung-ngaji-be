@@ -166,6 +166,9 @@ func (e *AIToolExecutor) attendanceSummary(ctx context.Context, from, to, groupI
 	counts := map[string]int{"HADIR": 0, "IZIN": 0, "SAKIT": 0, "ALPA": 0, "DISPENSASI": 0}
 	total := 0
 	for _, m := range meetings {
+		if strings.EqualFold(m.Status, meetingStatusLibur) {
+			continue
+		}
 		rows, err := e.attendance.GetAttendance(ctx, m.MeetingID, "")
 		if err != nil {
 			continue
@@ -200,6 +203,9 @@ func (e *AIToolExecutor) myAttendanceStats(ctx context.Context, memberID string)
 	}
 	counts := map[string]int{"HADIR": 0, "IZIN": 0, "SAKIT": 0, "ALPA": 0, "DISPENSASI": 0}
 	for _, r := range rows {
+		if ms, ok := r["status_meeting"].(string); ok && strings.EqualFold(ms, meetingStatusLibur) {
+			continue
+		}
 		if status, ok := r["status"].(string); ok {
 			if _, exists := counts[status]; exists {
 				counts[status]++
@@ -207,6 +213,11 @@ func (e *AIToolExecutor) myAttendanceStats(ctx context.Context, memberID string)
 		}
 	}
 	total := len(rows)
+	for _, r := range rows {
+		if ms, ok := r["status_meeting"].(string); ok && strings.EqualFold(ms, meetingStatusLibur) {
+			total--
+		}
+	}
 	rate := 0
 	if total > 0 {
 		rate = counts["HADIR"] * 100 / total

@@ -4,6 +4,7 @@ import (
 	"context"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"pengajian-backend/internal/model"
@@ -16,6 +17,13 @@ type DashboardService struct {
 	meetingRepo    *repository.MeetingRepo
 	attendanceRepo *repository.AttendanceRepo
 	monitoringRepo *repository.MonitoringRepo
+}
+
+// meetingStatusLibur: status meeting yang tidak dihitung dalam absensi.
+const meetingStatusLibur = "LIBUR"
+
+func isLiburMeeting(m model.Meeting) bool {
+	return strings.EqualFold(m.Status, meetingStatusLibur)
 }
 
 func NewDashboardService(
@@ -118,8 +126,18 @@ func (s *DashboardService) GetGeneral(ctx context.Context) (*GeneralDashboard, e
 
 	// ===== Rata-rata kehadiran (pakai attByMeeting flat) =====
 
+	liburMeetingIDs := make(map[string]bool, len(meetings))
+	for _, m := range meetings {
+		if isLiburMeeting(m) {
+			liburMeetingIDs[m.MeetingID] = true
+		}
+	}
+
 	allCount, hadirCount := 0, 0
 	for _, a := range attByMeeting {
+		if liburMeetingIDs[a.MeetingID] {
+			continue
+		}
 		allCount++
 		if a.Status == "HADIR" {
 			hadirCount++
@@ -137,7 +155,7 @@ func (s *DashboardService) GetGeneral(ctx context.Context) (*GeneralDashboard, e
 		meetingDates[m.MeetingID] = m.Tanggal
 	}
 
-	attention := s.buildAttentionList(members, attGrouped, meetingDates)
+	attention := s.buildAttentionList(members, attGrouped, meetingDates, liburMeetingIDs)
 
 	// ===== Data belum lengkap =====
 
@@ -181,6 +199,7 @@ func (s *DashboardService) buildAttentionList(
 	members []model.Member,
 	attByMember map[string][]model.Attendance,
 	meetingDates map[string]time.Time,
+	liburMeetingIDs map[string]bool,
 ) []AttentionItem {
 	out := []AttentionItem{}
 	cutoff := time.Now().AddDate(0, 0, -30)
@@ -191,6 +210,9 @@ func (s *DashboardService) buildAttentionList(
 		// Ambil absensi dalam window 30 hari + urutkan tanggal meeting terbaru dulu
 		window := make([]model.Attendance, 0, len(rows))
 		for _, r := range rows {
+			if liburMeetingIDs[r.MeetingID] {
+				continue
+			}
 			if d, ok := meetingDates[r.MeetingID]; ok && d.After(cutoff) {
 				window = append(window, r)
 			}
@@ -319,15 +341,16 @@ func (s *DashboardService) GetMyDashboard(ctx context.Context, memberID string) 
 		}
 		mt := meetingsByID[a.MeetingID]
 		attendance = append(attendance, map[string]interface{}{
-			"attendance_id": a.AttendanceID,
-			"meeting_id":    a.MeetingID,
-			"status":        a.Status,
-			"catatan":       a.Catatan,
-			"tanggal":       mt.Tanggal.Format("2006-01-02"),
-			"hari":          mt.Hari,
-			"acara":         mt.Acara,
-			"jam":           mt.Jam,
-			"created_at":    a.CreatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
+			"attendance_id":  a.AttendanceID,
+			"meeting_id":     a.MeetingID,
+			"status":         a.Status,
+			"status_meeting": mt.Status,
+			"catatan":        a.Catatan,
+			"tanggal":        mt.Tanggal.Format("2006-01-02"),
+			"hari":           mt.Hari,
+			"acara":          mt.Acara,
+			"jam":            mt.Jam,
+			"created_at":     a.CreatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
 		})
 	}
 
