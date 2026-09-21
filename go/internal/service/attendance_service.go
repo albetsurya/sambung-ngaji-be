@@ -24,11 +24,10 @@ func NewAttendanceService(repo *repository.AttendanceRepo, meetingRepo *reposito
 }
 
 var validAttendanceStatuses = map[string]bool{
-	"HADIR":      true,
-	"IZIN":       true,
-	"SAKIT":      true,
-	"ALPA":       true,
-	"DISPENSASI": true,
+	"HADIR": true,
+	"IZIN":  true,
+	"SAKIT": true,
+	"ALPA":  true,
 }
 
 func (s *AttendanceService) GetAttendance(ctx context.Context, meetingID, memberID string) ([]model.AttendanceDTO, error) {
