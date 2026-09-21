@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"pengajian-backend/internal/model"
+	"pengajian-backend/internal/util"
 )
 
 type AIToolExecutor struct {
@@ -166,7 +167,7 @@ func (e *AIToolExecutor) attendanceSummary(ctx context.Context, from, to, groupI
 	counts := map[string]int{"HADIR": 0, "IZIN": 0, "SAKIT": 0, "ALPA": 0}
 	total := 0
 	for _, m := range meetings {
-		if strings.EqualFold(m.Status, meetingStatusLibur) {
+		if strings.EqualFold(m.Status, util.MeetingStatusLibur) {
 			continue
 		}
 		rows, err := e.attendance.GetAttendance(ctx, m.MeetingID, "")
@@ -201,20 +202,16 @@ func (e *AIToolExecutor) myAttendanceStats(ctx context.Context, memberID string)
 		return nil, err
 	}
 	counts := map[string]int{"HADIR": 0, "IZIN": 0, "SAKIT": 0, "ALPA": 0}
+	total := 0
 	for _, r := range rows {
-		if ms, ok := r["status_meeting"].(string); ok && strings.EqualFold(ms, meetingStatusLibur) {
+		if ms, ok := r["status_meeting"].(string); ok && strings.EqualFold(ms, util.MeetingStatusLibur) {
 			continue
 		}
+		total++
 		if status, ok := r["status"].(string); ok {
 			if _, exists := counts[status]; exists {
 				counts[status]++
 			}
-		}
-	}
-	total := len(rows)
-	for _, r := range rows {
-		if ms, ok := r["status_meeting"].(string); ok && strings.EqualFold(ms, meetingStatusLibur) {
-			total--
 		}
 	}
 	rate := 0

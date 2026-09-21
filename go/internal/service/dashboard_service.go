@@ -4,7 +4,6 @@ import (
 	"context"
 	"sort"
 	"strconv"
-	"strings"
 	"time"
 
 	"pengajian-backend/internal/model"
@@ -17,13 +16,6 @@ type DashboardService struct {
 	meetingRepo    *repository.MeetingRepo
 	attendanceRepo *repository.AttendanceRepo
 	monitoringRepo *repository.MonitoringRepo
-}
-
-// meetingStatusLibur: status meeting yang tidak dihitung dalam absensi.
-const meetingStatusLibur = "LIBUR"
-
-func isLiburMeeting(m model.Meeting) bool {
-	return strings.EqualFold(m.Status, meetingStatusLibur)
 }
 
 func NewDashboardService(
@@ -126,12 +118,7 @@ func (s *DashboardService) GetGeneral(ctx context.Context) (*GeneralDashboard, e
 
 	// ===== Rata-rata kehadiran (pakai attByMeeting flat) =====
 
-	liburMeetingIDs := make(map[string]bool, len(meetings))
-	for _, m := range meetings {
-		if isLiburMeeting(m) {
-			liburMeetingIDs[m.MeetingID] = true
-		}
-	}
+	liburMeetingIDs := util.LiburMeetingIDs(meetings)
 
 	allCount, hadirCount := 0, 0
 	for _, a := range attByMeeting {
