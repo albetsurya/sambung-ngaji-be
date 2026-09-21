@@ -417,5 +417,5 @@ func (s *UserService) DeleteUserPermanent(ctx context.Context, requesterRole, us
 	if requesterRole != "SUPER_ADMIN" {
 		return errors.New("hanya SUPER_ADMIN yang boleh menghapus user permanen")
 	}
-	return s.adminRepo.DeleteUserAndMember(ctx, userID)
+	return s.repo.DeleteUserAndMember(ctx, userID)
 }
