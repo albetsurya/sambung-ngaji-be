@@ -410,3 +410,12 @@ func toUserDTO(u model.User) model.UserDTO {
 }
 
 var _ = strings.TrimSpace
+
+// DeleteUserPermanent — hapus user + member permanen.
+// Wajib dipanggil oleh SUPER_ADMIN (double-check di handler + service).
+func (s *UserService) DeleteUserPermanent(ctx context.Context, requesterRole, userID string) error {
+	if requesterRole != "SUPER_ADMIN" {
+		return errors.New("hanya SUPER_ADMIN yang boleh menghapus user permanen")
+	}
+	return s.adminRepo.DeleteUserAndMember(ctx, userID)
+}
