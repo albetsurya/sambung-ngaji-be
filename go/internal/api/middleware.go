@@ -17,10 +17,10 @@ import (
 )
 
 const (
-	LocalsBody       = "body"
-	LocalsUser       = "user"
-	LocalsClaims     = "claims"
-	LocalsRequestID  = "request_id"
+	LocalsBody      = "body"
+	LocalsUser      = "user"
+	LocalsClaims    = "claims"
+	LocalsRequestID = "request_id"
 )
 
 // Prometheus metrics
@@ -169,18 +169,18 @@ func ValidateBody(requiredFields ...string) fiber.Handler {
 		if len(body) == 0 {
 			return Fail(c, "Request body is required")
 		}
-		
+
 		var missing []string
 		for _, field := range requiredFields {
 			if _, ok := body[field]; !ok {
 				missing = append(missing, field)
 			}
 		}
-		
+
 		if len(missing) > 0 {
 			return Fail(c, fmt.Sprintf("Missing required fields: %s", strings.Join(missing, ", ")))
 		}
-		
+
 		return c.Next()
 	}
 }
@@ -282,13 +282,13 @@ func RateLimiterMiddleware(config RateLimiterConfig) fiber.Handler {
 		count   int
 		resetAt time.Time
 	}
-	
+
 	clients := make(map[string]*clientData)
-	
+
 	return func(c *fiber.Ctx) error {
 		key := config.KeyFunc(c)
 		now := time.Now()
-		
+
 		data, exists := clients[key]
 		if !exists || now.After(data.resetAt) {
 			clients[key] = &clientData{
@@ -297,7 +297,7 @@ func RateLimiterMiddleware(config RateLimiterConfig) fiber.Handler {
 			}
 			return c.Next()
 		}
-		
+
 		data.count++
 		if data.count > config.MaxRequests {
 			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
@@ -306,7 +306,7 @@ func RateLimiterMiddleware(config RateLimiterConfig) fiber.Handler {
 				"message": "Rate limit exceeded. Please try again later.",
 			})
 		}
-		
+
 		return c.Next()
 	}
 }
@@ -316,7 +316,7 @@ func LoggingMiddleware(logger *zerolog.Logger) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		start := time.Now()
 		requestID := RequestIDOf(c)
-		
+
 		// Log request
 		logger.Info().
 			Str("request_id", requestID).
@@ -325,9 +325,9 @@ func LoggingMiddleware(logger *zerolog.Logger) fiber.Handler {
 			Str("ip", c.IP()).
 			Str("user_agent", c.Get("User-Agent")).
 			Msg("request started")
-		
+
 		err := c.Next()
-		
+
 		// Log response
 		logger.Info().
 			Str("request_id", requestID).
@@ -336,7 +336,7 @@ func LoggingMiddleware(logger *zerolog.Logger) fiber.Handler {
 			Int("status", c.Response().StatusCode()).
 			Dur("latency", time.Since(start)).
 			Msg("request completed")
-		
+
 		return err
 	}
 }
