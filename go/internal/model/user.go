@@ -24,6 +24,7 @@ type PublicUser struct {
 	Role         string `json:"role"`
 	MemberID     string `json:"member_id"`
 	JenisKelamin string `json:"jenis_kelamin"`
+	FotoURL      string `json:"foto_url"`
 }
 
 // SessionClaims untuk JWT.

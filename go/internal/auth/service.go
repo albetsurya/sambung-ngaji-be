@@ -169,12 +169,15 @@ func (s *Service) ToPublic(ctx context.Context, u *model.User) model.PublicUser 
 	}
 	if u.MemberID != nil && *u.MemberID != "" {
 		p.MemberID = *u.MemberID
-		var jk *string
+		var jk, foto *string
 		_ = s.pool.QueryRow(ctx,
-			`SELECT jenis_kelamin FROM members WHERE member_id = $1`, *u.MemberID,
-		).Scan(&jk)
+			`SELECT jenis_kelamin, foto_url FROM members WHERE member_id = $1`, *u.MemberID,
+		).Scan(&jk, &foto)
 		if jk != nil {
 			p.JenisKelamin = *jk
+		}
+		if foto != nil {
+			p.FotoURL = *foto
 		}
 	}
 	return p
