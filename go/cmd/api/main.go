@@ -105,10 +105,35 @@ func main() {
 	services := api.NewServices(db, authSvc, providers, providerOrder, storageSvc)
 	api.RegisterAPI(app, services)
 
+	// WhatsApp webhook (verifikasi + terima notifikasi dari Meta)
+	app.Get("/wa/webhook", api.HandleWAWebhookVerify)
+	app.Post("/wa/webhook", api.HandleWAWebhookReceive)
+
 	log.Info().Strs("actions", api.ListRegisteredActions()).Msg("actions terdaftar")
 
 	// Create a context that will be cancelled on shutdown signal
-	_, shutdownCancel := context.WithCancel(context.Background())
+	shutdownCtx, shutdownCancel := context.WithCancel(context.Background())
+
+	// Cron reminder WA — cek tiap jam, kirim H-8 jam sebelum acara
+	go func() {
+		ticker := time.NewTicker(1 * time.Hour)
+		defer ticker.Stop()
+
+		if err := services.Reminder.RunOnce(shutdownCtx); err != nil {
+			log.Error().Err(err).Msg("reminder startup error")
+		}
+
+		for {
+			select {
+			case <-shutdownCtx.Done():
+				return
+			case <-ticker.C:
+				if err := services.Reminder.RunOnce(shutdownCtx); err != nil {
+					log.Error().Err(err).Msg("reminder tick error")
+				}
+			}
+		}
+	}()
 
 	go func() {
 		addr := ":" + cfg.AppPort
