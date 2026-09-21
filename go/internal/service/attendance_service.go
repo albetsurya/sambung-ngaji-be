@@ -24,11 +24,10 @@ func NewAttendanceService(repo *repository.AttendanceRepo, meetingRepo *reposito
 }
 
 var validAttendanceStatuses = map[string]bool{
-	"HADIR":      true,
-	"IZIN":       true,
-	"SAKIT":      true,
-	"ALPA":       true,
-	"DISPENSASI": true,
+	"HADIR": true,
+	"IZIN":  true,
+	"SAKIT": true,
+	"ALPA":  true,
 }
 
 func (s *AttendanceService) GetAttendance(ctx context.Context, meetingID, memberID string) ([]model.AttendanceDTO, error) {
@@ -88,6 +87,15 @@ func (s *AttendanceService) SaveAttendance(ctx context.Context, in SaveAttendanc
 		return nil, errors.New("status absensi tidak valid")
 	}
 
+	// Guard: tidak bisa absen di meeting yang berstatus LIBUR
+	meeting, err := s.meetingRepo.FindByID(ctx, in.MeetingID)
+	if err != nil {
+		return nil, errors.New("meeting tidak ditemukan")
+	}
+	if util.IsLiburMeeting(*meeting) {
+		return nil, errors.New("jadwal libur tidak bisa diisi absensi")
+	}
+
 	existing, err := s.repo.FindByMeetingAndMember(ctx, in.MeetingID, in.MemberID)
 	if err == nil && existing != nil {
 		catatan := in.Catatan
@@ -143,6 +151,16 @@ func (s *AttendanceService) BulkSave(ctx context.Context, in BulkSaveInput) (*Bu
 	if len(in.Items) == 0 {
 		return nil, errors.New("items wajib diisi")
 	}
+
+	// Guard: tidak bisa absen di meeting yang berstatus LIBUR
+	meeting, err := s.meetingRepo.FindByID(ctx, in.MeetingID)
+	if err != nil {
+		return nil, errors.New("meeting tidak ditemukan")
+	}
+	if util.IsLiburMeeting(*meeting) {
+		return nil, errors.New("jadwal libur tidak bisa diisi absensi")
+	}
+
 	validItems := make([]repository.BulkItem, 0, len(in.Items))
 	for _, it := range in.Items {
 		if !validAttendanceStatuses[it.Status] {
