@@ -109,6 +109,10 @@ func main() {
 	app.Get("/wa/webhook", api.HandleWAWebhookVerify)
 	app.Post("/wa/webhook", api.HandleWAWebhookReceive)
 
+	// Cron eksternal (dipanggil cron-job.org tiap 1 jam)
+	api.SetCronServices(services)
+	app.Post("/cron/reminder", api.HandleCronReminder)
+
 	log.Info().Strs("actions", api.ListRegisteredActions()).Msg("actions terdaftar")
 
 	// Create a context that will be cancelled on shutdown signal
