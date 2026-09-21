@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -181,4 +182,56 @@ func (r *MeetingRepo) DeleteMany(ctx context.Context, ids []string) (int64, erro
 		return 0, err
 	}
 	return tag.RowsAffected(), nil
+}
+
+/* ===== Reminder WA (Fonnte) ===== */
+
+type ReminderMeetingRow struct {
+	MeetingID string
+	Acara     string
+	Tanggal   string
+	Jam       string
+}
+
+// FindPendingReminder — meeting dalam window [from, to] yang reminder-nya belum dikirim.
+// Jam di-parse: kalau format HH:MM pakai itu, kalau bukan (mis. "Isya di tempat")
+// fallback ke 19:00.
+func (r *MeetingRepo) FindPendingReminder(ctx context.Context, from, to time.Time) ([]ReminderMeetingRow, error) {
+	rows, err := r.pool.Query(ctx, `
+		SELECT meeting_id, COALESCE(acara, ''),
+		       TO_CHAR(tanggal, 'YYYY-MM-DD'),
+		       COALESCE(jam, '')
+		FROM meetings
+		WHERE reminder_sent_at IS NULL
+		  AND status != 'LIBUR'
+		  AND (
+		    (tanggal::date + CASE
+		       WHEN jam ~ '^[0-9]{1,2}:[0-9]{2}' THEN jam::time
+		       ELSE TIME '19:00'
+		     END)::timestamptz
+		  ) BETWEEN $1 AND $2
+	`, from, to)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []ReminderMeetingRow
+	for rows.Next() {
+		var row ReminderMeetingRow
+		if err := rows.Scan(&row.MeetingID, &row.Acara, &row.Tanggal, &row.Jam); err != nil {
+			return nil, err
+		}
+		out = append(out, row)
+	}
+	return out, rows.Err()
+}
+
+// MarkReminderSent — tandai meeting sudah di-reminder, biar tidak dobel.
+func (r *MeetingRepo) MarkReminderSent(ctx context.Context, meetingID string) error {
+	_, err := r.pool.Exec(ctx,
+		`UPDATE meetings SET reminder_sent_at = now() WHERE meeting_id = $1`,
+		meetingID,
+	)
+	return err
 }

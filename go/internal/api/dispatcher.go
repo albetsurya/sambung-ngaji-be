@@ -152,6 +152,8 @@ type Services struct {
 	AI           *service.AIService
 	Photo        *PhotoHandler
 	PDFImport    *service.PDFImportService
+	Fonnte       *service.FonnteService
+	Reminder     *service.ReminderService
 }
 
 func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, providers map[string]ai.Provider, providerOrder []string, storage *service.StorageService) *Services {
@@ -189,6 +191,8 @@ func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, providers map[string
 		),
 		repository.NewSettingsRepo(pool),
 	)
+
+	fonnteSvc := service.NewFonnteService()
 
 	return &Services{
 		Auth:    authSvc,
@@ -302,6 +306,11 @@ func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, providers map[string
 				),
 				repository.NewSettingsRepo(pool),
 			),
+		),
+		Fonnte: fonnteSvc,
+		Reminder: service.NewReminderService(
+			repository.NewMeetingRepo(pool),
+			fonnteSvc,
 		),
 	}
 }
