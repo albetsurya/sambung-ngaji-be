@@ -163,7 +163,7 @@ func (e *AIToolExecutor) attendanceSummary(ctx context.Context, from, to, groupI
 	if err != nil {
 		return nil, err
 	}
-	counts := map[string]int{"HADIR": 0, "IZIN": 0, "SAKIT": 0, "ALPA": 0, "DISPENSASI": 0}
+	counts := map[string]int{"HADIR": 0, "IZIN": 0, "SAKIT": 0, "ALPA": 0}
 	total := 0
 	for _, m := range meetings {
 		if strings.EqualFold(m.Status, meetingStatusLibur) {
@@ -191,7 +191,6 @@ func (e *AIToolExecutor) attendanceSummary(ctx context.Context, from, to, groupI
 		"izin":             counts["IZIN"],
 		"sakit":            counts["SAKIT"],
 		"alpa":             counts["ALPA"],
-		"dispensasi":       counts["DISPENSASI"],
 		"persentase_hadir": fmt.Sprintf("%d%%", rate),
 	}, nil
 }
@@ -201,7 +200,7 @@ func (e *AIToolExecutor) myAttendanceStats(ctx context.Context, memberID string)
 	if err != nil {
 		return nil, err
 	}
-	counts := map[string]int{"HADIR": 0, "IZIN": 0, "SAKIT": 0, "ALPA": 0, "DISPENSASI": 0}
+	counts := map[string]int{"HADIR": 0, "IZIN": 0, "SAKIT": 0, "ALPA": 0}
 	for _, r := range rows {
 		if ms, ok := r["status_meeting"].(string); ok && strings.EqualFold(ms, meetingStatusLibur) {
 			continue
@@ -228,7 +227,6 @@ func (e *AIToolExecutor) myAttendanceStats(ctx context.Context, memberID string)
 		"izin":             counts["IZIN"],
 		"sakit":            counts["SAKIT"],
 		"alpa":             counts["ALPA"],
-		"dispensasi":       counts["DISPENSASI"],
 		"persentase_hadir": fmt.Sprintf("%d%%", rate),
 	}, nil
 }
