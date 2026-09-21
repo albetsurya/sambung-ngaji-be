@@ -80,11 +80,12 @@ var rolePermissions = map[string][]string{
 	"updateSettings": {"SUPER_ADMIN"},
 
 	// — Users (SUPER_ADMIN only — konsisten dengan SuperAdminOnlyActions)
-	"getUsers":          {"SUPER_ADMIN"},
-	"createUser":        {"SUPER_ADMIN"},
-	"updateUser":        {"SUPER_ADMIN"},
-	"updateUserRole":    {"SUPER_ADMIN"},
-	"resetUserPassword": {"SUPER_ADMIN"},
+	"getUsers":            {"SUPER_ADMIN"},
+	"createUser":          {"SUPER_ADMIN"},
+	"updateUser":          {"SUPER_ADMIN"},
+	"updateUserRole":      {"SUPER_ADMIN"},
+	"deleteUserPermanent": {"SUPER_ADMIN"},
+	"resetUserPassword":   {"SUPER_ADMIN"},
 
 	// — Audit
 	"getAuditLogs": {"SUPER_ADMIN"},
@@ -155,14 +156,15 @@ func CanAccess(role, action string) bool {
 
 // SuperAdminOnlyActions — action yang hanya SUPER_ADMIN.
 var SuperAdminOnlyActions = map[string]bool{
-	"getUsers":          true,
-	"getUserDetail":     true,
-	"createUser":        true,
-	"updateUser":        true,
-	"updateUserRole":    true,
-	"getAuditLogs":      true,
-	"updateSettings":    true,
-	"resetUserPassword": true,
+	"getUsers":            true,
+	"getUserDetail":       true,
+	"createUser":          true,
+	"updateUser":          true,
+	"updateUserRole":      true,
+	"deleteUserPermanent": true,
+	"getAuditLogs":        true,
+	"updateSettings":      true,
+	"resetUserPassword":   true,
 }
 
 func IsSuperAdminOnly(action string) bool {

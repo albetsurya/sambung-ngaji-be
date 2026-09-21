@@ -97,6 +97,7 @@ var RegisteredActions = map[string]bool{
 	"createUser":          true,
 	"updateUser":          true,
 	"updateUserRole":      true,
+	"deleteUserPermanent": true,
 	"getMemberUserStatus": true,
 	"changeMyPassword":    true,
 	"changeMyUsername":    true,
@@ -466,6 +467,8 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 			return handleCreateUser(c, svc.User)
 		case "updateUser":
 			return handleUpdateUser(c, svc.User)
+		case "deleteUserPermanent":
+			return handleDeleteUserPermanent(c, svc.User)
 		case "updateUserRole":
 			return handleUpdateUserRole(c, svc.User)
 		case "getMemberUserStatus":
