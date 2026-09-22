@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -196,10 +197,11 @@ func AuthMiddleware(svc *auth.Service) fiber.Handler {
 			return c.Next()
 		}
 
-		token, _ := body["token"].(string)
+		token := c.Get("Authorization")
 		if token == "" {
 			return Fail(c, "Unauthorized: token tidak ada")
 		}
+		token = strings.TrimPrefix(token, "Bearer ")
 
 		u, claims, err := svc.ValidateSession(c.Context(), token)
 		if err != nil {
@@ -264,6 +266,52 @@ type RateLimiterConfig struct {
 	KeyFunc     func(*fiber.Ctx) string
 }
 
+// RateLimiterStore defines the interface for rate limiter storage backends.
+// Implement this to swap in-memory store with Redis, etc.
+type RateLimiterStore interface {
+	CheckAndInc(key string, window time.Duration, maxRequests int) (bool, error)
+}
+
+// InMemoryStore is a RateLimiterStore implementation using an in-memory map.
+// Suitable for single-instance deployments. Use Redis for multi-instance.
+type InMemoryStore struct {
+	mu      sync.Mutex
+	clients map[string]*clientData
+}
+
+type clientData struct {
+	count   int
+	resetAt time.Time
+}
+
+// NewInMemoryStore creates a new InMemoryStore
+func NewInMemoryStore() *InMemoryStore {
+	return &InMemoryStore{
+		clients: make(map[string]*clientData),
+	}
+}
+
+func (s *InMemoryStore) CheckAndInc(key string, window time.Duration, maxRequests int) (bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	now := time.Now()
+	data, exists := s.clients[key]
+	if !exists || now.After(data.resetAt) {
+		s.clients[key] = &clientData{
+			count:   1,
+			resetAt: now.Add(window),
+		}
+		return true, nil
+	}
+
+	data.count++
+	if data.count > maxRequests {
+		return false, nil
+	}
+	return true, nil
+}
+
 // DefaultRateLimiterConfig returns a default rate limiter config
 func DefaultRateLimiterConfig() RateLimiterConfig {
 	return RateLimiterConfig{
@@ -276,30 +324,21 @@ func DefaultRateLimiterConfig() RateLimiterConfig {
 }
 
 // RateLimiterMiddleware returns a rate limiting middleware
-func RateLimiterMiddleware(config RateLimiterConfig) fiber.Handler {
-	// Simple in-memory store (for production, use Redis)
-	type clientData struct {
-		count   int
-		resetAt time.Time
+func RateLimiterMiddleware(config RateLimiterConfig, store RateLimiterStore) fiber.Handler {
+	if store == nil {
+		store = NewInMemoryStore()
 	}
-
-	clients := make(map[string]*clientData)
 
 	return func(c *fiber.Ctx) error {
 		key := config.KeyFunc(c)
-		now := time.Now()
 
-		data, exists := clients[key]
-		if !exists || now.After(data.resetAt) {
-			clients[key] = &clientData{
-				count:   1,
-				resetAt: now.Add(config.Window),
-			}
+		allowed, err := store.CheckAndInc(key, config.Window, config.MaxRequests)
+		if err != nil {
+			// Jika store error, allow request (fail open)
 			return c.Next()
 		}
 
-		data.count++
-		if data.count > config.MaxRequests {
+		if !allowed {
 			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
 				"success": false,
 				"data":    nil,
