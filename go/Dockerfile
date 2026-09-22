@@ -18,20 +18,21 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
 # Final stage
 FROM alpine:3.20
 
-RUN apk add --no-cache ca-certificates tzdata wget
+RUN apk add --no-cache ca-certificates tzdata wget curl
+
+# Install Supabase CLI
+RUN wget -qO- https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz | tar -xz -C /usr/local/bin
 
 ENV TZ=Asia/Jakarta
 
 WORKDIR /app
 
 COPY --from=builder /out/api /app/api
+COPY start.sh /app/start.sh
+COPY supabase /app/supabase
+RUN chmod +x /app/start.sh
 
 RUN addgroup -g 1000 app && adduser -D -u 1000 -G app app
 USER app
 
-EXPOSE 8080
-
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget -q --spider http://localhost:8080/health || exit 1
-
-CMD ["/app/api"]
+ENTRYPOINT ["/app/start.sh"]
