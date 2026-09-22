@@ -131,6 +131,11 @@ var RegisteredActions = map[string]bool{
 	"setAIProvider":      true,
 
 	"parsePdfMeeting": true,
+
+	// Friday schedule (petugas sholat jumat)
+	"getFridaySchedules":   true,
+	"saveFridaySchedule":   true,
+	"deleteFridaySchedule": true,
 }
 
 type Services struct {
@@ -155,6 +160,7 @@ type Services struct {
 	PDFImport    *service.PDFImportService
 	Fonnte       *service.FonnteService
 	Reminder     *service.ReminderService
+	Friday       *service.FridayService
 }
 
 func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, providers map[string]ai.Provider, providerOrder []string, storage *service.StorageService) *Services {
@@ -312,6 +318,9 @@ func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, providers map[string
 		Reminder: service.NewReminderService(
 			repository.NewMeetingRepo(pool),
 			fonnteSvc,
+		),
+		Friday: service.NewFridayService(
+			repository.NewFridayRepo(pool),
 		),
 	}
 }
@@ -531,6 +540,14 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 
 		case "parsePdfMeeting":
 			return handleParsePdfMeeting(c, svc.PDFImport)
+
+		// Friday schedule
+		case "getFridaySchedules":
+			return handleGetFridaySchedules(c, svc.Friday)
+		case "saveFridaySchedule":
+			return handleSaveFridaySchedule(c, svc.Friday)
+		case "deleteFridaySchedule":
+			return handleDeleteFridaySchedule(c, svc.Friday)
 
 		}
 

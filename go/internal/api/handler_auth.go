@@ -13,14 +13,7 @@ func handleLogin(c *fiber.Ctx, svc *auth.Service, auditSvc *service.AuditService
 
 	token, u, err := svc.Login(c.Context(), username, password)
 	if err != nil {
-		switch err {
-		case auth.ErrInvalidCredentials:
-			return Fail(c, "Username atau password salah")
-		case auth.ErrUserInactive:
-			return Fail(c, "Akun tidak aktif")
-		default:
-			return Fail(c, "Gagal login: "+err.Error())
-		}
+		return Fail(c, "Gagal login")
 	}
 
 	// Audit login manual (public action, UserOf kosong di middleware)

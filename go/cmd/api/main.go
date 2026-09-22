@@ -91,7 +91,7 @@ func main() {
 	app.Use(api.MetricsMiddleware())
 
 	// Rate limiting middleware
-	app.Use(api.RateLimiterMiddleware(api.DefaultRateLimiterConfig()))
+	app.Use(api.RateLimiterMiddleware(api.DefaultRateLimiterConfig(), nil))
 
 	// Logging middleware with correlation ID
 	app.Use(api.LoggingMiddleware(&log.Logger))

@@ -125,6 +125,11 @@ var rolePermissions = map[string][]string{
 	"approveMemberRequest": {"SUPER_ADMIN", "ADMIN"},
 	"rejectMemberRequest":  {"SUPER_ADMIN", "ADMIN"},
 
+	// — Friday schedule (petugas sholat jumat)
+	"getFridaySchedules":   {"SUPER_ADMIN", "ADMIN", "TIM_ABSENSI", "PENGAWAS"},
+	"saveFridaySchedule":   {"ADMIN", "TIM_ABSENSI"},
+	"deleteFridaySchedule": {"ADMIN", "TIM_ABSENSI"},
+
 	// — WA Queue
 	"createWaQueue":        {"ADMIN", "TIM_ABSENSI"},
 	"cancelWaQueue":        {"ADMIN", "TIM_ABSENSI"},
