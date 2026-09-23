@@ -22,9 +22,12 @@ if [ -n "$DATABASE_URL" ]; then
     echo "--- preflight: konek ke ${DB_HOSTPORT} ---"
 
     # Helper: jalankan supabase push sambil mask password (://user:pass@ -> ://***@).
+    # POSIX sh (tanpa PIPESTATUS / pipefail): tangkap output dulu, lalu mask.
     run_push() {
-        supabase db push --db-url "$DATABASE_URL" "$@" --yes 2>&1 | sed -E 's#://[^/@]+@#://***@#g'
-        return "${PIPESTATUS[0]}"
+        out=$(supabase db push --db-url "$DATABASE_URL" "$@" --yes 2>&1)
+        code=$?
+        printf '%s\n' "$out" | sed -E 's#://[^/@]+@#://***@#g'
+        return "$code"
     }
 
     # 3) Tangani migration-history divergence tanpa menghapus data user:
