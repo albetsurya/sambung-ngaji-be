@@ -31,7 +31,13 @@ func NewReminderService(
 }
 
 // RunOnce — cari meeting dalam window H-7 s/d H-9 jam, kirim reminder kalau belum.
+// Sengaja MATI secara default; aktifkan eksplisit via MEETING_REMINDER_ENABLED=true
+// agar mengaktifkan Fonnte untuk keperluan lain (misal reminder Jumat) tidak
+// ikut menghidupkan reminder meeting.
 func (s *ReminderService) RunOnce(ctx context.Context) error {
+	if os.Getenv("MEETING_REMINDER_ENABLED") != "true" {
+		return nil
+	}
 	if !s.fonnte.IsEnabled() || s.groupID == "" {
 		return nil
 	}

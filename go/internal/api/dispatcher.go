@@ -161,6 +161,7 @@ type Services struct {
 	Fonnte       *service.FonnteService
 	Reminder     *service.ReminderService
 	Friday       *service.FridayService
+	FridayReminder *service.FridayReminderService
 }
 
 func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, providers map[string]ai.Provider, providerOrder []string, storage *service.StorageService) *Services {
@@ -321,6 +322,10 @@ func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, providers map[string
 		),
 		Friday: service.NewFridayService(
 			repository.NewFridayRepo(pool),
+		),
+		FridayReminder: service.NewFridayReminderService(
+			repository.NewFridayRepo(pool),
+			fonnteSvc,
 		),
 	}
 }

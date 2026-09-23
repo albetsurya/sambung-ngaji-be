@@ -126,7 +126,8 @@ var rolePermissions = map[string][]string{
 	"rejectMemberRequest":  {"SUPER_ADMIN", "ADMIN"},
 
 	// — Friday schedule (petugas sholat jumat)
-	"getFridaySchedules":   {"SUPER_ADMIN", "ADMIN", "TIM_ABSENSI", "PENGAWAS"},
+	// getFridaySchedules boleh dibaca MEMBER sebagai informasi.
+	"getFridaySchedules":   {"SUPER_ADMIN", "ADMIN", "TIM_ABSENSI", "PENGAWAS", "MEMBER"},
 	"saveFridaySchedule":   {"ADMIN", "TIM_ABSENSI"},
 	"deleteFridaySchedule": {"ADMIN", "TIM_ABSENSI"},
 
