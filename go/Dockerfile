@@ -22,8 +22,9 @@ FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates tzdata curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Supabase CLI (glibc binary berjalan native di debian-slim)
-RUN curl -sL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz | tar -xz -C /usr/local/bin \
+# Pin versi Supabase CLI (reproducible build + hindari supply-chain via tag latest).
+ARG SUPABASE_CLI_VERSION=v2.117.0
+RUN curl -sL https://github.com/supabase/cli/releases/download/${SUPABASE_CLI_VERSION}/supabase_linux_amd64.tar.gz | tar -xz -C /usr/local/bin \
     && chmod +x /usr/local/bin/supabase \
     && supabase --version
 

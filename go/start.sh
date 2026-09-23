@@ -21,15 +21,21 @@ if [ -n "$DATABASE_URL" ]; then
     DB_HOSTPORT=$(printf '%s' "$DATABASE_URL" | sed -E 's#.*@([^/?]+).*#\1#')
     echo "--- preflight: konek ke ${DB_HOSTPORT} ---"
 
+    # Helper: jalankan supabase push sambil mask password (://user:pass@ -> ://***@).
+    run_push() {
+        supabase db push --db-url "$DATABASE_URL" "$@" --yes 2>&1 | sed -E 's#://[^/@]+@#://***@#g'
+        return "${PIPESTATUS[0]}"
+    }
+
     # 3) Tangani migration-history divergence tanpa menghapus data user:
     # push default dulu; kalau CLI menolak karena file lokal lebih tua dari history
     # remote (LegacyDbPushMissingRemoteError), retry sekali dengan --include-all.
     echo "--- supabase db push (default) ---"
-    if supabase db push --db-url "$DATABASE_URL" --yes 2>&1; then
+    if run_push; then
         echo "✅ Migrasi database berhasil!"
     else
         echo "--- push default gagal, retry dengan --include-all ---"
-        supabase db push --db-url "$DATABASE_URL" --include-all --yes 2>&1 || {
+        run_push --include-all || {
             echo "❌ ERROR: Migrasi database gagal dijalankan!"
             exit 1
         }

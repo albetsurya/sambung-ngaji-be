@@ -1,6 +1,7 @@
 package api
 
 import (
+	"crypto/subtle"
 	"os"
 
 	"github.com/gofiber/fiber/v2"
@@ -9,12 +10,20 @@ import (
 
 // HandleWAWebhookVerify — GET /wa/webhook
 // Dipakai Meta untuk verifikasi endpoint saat pertama kali didaftarkan.
+// Fail-closed: tolak semua bila WA_VERIFY_TOKEN belum di-set.
 func HandleWAWebhookVerify(c *fiber.Ctx) error {
 	mode := c.Query("hub.mode")
 	token := c.Query("hub.verify_token")
 	challenge := c.Query("hub.challenge")
 
-	if mode == "subscribe" && token == os.Getenv("WA_VERIFY_TOKEN") {
+	expected := os.Getenv("WA_VERIFY_TOKEN")
+	if expected == "" {
+		log.Error().Msg("WA webhook verify ditolak: WA_VERIFY_TOKEN belum di-set")
+		return c.SendStatus(403)
+	}
+
+	if mode == "subscribe" &&
+		subtle.ConstantTimeCompare([]byte(token), []byte(expected)) == 1 {
 		log.Info().Msg("WA webhook verified")
 		return c.SendString(challenge)
 	}
@@ -25,7 +34,8 @@ func HandleWAWebhookVerify(c *fiber.Ctx) error {
 // HandleWAWebhookReceive — POST /wa/webhook
 // Terima notifikasi dari Meta (pesan masuk, status delivery).
 // Untuk MVP, cukup log & return 200. Meta retry kalau bukan 200.
+// Body TIDAK di-log utuh agar tidak membocorkan data PII ke log.
 func HandleWAWebhookReceive(c *fiber.Ctx) error {
-	log.Info().Str("body", string(c.Body())).Msg("WA webhook received")
+	log.Info().Int("body_len", len(c.Body())).Msg("WA webhook received")
 	return c.SendStatus(200)
 }

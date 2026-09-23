@@ -10,6 +10,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/helmet"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
@@ -62,23 +63,49 @@ func main() {
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,
+		BodyLimit:    2 * 1024 * 1024,
+		// Render berjalan di balik proxy: baca client IP dari X-Forwarded-For
+		// hanya bila request datang dari proxy tepercaya (Render).
+		ProxyHeader:             fiber.HeaderXForwardedFor,
+		EnableTrustedProxyCheck: true,
+		TrustedProxies:          []string{"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"},
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
 			code := fiber.StatusInternalServerError
 			var e *fiber.Error
 			if errors.As(err, &e) {
 				code = e.Code
 			}
+			// Jangan bocorkan detail error internal ke klien; log di server.
+			log.Error().Err(err).Str("path", c.Path()).Msg("request error")
+			msg := "Gagal memproses permintaan"
+			if code >= 400 && code < 500 {
+				msg = err.Error()
+			}
 			return c.Status(code).JSON(fiber.Map{
 				"success": false,
 				"data":    nil,
-				"message": err.Error(),
+				"message": msg,
 			})
 		},
 	})
 
-	// CORS — izinkan semua origin frontend (token dikirim di body, bukan cookie)
+	// Security headers
+	app.Use(helmet.New(helmet.Config{
+		XSSProtection:      "1; mode=block",
+		ContentTypeNosniff: "nosniff",
+		XFrameOptions:      "SAMEORIGIN",
+		ReferrerPolicy:     "strict-origin-when-cross-origin",
+		HSTSMaxAge:         31536000,
+	}))
+
+	// CORS — allowlist origin frontend via CORS_ORIGINS (koma-separated).
+	// Cth: CORS_ORIGINS=https://app.example.com,https://app.vercel.app
+	corsOrigins := os.Getenv("CORS_ORIGINS")
+	if corsOrigins == "" {
+		corsOrigins = "http://localhost:5173,http://127.0.0.1:5173"
+	}
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: "*",
+		AllowOrigins: corsOrigins,
 		AllowMethods: "GET,POST,PUT,DELETE,OPTIONS",
 		AllowHeaders: "Content-Type,Authorization,ngrok-skip-browser-warning",
 		MaxAge:       3600,
@@ -90,8 +117,11 @@ func main() {
 	// Prometheus metrics middleware
 	app.Use(api.MetricsMiddleware())
 
-	// Rate limiting middleware
+	// Rate limiting middleware — global longgar + login ketat.
+	// Login dibatasi per-IP+username agar brute-force per akun tetap kena throttle
+	// walau attacker rotasi IP, dan per-IP agar rotasi username tetap kena.
 	app.Use(api.RateLimiterMiddleware(api.DefaultRateLimiterConfig(), nil))
+	app.Use(api.LoginRateLimiterMiddleware())
 
 	// Logging middleware with correlation ID
 	app.Use(api.LoggingMiddleware(&log.Logger))

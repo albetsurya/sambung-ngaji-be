@@ -101,6 +101,12 @@ func (r *UserAdminRepo) DeleteAllSessions(ctx context.Context, userID string) er
 	return err
 }
 
+// DeleteAllSessionsExcept — hapus semua sesi user kecuali sesi berjalan (by token).
+func (r *UserAdminRepo) DeleteAllSessionsExcept(ctx context.Context, userID, keepToken string) error {
+	_, err := r.pool.Exec(ctx, `DELETE FROM sessions WHERE user_id = $1 AND token <> $2`, userID, keepToken)
+	return err
+}
+
 func (r *UserAdminRepo) UpdatePasswordHash(ctx context.Context, userID, hash string) error {
 	_, err := r.pool.Exec(ctx, `
 		UPDATE users SET password_hash = $1, updated_at = now() WHERE user_id = $2

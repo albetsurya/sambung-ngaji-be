@@ -93,10 +93,15 @@ func handleChangeMyPassword(c *fiber.Ctx, svc *service.UserService) error {
 	if u == nil {
 		return Fail(c, "Unauthorized")
 	}
+	currentSessionID := ""
+	if claims := ClaimsOf(c); claims != nil {
+		currentSessionID = claims.SessionID
+	}
 	in := service.ChangePasswordInput{
-		UserID:      u.UserID,
-		OldPassword: BodyString(c, "old_password"),
-		NewPassword: BodyString(c, "new_password"),
+		UserID:           u.UserID,
+		OldPassword:      BodyString(c, "old_password"),
+		NewPassword:      BodyString(c, "new_password"),
+		CurrentSessionID: currentSessionID,
 	}
 	if err := svc.ChangeMyPassword(c.Context(), in); err != nil {
 		return Fail(c, err.Error())
