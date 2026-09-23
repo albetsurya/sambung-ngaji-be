@@ -73,6 +73,27 @@ func (r *FridayRepo) Delete(ctx context.Context, tanggal string) error {
 	return err
 }
 
+// FindUnsentByDate: satu jadwal yang reminder WA-nya belum terkirim.
+// Return pgx.ErrNoRows kalau tidak ada (sudah terkirim / belum ada jadwal).
+func (r *FridayRepo) FindUnsentByDate(ctx context.Context, tanggal string) (*model.FridaySchedule, error) {
+	row := r.pool.QueryRow(ctx,
+		`SELECT `+fridaySelectCols+` FROM friday_schedules
+		 WHERE tanggal=$1::date AND reminder_sent_at IS NULL`, tanggal)
+	f, err := scanFriday(row)
+	if err != nil {
+		return nil, err
+	}
+	return &f, nil
+}
+
+// MarkReminderSent: tandai reminder WA sudah terkirim untuk satu tanggal.
+func (r *FridayRepo) MarkReminderSent(ctx context.Context, tanggal string) error {
+	_, err := r.pool.Exec(ctx,
+		`UPDATE friday_schedules SET reminder_sent_at=now(), updated_at=now()
+		 WHERE tanggal=$1::date`, tanggal)
+	return err
+}
+
 func scanFriday(row pgx.Row) (model.FridaySchedule, error) {
 	var f model.FridaySchedule
 	err := row.Scan(&f.FridayID, &f.Tanggal, &f.KhatibImam, &f.Muadzin,

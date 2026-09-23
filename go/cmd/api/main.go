@@ -100,9 +100,11 @@ func main() {
 
 	// CORS — allowlist origin frontend via CORS_ORIGINS (koma-separated).
 	// Cth: CORS_ORIGINS=https://app.example.com,https://app.vercel.app
+	// Default mencakup 5173 & 5174 karena port 5173 sering kepakai proses
+	// vite lain sehingga frontend sambung-ngaji jalan di 5174.
 	corsOrigins := os.Getenv("CORS_ORIGINS")
 	if corsOrigins == "" {
-		corsOrigins = "http://localhost:5173,http://127.0.0.1:5173"
+		corsOrigins = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174"
 	}
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: corsOrigins,
@@ -148,13 +150,18 @@ func main() {
 	// Create a context that will be cancelled on shutdown signal
 	shutdownCtx, shutdownCancel := context.WithCancel(context.Background())
 
-	// Cron reminder WA — cek tiap jam, kirim H-8 jam sebelum acara
+	// Cron reminder WA — cek tiap jam:
+	// - Reminder meeting H-8 jam (mati default, MEETING_REMINDER_ENABLED=true)
+	// - Info petugas Jumat: Kamis jam 12 siang WIB untuk Jumat besok.
 	go func() {
 		ticker := time.NewTicker(1 * time.Hour)
 		defer ticker.Stop()
 
 		if err := services.Reminder.RunOnce(shutdownCtx); err != nil {
 			log.Error().Err(err).Msg("reminder startup error")
+		}
+		if err := services.FridayReminder.RunOnce(shutdownCtx); err != nil {
+			log.Error().Err(err).Msg("friday reminder startup error")
 		}
 
 		for {
@@ -164,6 +171,9 @@ func main() {
 			case <-ticker.C:
 				if err := services.Reminder.RunOnce(shutdownCtx); err != nil {
 					log.Error().Err(err).Msg("reminder tick error")
+				}
+				if err := services.FridayReminder.RunOnce(shutdownCtx); err != nil {
+					log.Error().Err(err).Msg("friday reminder tick error")
 				}
 			}
 		}
