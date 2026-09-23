@@ -1,5 +1,5 @@
 -- 000010: Jadwal petugas shalat Jumat (khatib, muadzin, dll).
-CREATE TABLE friday_schedules (
+CREATE TABLE IF NOT EXISTS friday_schedules (
     friday_id      text PRIMARY KEY,
     tanggal        date NOT NULL UNIQUE,
     khatib_imam    text NOT NULL DEFAULT '',
@@ -13,4 +13,4 @@ CREATE TABLE friday_schedules (
     updated_at     timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_friday_schedules_tanggal ON friday_schedules (tanggal);
+CREATE INDEX IF NOT EXISTS idx_friday_schedules_tanggal ON friday_schedules (tanggal);
