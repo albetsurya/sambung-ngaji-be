@@ -10,11 +10,11 @@ import (
 
 // RetryConfig holds retry configuration
 type RetryConfig struct {
-	MaxAttempts    int
-	BaseDelay      time.Duration
-	MaxDelay       time.Duration
-	BackoffFactor  float64
-	Jitter         bool
+	MaxAttempts   int
+	BaseDelay     time.Duration
+	MaxDelay      time.Duration
+	BackoffFactor float64
+	Jitter        bool
 }
 
 // DefaultRetryConfig returns a sensible default retry config

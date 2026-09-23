@@ -3,7 +3,9 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -17,10 +19,10 @@ import (
 )
 
 const (
-	LocalsBody       = "body"
-	LocalsUser       = "user"
-	LocalsClaims     = "claims"
-	LocalsRequestID  = "request_id"
+	LocalsBody      = "body"
+	LocalsUser      = "user"
+	LocalsClaims    = "claims"
+	LocalsRequestID = "request_id"
 )
 
 // Prometheus metrics
@@ -169,18 +171,18 @@ func ValidateBody(requiredFields ...string) fiber.Handler {
 		if len(body) == 0 {
 			return Fail(c, "Request body is required")
 		}
-		
+
 		var missing []string
 		for _, field := range requiredFields {
 			if _, ok := body[field]; !ok {
 				missing = append(missing, field)
 			}
 		}
-		
+
 		if len(missing) > 0 {
 			return Fail(c, fmt.Sprintf("Missing required fields: %s", strings.Join(missing, ", ")))
 		}
-		
+
 		return c.Next()
 	}
 }
@@ -188,6 +190,9 @@ func ValidateBody(requiredFields ...string) fiber.Handler {
 // AuthMiddleware + Permission check.
 // Untuk public action: lewat.
 // Untuk action lain: JWT valid + role boleh akses.
+// Token diambil dari header Authorization, fallback ke HttpOnly cookie.
+// Kalau token berasal dari cookie (bukan header), origin request wajib
+// ada di allowlist CORS — proteksi CSRF untuk cookie auth.
 func AuthMiddleware(svc *auth.Service) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		body := BodyOf(c)
@@ -196,9 +201,19 @@ func AuthMiddleware(svc *auth.Service) fiber.Handler {
 			return c.Next()
 		}
 
-		token, _ := body["token"].(string)
+		token := c.Get("Authorization")
+		fromCookie := false
+		if token == "" {
+			token = c.Cookies(sessionCookieName)
+			fromCookie = token != ""
+		}
 		if token == "" {
 			return Fail(c, "Unauthorized: token tidak ada")
+		}
+		token = strings.TrimPrefix(token, "Bearer ")
+
+		if fromCookie && !originAllowed(c.Get("Origin")) {
+			return Fail(c, "Unauthorized: origin tidak diizinkan")
 		}
 
 		u, claims, err := svc.ValidateSession(c.Context(), token)
@@ -220,6 +235,24 @@ func AuthMiddleware(svc *auth.Service) fiber.Handler {
 		c.Locals(LocalsClaims, claims)
 		return c.Next()
 	}
+}
+
+// originAllowed: cek Origin terhadap allowlist CORS yang sama dengan main.go.
+// Origin kosong diizinkan (request same-origin/non-browser tidak kirim Origin).
+func originAllowed(origin string) bool {
+	if origin == "" {
+		return true
+	}
+	allowed := os.Getenv("CORS_ORIGINS")
+	if allowed == "" {
+		allowed = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174"
+	}
+	for _, o := range strings.Split(allowed, ",") {
+		if strings.TrimSpace(o) == origin {
+			return true
+		}
+	}
+	return false
 }
 
 func UserOf(c *fiber.Ctx) *model.User {
@@ -264,6 +297,52 @@ type RateLimiterConfig struct {
 	KeyFunc     func(*fiber.Ctx) string
 }
 
+// RateLimiterStore defines the interface for rate limiter storage backends.
+// Implement this to swap in-memory store with Redis, etc.
+type RateLimiterStore interface {
+	CheckAndInc(key string, window time.Duration, maxRequests int) (bool, error)
+}
+
+// InMemoryStore is a RateLimiterStore implementation using an in-memory map.
+// Suitable for single-instance deployments. Use Redis for multi-instance.
+type InMemoryStore struct {
+	mu      sync.Mutex
+	clients map[string]*clientData
+}
+
+type clientData struct {
+	count   int
+	resetAt time.Time
+}
+
+// NewInMemoryStore creates a new InMemoryStore
+func NewInMemoryStore() *InMemoryStore {
+	return &InMemoryStore{
+		clients: make(map[string]*clientData),
+	}
+}
+
+func (s *InMemoryStore) CheckAndInc(key string, window time.Duration, maxRequests int) (bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	now := time.Now()
+	data, exists := s.clients[key]
+	if !exists || now.After(data.resetAt) {
+		s.clients[key] = &clientData{
+			count:   1,
+			resetAt: now.Add(window),
+		}
+		return true, nil
+	}
+
+	data.count++
+	if data.count > maxRequests {
+		return false, nil
+	}
+	return true, nil
+}
+
 // DefaultRateLimiterConfig returns a default rate limiter config
 func DefaultRateLimiterConfig() RateLimiterConfig {
 	return RateLimiterConfig{
@@ -275,38 +354,65 @@ func DefaultRateLimiterConfig() RateLimiterConfig {
 	}
 }
 
-// RateLimiterMiddleware returns a rate limiting middleware
-func RateLimiterMiddleware(config RateLimiterConfig) fiber.Handler {
-	// Simple in-memory store (for production, use Redis)
-	type clientData struct {
-		count   int
-		resetAt time.Time
-	}
-	
-	clients := make(map[string]*clientData)
-	
+// LoginRateLimiterMiddleware — throttle ketat khusus action login.
+// Kunci: IP + username (lowercase, max 64 char) agar brute-force per akun
+// tetap kena throttle walau attacker rotasi IP. Fail-closed: saat store
+// error, login ditolak sementara (aman) alih-alih diloloskan.
+func LoginRateLimiterMiddleware() fiber.Handler {
+	store := NewInMemoryStore()
+	const maxAttempts = 10
+	const window = time.Minute
+
 	return func(c *fiber.Ctx) error {
-		key := config.KeyFunc(c)
-		now := time.Now()
-		
-		data, exists := clients[key]
-		if !exists || now.After(data.resetAt) {
-			clients[key] = &clientData{
-				count:   1,
-				resetAt: now.Add(config.Window),
-			}
+		if BodyString(c, "action") != "login" {
 			return c.Next()
 		}
-		
-		data.count++
-		if data.count > config.MaxRequests {
+		username := BodyString(c, "username")
+		if len(username) > 64 {
+			username = username[:64]
+		}
+		key := "login:" + c.IP() + ":" + strings.ToLower(strings.TrimSpace(username))
+
+		allowed, err := store.CheckAndInc(key, window, maxAttempts)
+		if err != nil {
+			return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
+				"success": false,
+				"data":    nil,
+				"message": "Layanan sibuk, coba lagi sebentar",
+			})
+		}
+		if !allowed {
+			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
+				"success": false,
+				"data":    nil,
+				"message": "Terlalu banyak percobaan login. Coba lagi semenit lagi.",
+			})
+		}
+		return c.Next()
+	}
+}
+func RateLimiterMiddleware(config RateLimiterConfig, store RateLimiterStore) fiber.Handler {
+	if store == nil {
+		store = NewInMemoryStore()
+	}
+
+	return func(c *fiber.Ctx) error {
+		key := config.KeyFunc(c)
+
+		allowed, err := store.CheckAndInc(key, config.Window, config.MaxRequests)
+		if err != nil {
+			// Jika store error, allow request (fail open)
+			return c.Next()
+		}
+
+		if !allowed {
 			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
 				"success": false,
 				"data":    nil,
 				"message": "Rate limit exceeded. Please try again later.",
 			})
 		}
-		
+
 		return c.Next()
 	}
 }
@@ -316,7 +422,7 @@ func LoggingMiddleware(logger *zerolog.Logger) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		start := time.Now()
 		requestID := RequestIDOf(c)
-		
+
 		// Log request
 		logger.Info().
 			Str("request_id", requestID).
@@ -325,9 +431,9 @@ func LoggingMiddleware(logger *zerolog.Logger) fiber.Handler {
 			Str("ip", c.IP()).
 			Str("user_agent", c.Get("User-Agent")).
 			Msg("request started")
-		
+
 		err := c.Next()
-		
+
 		// Log response
 		logger.Info().
 			Str("request_id", requestID).
@@ -336,7 +442,7 @@ func LoggingMiddleware(logger *zerolog.Logger) fiber.Handler {
 			Int("status", c.Response().StatusCode()).
 			Dur("latency", time.Since(start)).
 			Msg("request completed")
-		
+
 		return err
 	}
 }

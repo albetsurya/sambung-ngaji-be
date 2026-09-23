@@ -97,6 +97,7 @@ var RegisteredActions = map[string]bool{
 	"createUser":          true,
 	"updateUser":          true,
 	"updateUserRole":      true,
+	"deleteUserPermanent": true,
 	"getMemberUserStatus": true,
 	"changeMyPassword":    true,
 	"changeMyUsername":    true,
@@ -130,6 +131,11 @@ var RegisteredActions = map[string]bool{
 	"setAIProvider":      true,
 
 	"parsePdfMeeting": true,
+
+	// Friday schedule (petugas sholat jumat)
+	"getFridaySchedules":   true,
+	"saveFridaySchedule":   true,
+	"deleteFridaySchedule": true,
 }
 
 type Services struct {
@@ -154,6 +160,8 @@ type Services struct {
 	PDFImport    *service.PDFImportService
 	Fonnte       *service.FonnteService
 	Reminder     *service.ReminderService
+	Friday       *service.FridayService
+	FridayReminder *service.FridayReminderService
 }
 
 func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, providers map[string]ai.Provider, providerOrder []string, storage *service.StorageService) *Services {
@@ -312,6 +320,13 @@ func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, providers map[string
 			repository.NewMeetingRepo(pool),
 			fonnteSvc,
 		),
+		Friday: service.NewFridayService(
+			repository.NewFridayRepo(pool),
+		),
+		FridayReminder: service.NewFridayReminderService(
+			repository.NewFridayRepo(pool),
+			fonnteSvc,
+		),
 	}
 }
 
@@ -466,6 +481,8 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 			return handleCreateUser(c, svc.User)
 		case "updateUser":
 			return handleUpdateUser(c, svc.User)
+		case "deleteUserPermanent":
+			return handleDeleteUserPermanent(c, svc.User)
 		case "updateUserRole":
 			return handleUpdateUserRole(c, svc.User)
 		case "getMemberUserStatus":
@@ -528,6 +545,14 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 
 		case "parsePdfMeeting":
 			return handleParsePdfMeeting(c, svc.PDFImport)
+
+		// Friday schedule
+		case "getFridaySchedules":
+			return handleGetFridaySchedules(c, svc.Friday)
+		case "saveFridaySchedule":
+			return handleSaveFridaySchedule(c, svc.Friday)
+		case "deleteFridaySchedule":
+			return handleDeleteFridaySchedule(c, svc.Friday)
 
 		}
 

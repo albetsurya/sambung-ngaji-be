@@ -16,10 +16,10 @@ type Config struct {
 	JWTSecret    string
 	JWTExpiryHrs int
 	// DB Pool
-	DBMaxConns      int
-	DBMinConns      int
-	DBMaxConnLifetime string
-	DBMaxConnIdleTime string
+	DBMaxConns          int
+	DBMinConns          int
+	DBMaxConnLifetime   string
+	DBMaxConnIdleTime   string
 	DBHealthCheckPeriod string
 	// AI
 	AIProvider        string
@@ -48,10 +48,10 @@ func Load() (*Config, error) {
 		JWTSecret:    envTrim("JWT_SECRET"),
 		JWTExpiryHrs: getEnvInt("JWT_EXPIRY_HOURS", 12),
 		// DB Pool defaults
-		DBMaxConns:         getEnvInt("DB_MAX_CONNS", 10),
-		DBMinConns:         getEnvInt("DB_MIN_CONNS", 1),
-		DBMaxConnLifetime:  getEnv("DB_MAX_CONN_LIFETIME", "1h"),
-		DBMaxConnIdleTime:  getEnv("DB_MAX_CONN_IDLE_TIME", "30m"),
+		DBMaxConns:          getEnvInt("DB_MAX_CONNS", 10),
+		DBMinConns:          getEnvInt("DB_MIN_CONNS", 1),
+		DBMaxConnLifetime:   getEnv("DB_MAX_CONN_LIFETIME", "1h"),
+		DBMaxConnIdleTime:   getEnv("DB_MAX_CONN_IDLE_TIME", "30m"),
 		DBHealthCheckPeriod: getEnv("DB_HEALTH_CHECK_PERIOD", "30s"),
 	}
 
@@ -72,8 +72,8 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("DATABASE_URL wajib diisi")
 	}
 
-	if cfg.AppEnv == "production" && cfg.JWTSecret == "" {
-		return nil, fmt.Errorf("JWT_SECRET wajib diisi di production")
+	if cfg.JWTSecret == "" {
+		return nil, fmt.Errorf("JWT_SECRET wajib diisi")
 	}
 
 	return cfg, nil

@@ -248,10 +248,10 @@ func (s *UserService) GetMemberUserStatus(ctx context.Context, memberID string) 
 /* ===== Password ===== */
 
 type ChangePasswordInput struct {
-	UserID       string
-	OldPassword  string
-	NewPassword  string
-	CurrentToken string
+	UserID           string
+	OldPassword      string
+	NewPassword      string
+	CurrentSessionID string
 }
 
 func (s *UserService) ChangeMyPassword(ctx context.Context, in ChangePasswordInput) error {
@@ -261,8 +261,8 @@ func (s *UserService) ChangeMyPassword(ctx context.Context, in ChangePasswordInp
 	if in.NewPassword == "" {
 		return errors.New("password baru wajib diisi")
 	}
-	if len(in.NewPassword) < 6 {
-		return errors.New("password baru minimal 6 karakter")
+	if len(in.NewPassword) < 8 {
+		return errors.New("password baru minimal 8 karakter")
 	}
 	if in.NewPassword == in.OldPassword {
 		return errors.New("password baru harus berbeda dari password lama")
@@ -281,6 +281,13 @@ func (s *UserService) ChangeMyPassword(ctx context.Context, in ChangePasswordInp
 	}
 	if err := s.repo.UpdatePasswordHash(ctx, in.UserID, hash); err != nil {
 		return err
+	}
+	// Invalidate semua sesi lain agar sesi curian mati setelah ganti password.
+	// Sesi berjalan (CurrentSessionID) dipertahankan supaya user tidak ter-logout paksa.
+	if in.CurrentSessionID != "" {
+		_ = s.repo.DeleteAllSessionsExcept(ctx, in.UserID, in.CurrentSessionID)
+	} else {
+		_ = s.repo.DeleteAllSessions(ctx, in.UserID)
 	}
 	return nil
 }
@@ -410,3 +417,12 @@ func toUserDTO(u model.User) model.UserDTO {
 }
 
 var _ = strings.TrimSpace
+
+// DeleteUserPermanent — hapus user + member permanen.
+// Wajib dipanggil oleh SUPER_ADMIN (double-check di handler + service).
+func (s *UserService) DeleteUserPermanent(ctx context.Context, requesterRole, userID string) error {
+	if requesterRole != "SUPER_ADMIN" {
+		return errors.New("hanya SUPER_ADMIN yang boleh menghapus user permanen")
+	}
+	return s.repo.DeleteUserAndMember(ctx, userID)
+}

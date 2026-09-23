@@ -15,23 +15,29 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
     go build -trimpath -ldflags="-s -w -buildid=" -o /out/api ./cmd/api
 
-# Final stage
-FROM alpine:3.20
+# Final stage — debian-slim (glibc) karena Supabase CLI adalah binary glibc
+# dan TIDAK bisa jalan di alpine (musl): Error relocating __pthread_key_create, rc=127.
+FROM debian:bookworm-slim
 
-RUN apk add --no-cache ca-certificates tzdata wget
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates tzdata curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Pin versi Supabase CLI (reproducible build + hindari supply-chain via tag latest).
+ARG SUPABASE_CLI_VERSION=v2.117.0
+RUN curl -sL https://github.com/supabase/cli/releases/download/${SUPABASE_CLI_VERSION}/supabase_linux_amd64.tar.gz | tar -xz -C /usr/local/bin \
+    && chmod +x /usr/local/bin/supabase \
+    && supabase --version
 
 ENV TZ=Asia/Jakarta
 
 WORKDIR /app
 
 COPY --from=builder /out/api /app/api
+COPY start.sh /app/start.sh
+COPY supabase /app/supabase
+RUN chmod +x /app/start.sh
 
-RUN addgroup -g 1000 app && adduser -D -u 1000 -G app app
+RUN groupadd -g 1000 app && useradd -u 1000 -g app -m -s /bin/sh app
 USER app
 
-EXPOSE 8080
-
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget -q --spider http://localhost:8080/health || exit 1
-
-CMD ["/app/api"]
+ENTRYPOINT ["/app/start.sh"]

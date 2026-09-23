@@ -61,6 +61,10 @@ func handleCreateMeeting(c *fiber.Ctx, svc *service.MeetingService) error {
 		GenderTarget:   BodyString(c, "gender_target"), // ← BARU
 		CreatedBy:      createdBy,
 	}
+	if _, ok := BodyOf(c)["send_reminder"]; ok {
+		sr := BodyBool(c, "send_reminder")
+		in.SendReminder = &sr
+	}
 	dto, err := svc.CreateMeeting(c.Context(), in)
 	if err != nil {
 		return Fail(c, err.Error())
@@ -91,6 +95,10 @@ func handleUpdateMeeting(c *fiber.Ctx, svc *service.MeetingService) error {
 	if _, ok := BodyOf(c)["kategori_target"]; ok {
 		kat := parseKategoriTarget(c)
 		in.KategoriTarget = &kat
+	}
+	if _, ok := BodyOf(c)["send_reminder"]; ok {
+		sr := BodyBool(c, "send_reminder")
+		in.SendReminder = &sr
 	}
 	dto, err := svc.UpdateMeeting(c.Context(), in)
 	if err != nil {

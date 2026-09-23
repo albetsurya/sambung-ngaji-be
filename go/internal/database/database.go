@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -10,6 +11,19 @@ import (
 )
 
 func Connect(ctx context.Context, url string, cfg *config.Config) (*pgxpool.Pool, error) {
+	// Wajibkan TLS ke database remote (Supabase direct connection mendukung SSL).
+	// Tanpa ini driver default ke prefer dan bisa downgrade ke plaintext.
+	// Localhost dikecualikan agar dev lokal (tanpa SSL) tetap jalan.
+	if !strings.Contains(url, "sslmode=") &&
+		!strings.Contains(url, "@localhost") &&
+		!strings.Contains(url, "@127.0.0.1") {
+		sep := "?"
+		if strings.Contains(url, "?") {
+			sep = "&"
+		}
+		url += sep + "sslmode=require"
+	}
+
 	pgCfg, err := pgxpool.ParseConfig(url)
 	if err != nil {
 		return nil, fmt.Errorf("parse config: %w", err)

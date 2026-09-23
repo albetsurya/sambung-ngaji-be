@@ -33,7 +33,7 @@ var rolePermissions = map[string][]string{
 	"saveGroup": {"ADMIN"},
 
 	// — Meetings
-	"getMeetings":        {"ADMIN", "TIM_ABSENSI", "PENGAWAS"},
+	"getMeetings":        {"ADMIN", "TIM_ABSENSI", "PENGAWAS", "MEMBER"},
 	"createMeeting":      {"ADMIN", "TIM_ABSENSI"},
 	"updateMeeting":      {"ADMIN", "TIM_ABSENSI"},
 	"deleteMeeting":      {"ADMIN", "TIM_ABSENSI"},
@@ -80,11 +80,12 @@ var rolePermissions = map[string][]string{
 	"updateSettings": {"SUPER_ADMIN"},
 
 	// — Users (SUPER_ADMIN only — konsisten dengan SuperAdminOnlyActions)
-	"getUsers":          {"SUPER_ADMIN"},
-	"createUser":        {"SUPER_ADMIN"},
-	"updateUser":        {"SUPER_ADMIN"},
-	"updateUserRole":    {"SUPER_ADMIN"},
-	"resetUserPassword": {"SUPER_ADMIN"},
+	"getUsers":            {"SUPER_ADMIN"},
+	"createUser":          {"SUPER_ADMIN"},
+	"updateUser":          {"SUPER_ADMIN"},
+	"updateUserRole":      {"SUPER_ADMIN"},
+	"deleteUserPermanent": {"SUPER_ADMIN"},
+	"resetUserPassword":   {"SUPER_ADMIN"},
 
 	// — Audit
 	"getAuditLogs": {"SUPER_ADMIN"},
@@ -124,6 +125,12 @@ var rolePermissions = map[string][]string{
 	"approveMemberRequest": {"SUPER_ADMIN", "ADMIN"},
 	"rejectMemberRequest":  {"SUPER_ADMIN", "ADMIN"},
 
+	// — Friday schedule (petugas sholat jumat)
+	// getFridaySchedules boleh dibaca MEMBER sebagai informasi.
+	"getFridaySchedules":   {"SUPER_ADMIN", "ADMIN", "TIM_ABSENSI", "PENGAWAS", "MEMBER"},
+	"saveFridaySchedule":   {"ADMIN", "TIM_ABSENSI"},
+	"deleteFridaySchedule": {"ADMIN", "TIM_ABSENSI"},
+
 	// — WA Queue
 	"createWaQueue":        {"ADMIN", "TIM_ABSENSI"},
 	"cancelWaQueue":        {"ADMIN", "TIM_ABSENSI"},
@@ -155,14 +162,15 @@ func CanAccess(role, action string) bool {
 
 // SuperAdminOnlyActions — action yang hanya SUPER_ADMIN.
 var SuperAdminOnlyActions = map[string]bool{
-	"getUsers":          true,
-	"getUserDetail":     true,
-	"createUser":        true,
-	"updateUser":        true,
-	"updateUserRole":    true,
-	"getAuditLogs":      true,
-	"updateSettings":    true,
-	"resetUserPassword": true,
+	"getUsers":            true,
+	"getUserDetail":       true,
+	"createUser":          true,
+	"updateUser":          true,
+	"updateUserRole":      true,
+	"deleteUserPermanent": true,
+	"getAuditLogs":        true,
+	"updateSettings":      true,
+	"resetUserPassword":   true,
 }
 
 func IsSuperAdminOnly(action string) bool {

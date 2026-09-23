@@ -93,10 +93,15 @@ func handleChangeMyPassword(c *fiber.Ctx, svc *service.UserService) error {
 	if u == nil {
 		return Fail(c, "Unauthorized")
 	}
+	currentSessionID := ""
+	if claims := ClaimsOf(c); claims != nil {
+		currentSessionID = claims.SessionID
+	}
 	in := service.ChangePasswordInput{
-		UserID:      u.UserID,
-		OldPassword: BodyString(c, "old_password"),
-		NewPassword: BodyString(c, "new_password"),
+		UserID:           u.UserID,
+		OldPassword:      BodyString(c, "old_password"),
+		NewPassword:      BodyString(c, "new_password"),
+		CurrentSessionID: currentSessionID,
 	}
 	if err := svc.ChangeMyPassword(c.Context(), in); err != nil {
 		return Fail(c, err.Error())
@@ -132,4 +137,21 @@ func handleResetUserPassword(c *fiber.Ctx, svc *service.UserService) error {
 		return Fail(c, err.Error())
 	}
 	return Ok(c, fiber.Map{"reset": true})
+}
+
+// handleDeleteUserPermanent — hapus user + member permanen.
+// Hanya SUPER_ADMIN. Aksi destruktif, tidak bisa dibatalkan.
+func handleDeleteUserPermanent(c *fiber.Ctx, svc *service.UserService) error {
+	u := UserOf(c)
+	if u == nil {
+		return Fail(c, "Unauthorized")
+	}
+	userID, _ := BodyOf(c)["user_id"].(string)
+	if userID == "" {
+		return Fail(c, "user_id wajib diisi")
+	}
+	if err := svc.DeleteUserPermanent(c.Context(), u.Role, userID); err != nil {
+		return Fail(c, err.Error())
+	}
+	return Ok(c, fiber.Map{"deleted": true, "user_id": userID})
 }
