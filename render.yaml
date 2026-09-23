@@ -41,6 +41,8 @@ services:
         sync: false
       - key: SUPABASE_BUCKET
         value: "member-photos"
+      - key: CORS_ORIGINS
+        value: "https://sambung-ngaji.vercel.app,https://sambung-ngaji-staging.vercel.app,https://sambung-ngaji-stag.vercel.app,https://sambung-ngaji-dev.vercel.app"
 
   # ===== Development (branch: develop) =====
   - type: web
@@ -58,6 +60,8 @@ services:
         value: development
       - key: JWT_EXPIRY_HOURS
         value: "12"
+      - key: CORS_ORIGINS
+        value: "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,https://sambung-ngaji.vercel.app,https://sambung-ngaji-staging.vercel.app,https://sambung-ngaji-stag.vercel.app,https://sambung-ngaji-dev.vercel.app"
       - key: DATABASE_URL
         sync: false
       - key: JWT_SECRET
