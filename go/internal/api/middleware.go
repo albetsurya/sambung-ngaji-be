@@ -323,7 +323,43 @@ func DefaultRateLimiterConfig() RateLimiterConfig {
 	}
 }
 
-// RateLimiterMiddleware returns a rate limiting middleware
+// LoginRateLimiterMiddleware — throttle ketat khusus action login.
+// Kunci: IP + username (lowercase, max 64 char) agar brute-force per akun
+// tetap kena throttle walau attacker rotasi IP. Fail-closed: saat store
+// error, login ditolak sementara (aman) alih-alih diloloskan.
+func LoginRateLimiterMiddleware() fiber.Handler {
+	store := NewInMemoryStore()
+	const maxAttempts = 10
+	const window = time.Minute
+
+	return func(c *fiber.Ctx) error {
+		if BodyString(c, "action") != "login" {
+			return c.Next()
+		}
+		username := BodyString(c, "username")
+		if len(username) > 64 {
+			username = username[:64]
+		}
+		key := "login:" + c.IP() + ":" + strings.ToLower(strings.TrimSpace(username))
+
+		allowed, err := store.CheckAndInc(key, window, maxAttempts)
+		if err != nil {
+			return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
+				"success": false,
+				"data":    nil,
+				"message": "Layanan sibuk, coba lagi sebentar",
+			})
+		}
+		if !allowed {
+			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
+				"success": false,
+				"data":    nil,
+				"message": "Terlalu banyak percobaan login. Coba lagi semenit lagi.",
+			})
+		}
+		return c.Next()
+	}
+}
 func RateLimiterMiddleware(config RateLimiterConfig, store RateLimiterStore) fiber.Handler {
 	if store == nil {
 		store = NewInMemoryStore()

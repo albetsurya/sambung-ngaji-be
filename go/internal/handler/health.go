@@ -17,7 +17,7 @@ func RegisterHealth(app *fiber.App, db *pgxpool.Pool) {
 
 		dbStatus := "ok"
 		if err := db.Ping(ctx); err != nil {
-			dbStatus = "error: " + err.Error()
+			dbStatus = "error"
 		}
 
 		return c.JSON(fiber.Map{
@@ -41,27 +41,20 @@ func RegisterHealth(app *fiber.App, db *pgxpool.Pool) {
 		err := db.QueryRow(ctx, "SELECT 1").Scan(&result)
 		dbStatus := "ok"
 		if err != nil {
-			dbStatus = "error: " + err.Error()
+			dbStatus = "error"
 		}
 
-		// Check pool stats
-		stats := db.Stat()
-		poolStats := fiber.Map{
-			"total_conns":    stats.TotalConns(),
-			"idle_conns":     stats.IdleConns(),
-			"acquired_conns": stats.AcquiredConns(),
-			"max_conns":      stats.MaxConns(),
-		}
+		// Touch pool agar readiness mencerminkan konektivitas aktual.
+		_ = db.Stat().TotalConns()
 
 		// Return 503 if DB not ready
 		if err != nil {
 			return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
 				"success": false,
 				"data": fiber.Map{
-					"status":     "not_ready",
-					"database":   dbStatus,
-					"pool_stats": poolStats,
-					"time":       time.Now().Format(time.RFC3339),
+					"status":   "not_ready",
+					"database": dbStatus,
+					"time":     time.Now().Format(time.RFC3339),
 				},
 				"message": "database not ready",
 			})
@@ -70,10 +63,9 @@ func RegisterHealth(app *fiber.App, db *pgxpool.Pool) {
 		return c.JSON(fiber.Map{
 			"success": true,
 			"data": fiber.Map{
-				"status":     "ready",
-				"database":   dbStatus,
-				"pool_stats": poolStats,
-				"time":       time.Now().Format(time.RFC3339),
+				"status":   "ready",
+				"database": dbStatus,
+				"time":     time.Now().Format(time.RFC3339),
 			},
 			"message": "",
 		})

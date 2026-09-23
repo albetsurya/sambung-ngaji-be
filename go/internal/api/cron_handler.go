@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"crypto/subtle"
 	"os"
 
 	"github.com/gofiber/fiber/v2"
@@ -20,7 +21,7 @@ func HandleCronReminder(c *fiber.Ctx) error {
 		})
 	}
 
-	if c.Get("X-Cron-Secret") != secret {
+	if subtle.ConstantTimeCompare([]byte(c.Get("X-Cron-Secret")), []byte(secret)) != 1 {
 		log.Warn().Str("ip", c.IP()).Msg("cron request unauthorized")
 		return c.Status(401).JSON(fiber.Map{
 			"success": false,

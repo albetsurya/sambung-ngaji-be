@@ -72,8 +72,8 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("DATABASE_URL wajib diisi")
 	}
 
-	if cfg.AppEnv == "production" && cfg.JWTSecret == "" {
-		return nil, fmt.Errorf("JWT_SECRET wajib diisi di production")
+	if cfg.JWTSecret == "" {
+		return nil, fmt.Errorf("JWT_SECRET wajib diisi")
 	}
 
 	return cfg, nil
