@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -189,6 +190,9 @@ func ValidateBody(requiredFields ...string) fiber.Handler {
 // AuthMiddleware + Permission check.
 // Untuk public action: lewat.
 // Untuk action lain: JWT valid + role boleh akses.
+// Token diambil dari header Authorization, fallback ke HttpOnly cookie.
+// Kalau token berasal dari cookie (bukan header), origin request wajib
+// ada di allowlist CORS — proteksi CSRF untuk cookie auth.
 func AuthMiddleware(svc *auth.Service) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		body := BodyOf(c)
@@ -198,10 +202,19 @@ func AuthMiddleware(svc *auth.Service) fiber.Handler {
 		}
 
 		token := c.Get("Authorization")
+		fromCookie := false
+		if token == "" {
+			token = c.Cookies(sessionCookieName)
+			fromCookie = token != ""
+		}
 		if token == "" {
 			return Fail(c, "Unauthorized: token tidak ada")
 		}
 		token = strings.TrimPrefix(token, "Bearer ")
+
+		if fromCookie && !originAllowed(c.Get("Origin")) {
+			return Fail(c, "Unauthorized: origin tidak diizinkan")
+		}
 
 		u, claims, err := svc.ValidateSession(c.Context(), token)
 		if err != nil {
@@ -222,6 +235,24 @@ func AuthMiddleware(svc *auth.Service) fiber.Handler {
 		c.Locals(LocalsClaims, claims)
 		return c.Next()
 	}
+}
+
+// originAllowed: cek Origin terhadap allowlist CORS yang sama dengan main.go.
+// Origin kosong diizinkan (request same-origin/non-browser tidak kirim Origin).
+func originAllowed(origin string) bool {
+	if origin == "" {
+		return true
+	}
+	allowed := os.Getenv("CORS_ORIGINS")
+	if allowed == "" {
+		allowed = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174"
+	}
+	for _, o := range strings.Split(allowed, ",") {
+		if strings.TrimSpace(o) == origin {
+			return true
+		}
+	}
+	return false
 }
 
 func UserOf(c *fiber.Ctx) *model.User {

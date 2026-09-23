@@ -110,7 +110,10 @@ func main() {
 		AllowOrigins: corsOrigins,
 		AllowMethods: "GET,POST,PUT,DELETE,OPTIONS",
 		AllowHeaders: "Content-Type,Authorization,ngrok-skip-browser-warning",
-		MaxAge:       3600,
+		// Wajib true agar browser mengirim/menyimpan HttpOnly cookie
+		// sesi (credentials:include). Aman karena origin di-allowlist.
+		AllowCredentials: true,
+		MaxAge:           3600,
 	}))
 
 	// Request ID middleware for correlation logging
