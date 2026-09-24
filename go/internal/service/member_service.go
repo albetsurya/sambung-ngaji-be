@@ -25,6 +25,10 @@ func (s *MemberService) GetMembers(ctx context.Context, f model.MemberListFilter
 		return nil, err
 	}
 	filtered := s.applyFilters(all, f)
+	withUsers, err := s.repo.MemberIDsWithUsers(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	limit := f.Limit
 	if limit <= 0 {
@@ -47,7 +51,7 @@ func (s *MemberService) GetMembers(ctx context.Context, f model.MemberListFilter
 
 	out := make([]model.MemberListDTO, 0, end-offset)
 	for i := offset; i < end; i++ {
-		out = append(out, s.toListDTO(filtered[i]))
+		out = append(out, s.toListDTO(filtered[i], withUsers[filtered[i].MemberID]))
 	}
 	return out, nil
 }
@@ -59,6 +63,10 @@ func (s *MemberService) GetMembersPaged(ctx context.Context, f model.MemberListF
 	}
 	filtered := s.applyFilters(all, f)
 	total := len(filtered)
+	withUsers, err := s.repo.MemberIDsWithUsers(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
 
 	limit := f.Limit
 	if limit <= 0 {
@@ -78,7 +86,7 @@ func (s *MemberService) GetMembersPaged(ctx context.Context, f model.MemberListF
 
 	items := make([]model.MemberListDTO, 0, end-offset)
 	for i := offset; i < end; i++ {
-		items = append(items, s.toListDTO(filtered[i]))
+		items = append(items, s.toListDTO(filtered[i], withUsers[filtered[i].MemberID]))
 	}
 	return items, total, nil
 }
@@ -150,7 +158,7 @@ func (s *MemberService) kategori(m model.Member) string {
 	return util.GetMemberCategory(m.TanggalLahir, m.JenjangPendidikan, m.IsNikah)
 }
 
-func (s *MemberService) toListDTO(m model.Member) model.MemberListDTO {
+func (s *MemberService) toListDTO(m model.Member, hasUser bool) model.MemberListDTO {
 	return model.MemberListDTO{
 		MemberID:      m.MemberID,
 		NamaLengkap:   m.NamaLengkap,
@@ -159,6 +167,7 @@ func (s *MemberService) toListDTO(m model.Member) model.MemberListDTO {
 		Kelompok:      m.Kelompok,
 		Kategori:      s.kategori(m),
 		FotoURL:       m.FotoURL,
+		HasUser:       hasUser,
 	}
 }
 

@@ -316,3 +316,23 @@ func (s *MemberService) UpdateFotoURL(ctx context.Context, memberID, url string)
 func (s *MemberService) GetFotoURL(ctx context.Context, memberID string) (string, error) {
 	return s.repo.GetFotoURL(ctx, memberID)
 }
+
+// DeleteMember — hapus member permanen. Hanya untuk member yang BELUM punya
+// akun user; yang sudah punya akun harus lewat Kelola Akun
+// (deleteUserPermanent oleh SUPER_ADMIN).
+func (s *MemberService) DeleteMember(ctx context.Context, memberID string) error {
+	if memberID == "" {
+		return apperrors.Wrap(apperrors.ErrValidation, "member_id wajib diisi")
+	}
+	if _, err := s.repo.FindByID(ctx, memberID); err != nil {
+		return apperrors.Wrap(apperrors.ErrNotFound, "jamaah tidak ditemukan")
+	}
+	n, err := s.repo.CountUsersByMemberID(ctx, memberID)
+	if err != nil {
+		return err
+	}
+	if n > 0 {
+		return apperrors.Wrap(apperrors.ErrValidation, "member sudah punya akun user, hapus lewat Kelola Akun")
+	}
+	return s.repo.Delete(ctx, memberID)
+}

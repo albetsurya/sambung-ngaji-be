@@ -28,6 +28,7 @@ var RegisteredActions = map[string]bool{
 	"createMember":        true,
 	"updateMember":        true,
 	"deactivateMember":    true,
+	"deleteMember":        true,
 	"getMembersForExport": true,
 
 	// Groups
@@ -139,28 +140,28 @@ var RegisteredActions = map[string]bool{
 }
 
 type Services struct {
-	Auth         *auth.Service
-	Member       *service.MemberService
-	Group        *service.GroupService
-	Meeting      *service.MeetingService
-	BulkMeeting  *service.BulkMeetingService
-	Attendance   *service.AttendanceService
-	Monitoring   *service.MonitoringService
-	Dashboard    *service.DashboardService
-	Settings     *service.SettingsService
-	Announcement *service.AnnouncementService
-	Pending      *service.PendingService
-	User         *service.UserService
-	Profile      *service.ProfileService
-	Mood         *service.MoodService
-	MemberReq    *service.MemberRequestService
-	Audit        *service.AuditService
-	AI           *service.AIService
-	Photo        *PhotoHandler
-	PDFImport    *service.PDFImportService
-	Fonnte       *service.FonnteService
-	Reminder     *service.ReminderService
-	Friday       *service.FridayService
+	Auth           *auth.Service
+	Member         *service.MemberService
+	Group          *service.GroupService
+	Meeting        *service.MeetingService
+	BulkMeeting    *service.BulkMeetingService
+	Attendance     *service.AttendanceService
+	Monitoring     *service.MonitoringService
+	Dashboard      *service.DashboardService
+	Settings       *service.SettingsService
+	Announcement   *service.AnnouncementService
+	Pending        *service.PendingService
+	User           *service.UserService
+	Profile        *service.ProfileService
+	Mood           *service.MoodService
+	MemberReq      *service.MemberRequestService
+	Audit          *service.AuditService
+	AI             *service.AIService
+	Photo          *PhotoHandler
+	PDFImport      *service.PDFImportService
+	Fonnte         *service.FonnteService
+	Reminder       *service.ReminderService
+	Friday         *service.FridayService
 	FridayReminder *service.FridayReminderService
 }
 
@@ -365,6 +366,8 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 			return handleUpdateMember(c, svc.Member)
 		case "deactivateMember":
 			return handleDeactivateMember(c, svc.Member)
+		case "deleteMember":
+			return handleDeleteMember(c, svc.Member)
 		case "getMembersForExport":
 			return handleGetMembersForExport(c, svc.Member)
 

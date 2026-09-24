@@ -25,6 +25,7 @@ var rolePermissions = map[string][]string{
 	"createMember":         {"ADMIN"},
 	"updateMember":         {"ADMIN"},
 	"deactivateMember":     {"ADMIN"},
+	"deleteMember":         {"SUPER_ADMIN", "ADMIN"},
 	"getMemberUserStatus":  {"ADMIN"},
 	"getUserDetail":        {"SUPER_ADMIN", "ADMIN"},
 
