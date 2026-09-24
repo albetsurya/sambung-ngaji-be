@@ -16,7 +16,7 @@ var rolePermissions = map[string][]string{
 
 	// — Members
 	"getMembers":           {"ADMIN", "PENGAWAS"},
-	"getMembersPaged":      {"ADMIN", "PENGAWAS"},
+	"getMembersPaged":      {"ADMIN", "TIM_ABSENSI", "PENGAWAS"},
 	"getPNKBMembers":       {"TIM_PNKB"},
 	"getPNKBMembersPaged":  {"TIM_PNKB"},
 	"getMembersForExport":  {"ADMIN", "TIM_PNKB"},
