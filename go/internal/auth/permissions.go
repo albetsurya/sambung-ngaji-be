@@ -132,6 +132,7 @@ var rolePermissions = map[string][]string{
 	"saveFridaySchedule":      {"ADMIN", "TIM_ABSENSI"},
 	"deleteFridaySchedule":    {"ADMIN", "TIM_ABSENSI"},
 	"getFridayReminderStatus": {"SUPER_ADMIN", "ADMIN", "TIM_ABSENSI"},
+	"markFridayReminderSent":  {"SUPER_ADMIN", "ADMIN", "TIM_ABSENSI"},
 
 	// — WA Queue
 	"createWaQueue":        {"ADMIN", "TIM_ABSENSI"},
