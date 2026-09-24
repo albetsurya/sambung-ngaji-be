@@ -134,9 +134,10 @@ var RegisteredActions = map[string]bool{
 	"parsePdfMeeting": true,
 
 	// Friday schedule (petugas sholat jumat)
-	"getFridaySchedules":   true,
-	"saveFridaySchedule":   true,
-	"deleteFridaySchedule": true,
+	"getFridaySchedules":      true,
+	"getFridayReminderStatus": true,
+	"saveFridaySchedule":      true,
+	"deleteFridaySchedule":    true,
 }
 
 type Services struct {
@@ -239,7 +240,6 @@ func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, providers map[string
 			repository.NewPendingRepo(pool),
 			repository.NewUserRepo(pool),
 			repository.NewMemberRepo(pool),
-			service.NewWASender(),
 		),
 		Audit: service.NewAuditService(
 			repository.NewAuditRepo(pool),
@@ -327,6 +327,7 @@ func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, providers map[string
 		FridayReminder: service.NewFridayReminderService(
 			repository.NewFridayRepo(pool),
 			fonnteSvc,
+			repository.NewSettingsRepo(pool),
 		),
 	}
 }
@@ -556,6 +557,8 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 			return handleSaveFridaySchedule(c, svc.Friday)
 		case "deleteFridaySchedule":
 			return handleDeleteFridaySchedule(c, svc.Friday)
+		case "getFridayReminderStatus":
+			return handleGetFridayReminderStatus(c, svc.FridayReminder)
 
 		}
 

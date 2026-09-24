@@ -17,26 +17,89 @@ import (
 
 // FridayReminderService — kirim info petugas Jumat besok ke grup WA pengurus
 // via Fonnte. Dipanggil dari cron tiap 1 jam, tapi hanya benar-benar mengirim
-// pada hari Kamis jam 3 sore WIB untuk Jumat keesokan harinya, sekali per
+// pada hari Kamis jam 12 siang WIB untuk Jumat keesokan harinya, sekali per
 // jadwal (kolom reminder_sent_at sebagai anti double-kirim).
 //
 // Override untuk pengujian:
 //   - FRIDAY_REMINDER_FORCE=true → abaikan jendela hari/jam.
 //   - FRIDAY_REMINDER_DATE=YYYY-MM-DD → tanggal target (default: besok).
 type FridayReminderService struct {
-	repo    *repository.FridayRepo
-	fonnte  *FonnteService
-	groupID string
+	repo     *repository.FridayRepo
+	settings *repository.SettingsRepo
+	fonnte   *FonnteService
+	groupID  string
 }
 
 func NewFridayReminderService(
 	repo *repository.FridayRepo,
 	fonnte *FonnteService,
+	settings *repository.SettingsRepo,
 ) *FridayReminderService {
 	return &FridayReminderService{
-		repo:    repo,
-		fonnte:  fonnte,
-		groupID: os.Getenv("FONNTE_REMINDER_GROUP"),
+		repo:     repo,
+		settings: settings,
+		fonnte:   fonnte,
+		groupID:  os.Getenv("FONNTE_REMINDER_GROUP"),
+	}
+}
+
+// ReminderStatus — kondisi kesiapan kirim untuk indikator aplikasi.
+type ReminderStatus struct {
+	ServerNow     string                    `json:"server_now"`
+	ServerWeekday string                    `json:"server_weekday"`
+	FonnteEnabled bool                      `json:"fonnte_enabled"`
+	GroupSet      bool                      `json:"group_set"`
+	LastCronHit   string                    `json:"last_cron_hit"`
+	LastSent      string                    `json:"last_sent"`
+	NextWindow    string                    `json:"next_window"`
+	Upcoming      []model.FridayScheduleDTO `json:"upcoming"`
+}
+
+func (s *FridayReminderService) GetReminderStatus(ctx context.Context) (*ReminderStatus, error) {
+	now := time.Now()
+	lastSent, _ := s.repo.MaxReminderSent(ctx)
+	lastSentStr := ""
+	if lastSent != nil {
+		lastSentStr = *lastSent
+	}
+	lastCron := ""
+	if s.settings != nil {
+		if all, err := s.settings.GetAll(ctx); err == nil {
+			lastCron = all["last_cron_hit"]
+		}
+	}
+	upcomingDTO := []model.FridayScheduleDTO{}
+	if rows, err := s.repo.FindUpcoming(ctx, 4); err == nil {
+		for _, r := range rows {
+			upcomingDTO = append(upcomingDTO, toFridayDTO(r))
+		}
+	}
+	return &ReminderStatus{
+		ServerNow:     now.Format("2006-01-02T15:04:05.000Z07:00"),
+		ServerWeekday: now.Weekday().String(),
+		FonnteEnabled: s.fonnte.IsEnabled(),
+		GroupSet:      s.groupID != "",
+		LastCronHit:   lastCron,
+		LastSent:      lastSentStr,
+		NextWindow:    nextThursdayNoon(now).Format("2006-01-02T15:04:05.000Z07:00"),
+		Upcoming:      upcomingDTO,
+	}, nil
+}
+
+// nextThursdayNoon — Kamis 12:00 berikutnya (termasuk hari ini bila Kamis pagi).
+func nextThursdayNoon(now time.Time) time.Time {
+	d := now
+	for {
+		if d.Weekday() == time.Thursday {
+			noon := time.Date(d.Year(), d.Month(), d.Day(), 12, 0, 0, 0, d.Location())
+			if now.Before(noon) {
+				return noon
+			}
+		}
+		d = d.AddDate(0, 0, 1)
+		if d.Weekday() == time.Thursday {
+			return time.Date(d.Year(), d.Month(), d.Day(), 12, 0, 0, 0, d.Location())
+		}
 	}
 }
 
@@ -59,12 +122,12 @@ func (s *FridayReminderService) RunOnce(ctx context.Context) error {
 	}
 
 	if !force {
-		// Hanya Kamis jam 3 sore (15:00–15:59 waktu lokal,
+		// Hanya Kamis jam 12 siang (12:00–12:59 waktu lokal,
 		// container TZ=Asia/Jakarta), dan target harus hari Jumat (besok).
 		if now.Weekday() != time.Thursday {
 			return nil
 		}
-		if h := now.Hour(); h < 15 || h >= 16 {
+		if h := now.Hour(); h < 12 || h >= 13 {
 			return nil
 		}
 		if tgl.Weekday() != time.Friday {

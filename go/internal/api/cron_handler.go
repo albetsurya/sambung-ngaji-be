@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/subtle"
 	"os"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
@@ -27,6 +28,12 @@ func HandleCronReminder(c *fiber.Ctx) error {
 			"success": false,
 			"message": "unauthorized",
 		})
+	}
+
+	// Catat hit cron eksternal untuk indikator (best-effort).
+	if cronServices != nil && cronServices.Settings != nil {
+		_ = cronServices.Settings.UpdateSettings(c.Context(), "last_cron_hit",
+			time.Now().Format("2006-01-02T15:04:05.000Z07:00"))
 	}
 
 	// Trigger async — return 200 cepat biar cron-job.org tidak timeout

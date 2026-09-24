@@ -18,7 +18,8 @@ func NewFridayRepo(pool *pgxpool.Pool) *FridayRepo {
 }
 
 const fridaySelectCols = `friday_id, tanggal, khatib_imam, muadzin, penasihat,
-	petugas_parkir, penata_sandal, catatan, created_by, created_at, updated_at`
+	petugas_parkir, penata_sandal, catatan, created_by, created_at, updated_at,
+	reminder_sent_at`
 
 // FindByRange: jadwal jumat dalam rentang tanggal ( inklusif ), urut naik.
 func (r *FridayRepo) FindByRange(ctx context.Context, from, to string) ([]model.FridaySchedule, error) {
@@ -98,7 +99,7 @@ func scanFriday(row pgx.Row) (model.FridaySchedule, error) {
 	var f model.FridaySchedule
 	err := row.Scan(&f.FridayID, &f.Tanggal, &f.KhatibImam, &f.Muadzin,
 		&f.Penasihat, &f.PetugasParkir, &f.PenataSandal, &f.Catatan,
-		&f.CreatedBy, &f.CreatedAt, &f.UpdatedAt)
+		&f.CreatedBy, &f.CreatedAt, &f.UpdatedAt, &f.ReminderSentAt)
 	return f, err
 }
 
@@ -108,10 +109,34 @@ func scanFridays(rows rowsScanner) ([]model.FridaySchedule, error) {
 		var f model.FridaySchedule
 		if err := rows.Scan(&f.FridayID, &f.Tanggal, &f.KhatibImam, &f.Muadzin,
 			&f.Penasihat, &f.PetugasParkir, &f.PenataSandal, &f.Catatan,
-			&f.CreatedBy, &f.CreatedAt, &f.UpdatedAt); err != nil {
+			&f.CreatedBy, &f.CreatedAt, &f.UpdatedAt, &f.ReminderSentAt); err != nil {
 			return nil, err
 		}
 		out = append(out, f)
 	}
 	return out, rows.Err()
+}
+
+// MaxReminderSent — waktu kirim terakhir (NULL bila belum pernah).
+func (r *FridayRepo) MaxReminderSent(ctx context.Context) (*string, error) {
+	var v *string
+	err := r.pool.QueryRow(ctx,
+		`SELECT to_char(MAX(reminder_sent_at) AT TIME ZONE 'Asia/Jakarta',
+		 'YYYY-MM-DD"T"HH24:MI:SSOF') FROM friday_schedules`).Scan(&v)
+	return v, err
+}
+
+// FindUpcoming — N jadwal ke depan mulai hari ini, urut naik.
+func (r *FridayRepo) FindUpcoming(ctx context.Context, limit int) ([]model.FridaySchedule, error) {
+	if limit <= 0 {
+		limit = 4
+	}
+	rows, err := r.pool.Query(ctx,
+		`SELECT `+fridaySelectCols+` FROM friday_schedules
+		 WHERE tanggal >= CURRENT_DATE ORDER BY tanggal ASC LIMIT $1`, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return scanFridays(rows)
 }
