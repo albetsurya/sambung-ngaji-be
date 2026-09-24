@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -24,31 +23,18 @@ type PendingService struct {
 	repo       *repository.PendingRepo
 	userRepo   *repository.UserRepo
 	memberRepo *repository.MemberRepo
-	wa         *WASender
-	waEnabled  bool
 }
 
 func NewPendingService(
 	repo *repository.PendingRepo,
 	userRepo *repository.UserRepo,
 	memberRepo *repository.MemberRepo,
-	wa *WASender,
 ) *PendingService {
 	return &PendingService{
 		repo:       repo,
 		userRepo:   userRepo,
 		memberRepo: memberRepo,
-		wa:         wa,
-		waEnabled:  os.Getenv("WA_NOTIF_ENABLED") == "true",
 	}
-}
-
-/* sendWA — soft-fail, hanya kirim kalau WA_NOTIF_ENABLED=true */
-func (s *PendingService) sendWA(ctx context.Context, to, msg string) {
-	if !s.waEnabled || s.wa == nil {
-		return
-	}
-	_ = s.wa.Send(ctx, to, msg)
 }
 
 /* ===== Public: check username ===== */
@@ -369,17 +355,6 @@ func (s *PendingService) Approve(ctx context.Context, submissionID, kelompok, re
 		return nil, err
 	}
 
-	// Kirim WA (soft-fail)
-	if p.NoWA != "" {
-		sapaan := util.BuildSapaan(derefStr(p.JenisKelamin), p.TanggalLahir)
-		doa := util.BuildDoa(derefStr(p.JenisKelamin))
-		msg := "Assalamu'alaikum " + sapaan + ",\n\n" +
-			"Alhamdulillah, pendaftaran " + sapaan + " di *Sambung Ngaji* sudah disetujui.\n\n" +
-			"Silakan masuk menggunakan:\nUsername: *" + username + "*\nPassword: sesuai yang " + sapaan + " daftarkan\n\n" +
-			"Barakallahu fiik.\n" + doa + " 🤍"
-		s.sendWA(ctx, p.NoWA, msg)
-	}
-
 	return &ApproveResult{
 		MemberID:     memberID,
 		SubmissionID: submissionID,
@@ -407,16 +382,6 @@ func (s *PendingService) Reject(ctx context.Context, submissionID, reviewerID, r
 
 	if err := s.repo.UpdateRejected(ctx, submissionID, reviewerID, reason); err != nil {
 		return err
-	}
-
-	if p.NoWA != "" {
-		sapaan := util.BuildSapaan(derefStr(p.JenisKelamin), p.TanggalLahir)
-		doa := util.BuildDoa(derefStr(p.JenisKelamin))
-		msg := "Assalamu'alaikum " + sapaan + ",\n\n" +
-			"Mohon maaf, pendaftaran " + sapaan + " di *Sambung Ngaji* belum bisa kami setujui.\n\n" +
-			"Alasan: " + reason + "\n\n" +
-			"Silakan hubungi admin untuk informasi lebih lanjut.\n\n" + doa + " 🙏"
-		s.sendWA(ctx, p.NoWA, msg)
 	}
 
 	return nil

@@ -140,10 +140,6 @@ func main() {
 	services := api.NewServices(db, authSvc, providers, providerOrder, storageSvc)
 	api.RegisterAPI(app, services)
 
-	// WhatsApp webhook (verifikasi + terima notifikasi dari Meta)
-	app.Get("/wa/webhook", api.HandleWAWebhookVerify)
-	app.Post("/wa/webhook", api.HandleWAWebhookReceive)
-
 	// Cron eksternal (dipanggil cron-job.org tiap 1 jam)
 	api.SetCronServices(services)
 	app.Post("/cron/reminder", api.HandleCronReminder)
@@ -155,7 +151,7 @@ func main() {
 
 	// Cron reminder WA — cek tiap jam:
 	// - Reminder meeting H-8 jam (mati default, MEETING_REMINDER_ENABLED=true)
-	// - Info petugas Jumat: Kamis jam 3 sore WIB untuk Jumat besok.
+	// - Info petugas Jumat: Kamis jam 12 siang WIB untuk Jumat besok.
 	go func() {
 		ticker := time.NewTicker(1 * time.Hour)
 		defer ticker.Stop()
