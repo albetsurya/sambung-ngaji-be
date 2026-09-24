@@ -84,3 +84,49 @@ func (r *MemberRepo) GetFotoURL(ctx context.Context, memberID string) (string, e
 	}
 	return url, nil
 }
+
+// MemberIDsWithUsers — himpunan member_id yang punya akun user (aktif/nonaktif).
+func (r *MemberRepo) MemberIDsWithUsers(ctx context.Context) (map[string]bool, error) {
+	ctx, cancel := WithQueryTimeout(ctx)
+	defer cancel()
+
+	rows, err := r.pool.Query(ctx, `
+		SELECT DISTINCT member_id FROM users
+		WHERE member_id IS NOT NULL AND member_id <> ''`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := map[string]bool{}
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		out[id] = true
+	}
+	return out, rows.Err()
+}
+
+// CountUsersByMemberID — jumlah akun user yang terhubung ke member.
+func (r *MemberRepo) CountUsersByMemberID(ctx context.Context, memberID string) (int, error) {
+	ctx, cancel := WithQueryTimeout(ctx)
+	defer cancel()
+
+	var n int
+	err := r.pool.QueryRow(ctx, `
+		SELECT COUNT(*) FROM users WHERE member_id = $1`, memberID).Scan(&n)
+	return n, err
+}
+
+// Delete — hapus member permanen (cascade ke attendance, monitoring,
+// member_moods via FK). Dipanggil hanya untuk member tanpa akun user
+// (dicek di service).
+func (r *MemberRepo) Delete(ctx context.Context, id string) error {
+	ctx, cancel := WithQueryTimeout(ctx)
+	defer cancel()
+
+	_, err := r.pool.Exec(ctx, `DELETE FROM members WHERE member_id = $1`, id)
+	return err
+}

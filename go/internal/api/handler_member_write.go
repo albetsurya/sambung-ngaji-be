@@ -92,6 +92,13 @@ func handleUpdateMember(c *fiber.Ctx, svc *service.MemberService) error {
 	return Ok(c, m)
 }
 
+func handleDeleteMember(c *fiber.Ctx, svc *service.MemberService) error {
+	if err := svc.DeleteMember(c.Context(), BodyString(c, "member_id")); err != nil {
+		return Fail(c, err.Error())
+	}
+	return Ok(c, fiber.Map{"deleted": true})
+}
+
 func handleDeactivateMember(c *fiber.Ctx, svc *service.MemberService) error {
 	if err := svc.Deactivate(c.Context(), BodyString(c, "member_id")); err != nil {
 		return Fail(c, err.Error())

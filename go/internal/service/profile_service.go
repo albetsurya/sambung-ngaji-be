@@ -63,6 +63,7 @@ func (s *ProfileService) UpdateMyProfile(ctx context.Context, memberID string, p
 		"berat_badan":              true,
 		"is_kerja":                 true,
 		"is_nikah":                 true,
+		"is_muballigh":             true,
 		"jenjang_pendidikan":       true,
 		"sekolah":                  true,
 		"jurusan":                  true,
