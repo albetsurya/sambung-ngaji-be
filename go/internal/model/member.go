@@ -44,6 +44,7 @@ type MemberListDTO struct {
 	Kelompok      string `json:"kelompok"`
 	Kategori      string `json:"kategori"`
 	FotoURL       string `json:"foto_url"`
+	HasUser       bool   `json:"has_user"`
 }
 
 // DTO untuk absensi — port dari ATTENDANCE_MEMBER_FIELDS.
