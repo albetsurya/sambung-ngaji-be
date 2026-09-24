@@ -17,7 +17,7 @@ import (
 
 // FridayReminderService — kirim info petugas Jumat besok ke grup WA pengurus
 // via Fonnte. Dipanggil dari cron tiap 1 jam, tapi hanya benar-benar mengirim
-// pada hari Kamis jam 12 siang WIB untuk Jumat keesokan harinya, sekali per
+// pada hari Kamis jam 3 sore WIB untuk Jumat keesokan harinya, sekali per
 // jadwal (kolom reminder_sent_at sebagai anti double-kirim).
 //
 // Override untuk pengujian:
@@ -59,12 +59,12 @@ func (s *FridayReminderService) RunOnce(ctx context.Context) error {
 	}
 
 	if !force {
-		// Hanya Kamis jam 12 siang (12:00–12:59 waktu lokal,
+		// Hanya Kamis jam 3 sore (15:00–15:59 waktu lokal,
 		// container TZ=Asia/Jakarta), dan target harus hari Jumat (besok).
 		if now.Weekday() != time.Thursday {
 			return nil
 		}
-		if h := now.Hour(); h < 12 || h >= 13 {
+		if h := now.Hour(); h < 15 || h >= 16 {
 			return nil
 		}
 		if tgl.Weekday() != time.Friday {
