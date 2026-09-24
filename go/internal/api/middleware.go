@@ -57,6 +57,9 @@ var PublicActions = map[string]bool{
 	"checkUsernameAvailability": true,
 	"health":                    true,
 	"ready":                     true,
+	// Fitur publik tanpa login (jadwal umum, info petugas).
+	"getMeetings":        true,
+	"getFridaySchedules": true,
 }
 
 // MetricsMiddleware records Prometheus metrics for HTTP requests
