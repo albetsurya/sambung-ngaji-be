@@ -104,7 +104,13 @@ func nextThursdayNoon(now time.Time) time.Time {
 }
 
 // RunOnce — kirim sekali kalau waktunya tepat dan ada jadwal belum terkirim.
+// Mode manual (default): set FRIDAY_REMINDER_ENABLED=true untuk mengaktifkan
+// pengiriman otomatis. Tanpa itu, pengiriman dilakukan manual dari aplikasi
+// lalu ditandai via MarkSent.
 func (s *FridayReminderService) RunOnce(ctx context.Context) error {
+	if os.Getenv("FRIDAY_REMINDER_ENABLED") != "true" {
+		return nil
+	}
 	if !s.fonnte.IsEnabled() || s.groupID == "" {
 		return nil
 	}
@@ -188,4 +194,18 @@ func buildFridayReminderMessage(f *model.FridaySchedule) string {
 	b.WriteString("\n")
 	b.WriteString("جزاكم الله خيرًا")
 	return b.String()
+}
+
+// MarkSent — tandai jadwal sudah dikirim manual (tombol aplikasi).
+func (s *FridayReminderService) MarkSent(ctx context.Context, tanggal string) error {
+	if tanggal == "" {
+		return errors.New("tanggal wajib diisi (YYYY-MM-DD)")
+	}
+	if _, err := time.Parse("2006-01-02", tanggal); err != nil {
+		return errors.New("tanggal tidak valid (YYYY-MM-DD)")
+	}
+	if _, err := s.repo.FindByDate(ctx, tanggal); err != nil {
+		return errors.New("jadwal tidak ditemukan")
+	}
+	return s.repo.MarkReminderSent(ctx, tanggal)
 }

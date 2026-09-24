@@ -52,3 +52,11 @@ func handleGetFridayReminderStatus(c *fiber.Ctx, svc *service.FridayReminderServ
 	}
 	return Ok(c, res)
 }
+
+// handleMarkFridayReminderSent: tandai reminder sudah dikirim manual.
+func handleMarkFridayReminderSent(c *fiber.Ctx, svc *service.FridayReminderService) error {
+	if err := svc.MarkSent(c.Context(), BodyString(c, "tanggal")); err != nil {
+		return Fail(c, err.Error())
+	}
+	return Ok(c, fiber.Map{"marked": true})
+}

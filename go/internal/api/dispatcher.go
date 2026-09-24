@@ -136,6 +136,7 @@ var RegisteredActions = map[string]bool{
 	// Friday schedule (petugas sholat jumat)
 	"getFridaySchedules":      true,
 	"getFridayReminderStatus": true,
+	"markFridayReminderSent":  true,
 	"saveFridaySchedule":      true,
 	"deleteFridaySchedule":    true,
 }
@@ -559,6 +560,8 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 			return handleDeleteFridaySchedule(c, svc.Friday)
 		case "getFridayReminderStatus":
 			return handleGetFridayReminderStatus(c, svc.FridayReminder)
+		case "markFridayReminderSent":
+			return handleMarkFridayReminderSent(c, svc.FridayReminder)
 
 		}
 
