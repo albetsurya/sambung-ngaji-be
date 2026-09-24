@@ -128,9 +128,10 @@ var rolePermissions = map[string][]string{
 
 	// — Friday schedule (petugas sholat jumat)
 	// getFridaySchedules boleh dibaca MEMBER sebagai informasi.
-	"getFridaySchedules":   {"SUPER_ADMIN", "ADMIN", "TIM_ABSENSI", "PENGAWAS", "MEMBER"},
-	"saveFridaySchedule":   {"ADMIN", "TIM_ABSENSI"},
-	"deleteFridaySchedule": {"ADMIN", "TIM_ABSENSI"},
+	"getFridaySchedules":      {"SUPER_ADMIN", "ADMIN", "TIM_ABSENSI", "PENGAWAS", "MEMBER"},
+	"saveFridaySchedule":      {"ADMIN", "TIM_ABSENSI"},
+	"deleteFridaySchedule":    {"ADMIN", "TIM_ABSENSI"},
+	"getFridayReminderStatus": {"SUPER_ADMIN", "ADMIN", "TIM_ABSENSI"},
 
 	// — WA Queue
 	"createWaQueue":        {"ADMIN", "TIM_ABSENSI"},

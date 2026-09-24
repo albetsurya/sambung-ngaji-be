@@ -43,3 +43,12 @@ func handleDeleteFridaySchedule(c *fiber.Ctx, svc *service.FridayService) error 
 	}
 	return Ok(c, fiber.Map{"tanggal": BodyString(c, "tanggal"), "deleted": true})
 }
+
+// handleGetFridayReminderStatus: status kesiapan kirim reminder (indikator).
+func handleGetFridayReminderStatus(c *fiber.Ctx, svc *service.FridayReminderService) error {
+	res, err := svc.GetReminderStatus(c.Context())
+	if err != nil {
+		return Fail(c, err.Error())
+	}
+	return Ok(c, res)
+}
