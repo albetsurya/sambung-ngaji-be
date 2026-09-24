@@ -155,7 +155,7 @@ func main() {
 
 	// Cron reminder WA — cek tiap jam:
 	// - Reminder meeting H-8 jam (mati default, MEETING_REMINDER_ENABLED=true)
-	// - Info petugas Jumat: Kamis jam 12 siang WIB untuk Jumat besok.
+	// - Info petugas Jumat: Kamis jam 3 sore WIB untuk Jumat besok.
 	go func() {
 		ticker := time.NewTicker(1 * time.Hour)
 		defer ticker.Stop()
