@@ -85,14 +85,16 @@ func (r *MemberRepo) GetFotoURL(ctx context.Context, memberID string) (string, e
 	return url, nil
 }
 
-// MemberIDsWithUsers — himpunan member_id yang punya akun user (aktif/nonaktif).
+// MemberIDsWithUsers — himpunan member_id yang punya akun user AKTIF
+// (bisa login). Akun nonaktif tidak dihitung agar konsisten dengan
+// GetMemberUserStatus dan indikator has_user di frontend.
 func (r *MemberRepo) MemberIDsWithUsers(ctx context.Context) (map[string]bool, error) {
 	ctx, cancel := WithQueryTimeout(ctx)
 	defer cancel()
 
 	rows, err := r.pool.Query(ctx, `
 		SELECT DISTINCT member_id FROM users
-		WHERE member_id IS NOT NULL AND member_id <> ''`)
+		WHERE member_id IS NOT NULL AND member_id <> '' AND status_aktif = true`)
 	if err != nil {
 		return nil, err
 	}
@@ -109,15 +111,28 @@ func (r *MemberRepo) MemberIDsWithUsers(ctx context.Context) (map[string]bool, e
 	return out, rows.Err()
 }
 
-// CountUsersByMemberID — jumlah akun user yang terhubung ke member.
+// CountUsersByMemberID — jumlah akun user AKTIF yang terhubung ke member.
+// Dipakai guard hapus member: akun nonaktif tidak menghalangi
+// (FK users.member_id ON DELETE SET NULL, baris user tetap aman).
 func (r *MemberRepo) CountUsersByMemberID(ctx context.Context, memberID string) (int, error) {
 	ctx, cancel := WithQueryTimeout(ctx)
 	defer cancel()
 
 	var n int
 	err := r.pool.QueryRow(ctx, `
-		SELECT COUNT(*) FROM users WHERE member_id = $1`, memberID).Scan(&n)
+		SELECT COUNT(*) FROM users WHERE member_id = $1 AND status_aktif = true`, memberID).Scan(&n)
 	return n, err
+}
+
+// MemberHasActiveUser — apakah member punya akun user aktif.
+func (r *MemberRepo) MemberHasActiveUser(ctx context.Context, memberID string) (bool, error) {
+	ctx, cancel := WithQueryTimeout(ctx)
+	defer cancel()
+
+	var exists bool
+	err := r.pool.QueryRow(ctx, `
+		SELECT EXISTS(SELECT 1 FROM users WHERE member_id = $1 AND status_aktif = true)`, memberID).Scan(&exists)
+	return exists, err
 }
 
 // Delete — hapus member permanen (cascade ke attendance, monitoring,
