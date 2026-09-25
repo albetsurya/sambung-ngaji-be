@@ -56,9 +56,9 @@ func Load() (*Config, error) {
 
 	cfg.AIProvider = getEnv("AI_PROVIDER", "gemini")
 	cfg.GeminiAPIKey = envTrim("GEMINI_API_KEY")
-	cfg.GeminiModels = getEnvList("GEMINI_MODELS", "GEMINI_MODEL", "gemini-3.8-flash,gemini-3.5-flash,gemini-2.5-pro")
+	cfg.GeminiModels = getEnvList("GEMINI_MODELS", "GEMINI_MODEL", "gemini-3.8-flash,gemini-3.7-flash,gemini-3.6-flash,gemini-3.5-flash,gemini-2.5-pro")
 	cfg.GroqAPIKey = envTrim("GROQ_API_KEY")
-	cfg.GroqModels = getEnvList("GROQ_MODELS", "GROQ_MODEL", "openai/gpt-oss-120b,openai/gpt-oss-20b")
+	cfg.GroqModels = getEnvList("GROQ_MODELS", "GROQ_MODEL", "openai/gpt-oss-120b,openai/gpt-oss-20b,llama-3.1-8b-instant")
 	cfg.NvidiaAPIKey = envTrim("NVIDIA_API_KEY")
 	cfg.NvidiaModels = getEnvList("NVIDIA_MODELS", "NVIDIA_MODEL", "openai/gpt-oss-20b")
 

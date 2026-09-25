@@ -24,11 +24,11 @@ services:
       - key: GEMINI_API_KEY
         sync: false
       - key: GEMINI_MODELS
-        value: "gemini-3.8-flash,gemini-3.5-flash,gemini-2.5-pro"
+        value: "gemini-3.8-flash,gemini-3.7-flash,gemini-3.6-flash,gemini-3.5-flash,gemini-2.5-pro"
       - key: GROQ_API_KEY
         sync: false
       - key: GROQ_MODELS
-        value: "openai/gpt-oss-120b,openai/gpt-oss-20b"
+        value: "openai/gpt-oss-120b,openai/gpt-oss-20b,llama-3.1-8b-instant"
       - key: NVIDIA_API_KEY
         sync: false
       - key: NVIDIA_MODELS
@@ -69,11 +69,11 @@ services:
       - key: GEMINI_API_KEY
         sync: false
       - key: GEMINI_MODELS
-        value: "gemini-3.8-flash,gemini-3.5-flash,gemini-2.5-pro"
+        value: "gemini-3.8-flash,gemini-3.7-flash,gemini-3.6-flash,gemini-3.5-flash,gemini-2.5-pro"
       - key: GROQ_API_KEY
         sync: false
       - key: GROQ_MODELS
-        value: "openai/gpt-oss-120b,openai/gpt-oss-20b"
+        value: "openai/gpt-oss-120b,openai/gpt-oss-20b,llama-3.1-8b-instant"
       - key: NVIDIA_API_KEY
         sync: false
       - key: NVIDIA_MODELS
