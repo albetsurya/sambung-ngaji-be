@@ -17,6 +17,16 @@ supabase --version 2>&1 || {
 if [ -n "$DATABASE_URL" ]; then
     cd /app
 
+    # 1) Link ke project Supabase jika belum linked.
+    #    .supabase/ tidak dicommit (gitignore), jadi di deploy baru
+    #    perlu link ulang pakai SUPABASE_ACCESS_TOKEN.
+    if [ ! -d ".supabase" ] && [ -n "$SUPABASE_ACCESS_TOKEN" ]; then
+        echo "--- supabase link ---"
+        supabase link --project-ref "$SUPABASE_PROJECT_REF" --access-token "$SUPABASE_ACCESS_TOKEN" 2>&1 || {
+            echo "⚠️ WARNING: supabase link gagal, lanjutkan tetap (mungkin sudah linked)"
+        }
+    fi
+
     # 2) Preflight konektivitas DB tanpa menulis password ke log (hanya host:port).
     DB_HOSTPORT=$(printf '%s' "$DATABASE_URL" | sed -E 's#.*@([^/?]+).*#\1#')
     echo "--- preflight: konek ke ${DB_HOSTPORT} ---"
