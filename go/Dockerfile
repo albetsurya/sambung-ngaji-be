@@ -35,6 +35,8 @@ WORKDIR /app
 COPY --from=builder /out/api /app/api
 COPY start.sh /app/start.sh
 COPY supabase /app/supabase
+# Ensure the non‑root app user can write to the project directory and Supabase config
+RUN chown -R app:app /app && mkdir -p /app/.supabase && chown -R app:app /app/.supabase
 RUN chmod +x /app/start.sh
 
 RUN groupadd -g 1000 app && useradd -u 1000 -g app -m -s /bin/sh app
