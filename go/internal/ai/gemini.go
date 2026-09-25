@@ -15,20 +15,21 @@ import (
 
 type Gemini struct {
 	apiKey string
-	model  string
+	models []string
 	client *http.Client
 }
 
-func NewGemini(apiKey, model string, timeout time.Duration) Provider {
-	if model == "" {
-		model = "gemini-2.0-flash"
+func NewGemini(apiKey string, models []string, timeout time.Duration) Provider {
+	models = dedupModels(models)
+	if len(models) == 0 {
+		models = []string{"gemini-3.8-flash"}
 	}
 	if timeout == 0 {
 		timeout = 60 * time.Second
 	}
 	return &Gemini{
 		apiKey: apiKey,
-		model:  model,
+		models: models,
 		client: &http.Client{Timeout: timeout},
 	}
 }
@@ -111,7 +112,27 @@ func (g *Gemini) Chat(ctx context.Context, messages []model.LLMMessage, tools []
 	return result, err
 }
 
+// doChat: coba tiap model berurutan sampai ada yang sukses.
+// Gagal di satu model (404/403/kuota) bukan akhir — lanjut ke model berikut.
 func (g *Gemini) doChat(ctx context.Context, messages []model.LLMMessage, tools []model.LLMToolDef) (*LLMResult, error) {
+	var lastErr error
+	for _, m := range g.models {
+		result, err := g.doChatOnce(ctx, messages, tools, m)
+		if err == nil {
+			return result, nil
+		}
+		lastErr = err
+		if !IsFallbackable(err) {
+			return nil, err
+		}
+	}
+	if lastErr == nil {
+		lastErr = fmt.Errorf("gemini: tidak ada model yang dikonfigurasi")
+	}
+	return nil, lastErr
+}
+
+func (g *Gemini) doChatOnce(ctx context.Context, messages []model.LLMMessage, tools []model.LLMToolDef, genModel string) (*LLMResult, error) {
 	req := gemRequest{
 		GenerationConfig: &gemGenConfig{Temperature: 0.3},
 	}
@@ -210,7 +231,7 @@ func (g *Gemini) doChat(ctx context.Context, messages []model.LLMMessage, tools 
 	}
 
 	url := "https://generativelanguage.googleapis.com/v1beta/models/" +
-		g.model + ":generateContent?key=" + g.apiKey
+		genModel + ":generateContent?key=" + g.apiKey
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(bodyBytes))
 	if err != nil {
@@ -244,7 +265,7 @@ func (g *Gemini) doChat(ctx context.Context, messages []model.LLMMessage, tools 
 
 	result := &LLMResult{
 		FinishReason: cand.FinishReason,
-		Model:        g.model,
+		Model:        genModel,
 		InputTokens:  parsed.UsageMetadata.PromptTokenCount,
 		OutputTokens: parsed.UsageMetadata.CandidatesTokenCount,
 		TotalTokens:  parsed.UsageMetadata.TotalTokenCount,
