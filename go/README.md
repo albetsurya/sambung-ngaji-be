@@ -48,7 +48,7 @@ Backend API untuk aplikasi manajemen pengajian **Sambung Ngaji**. Dibangun denga
 - Riwayat pengumuman per kelompok
 
 ### 🤖 AI Assistant
-- **Multi-provider gratis**: Gemini (utama), Groq (fallback otomatis)
+- **Multi-provider gratis**: Gemini (utama), Groq + Nvidia (fallback otomatis)
 - **Tool calling** untuk akses data real-time (jamaah, jadwal, absensi, monitoring)
 - Chat history tersimpan di database
 - Usage tracking & quota per user
@@ -84,6 +84,7 @@ Backend API untuk aplikasi manajemen pengajian **Sambung Ngaji**. Dibangun denga
 | **Supabase Go** | - | Storage (foto jamaah) |
 | **Google AI** | - | Gemini provider (gratis) |
 | **Groq** | - | Groq provider (gratis) |
+| **Nvidia NIM** | - | Nvidia provider (gratis) |
 
 ## 📁 Struktur Project
 
@@ -93,7 +94,7 @@ backend/go/
 │   ├── api/           # Entry point HTTP server
 │   └── import/        # CLI import data massal (CSV)
 ├── internal/
-│   ├── ai/            # AI providers (Gemini, Groq) + tools
+│   ├── ai/            # AI providers (Gemini, Groq, Nvidia) + tools
 │   ├── api/           # HTTP handlers, middleware, dispatcher
 │   ├── auth/          # JWT, password hashing, permissions
 │   ├── config/        # Config loader (env-based)
@@ -127,12 +128,14 @@ DATABASE_URL=postgres://user:pass@localhost:5432/sambung_ngaji?sslmode=disable
 JWT_SECRET=your-super-secret-key
 JWT_EXPIRY_HOURS=12
 
-# AI Providers (keduanya gratis)
+# AI Providers (ketiganya gratis)
 AI_PROVIDER=gemini
 GEMINI_API_KEY=your-gemini-key
-GEMINI_MODEL=gemini-2.5-flash
+GEMINI_MODEL=gemini-3.8-flash
 GROQ_API_KEY=your-groq-key
 GROQ_MODEL=openai/gpt-oss-120b
+NVIDIA_API_KEY=your-nvidia-key
+NVIDIA_MODEL=openai/gpt-oss-20b
 
 # Supabase Storage (foto jamaah)
 SUPABASE_URL=https://xxx.supabase.co

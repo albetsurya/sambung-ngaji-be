@@ -7,7 +7,7 @@ import "time"
 type ChatRequest struct {
 	Message  string        `json:"message"`
 	History  []ChatHistory `json:"history"`
-	Provider string        `json:"provider"` // gemini|groq|auto (default)
+	Provider string        `json:"provider"` // gemini|groq|nvidia|auto (default)
 }
 
 type ChatHistory struct {
