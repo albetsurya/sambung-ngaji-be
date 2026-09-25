@@ -49,7 +49,10 @@ func main() {
 	if cfg.GroqAPIKey != "" {
 		providers["groq"] = ai.NewGroq(cfg.GroqAPIKey, cfg.GroqModel, 60*time.Second)
 	}
-	providerOrder := []string{"gemini", "groq"}
+	if cfg.NvidiaAPIKey != "" {
+		providers["nvidia"] = ai.NewNvidia(cfg.NvidiaAPIKey, cfg.NvidiaModel, 60*time.Second)
+	}
+	providerOrder := []string{"gemini", "groq", "nvidia"}
 
 	app := fiber.New(fiber.Config{
 		AppName:      "Pengajian Backend",
