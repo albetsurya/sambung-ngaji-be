@@ -116,6 +116,11 @@ func (s *MemberService) GetMemberDetail(ctx context.Context, id string) (*model.
 		return nil, err
 	}
 	dto := s.toDetailDTO(m)
+	hasUser, err := s.repo.MemberHasActiveUser(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	dto.HasUser = hasUser
 	return &dto, nil
 }
 
