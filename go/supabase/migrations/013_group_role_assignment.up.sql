@@ -5,12 +5,12 @@
 -- ============================================================
 
 -- 1a. Tambah group_id ke users
-ALTER TABLE users ADD COLUMN group_id TEXT REFERENCES groups(group_id);
-CREATE INDEX idx_users_group_id ON users(group_id);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS group_id TEXT REFERENCES groups(group_id);
+CREATE INDEX IF NOT EXISTS idx_users_group_id ON users(group_id);
 
 -- 1b. Tambah group_id ke members (FK yg benar, bukan sekadar string kelompok)
-ALTER TABLE members ADD COLUMN group_id TEXT REFERENCES groups(group_id);
-CREATE INDEX idx_members_group_id ON members(group_id);
+ALTER TABLE members ADD COLUMN IF NOT EXISTS group_id TEXT REFERENCES groups(group_id);
+CREATE INDEX IF NOT EXISTS idx_members_group_id ON members(group_id);
 
 -- 1c. Backfill members.group_id dari kelompok name → group_id
 UPDATE members m

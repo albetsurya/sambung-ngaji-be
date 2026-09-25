@@ -5,12 +5,12 @@
 -- ============================================================
 
 -- 1a. Tambah group_id ke users
-ALTER TABLE users ADD COLUMN group_id TEXT REFERENCES groups(group_id);
-CREATE INDEX idx_users_group_id ON users(group_id);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS group_id TEXT REFERENCES groups(group_id);
+CREATE INDEX IF NOT EXISTS idx_users_group_id ON users(group_id);
 
 -- 1b. Tambah group_id ke members (FK yg benar, bukan sekadar string kelompok)
-ALTER TABLE members ADD COLUMN group_id TEXT REFERENCES groups(group_id);
-CREATE INDEX idx_members_group_id ON members(group_id);
+ALTER TABLE members ADD COLUMN IF NOT EXISTS group_id TEXT REFERENCES groups(group_id);
+CREATE INDEX IF NOT EXISTS idx_members_group_id ON members(group_id);
 
 -- 1c. Backfill members.group_id dari kelompok name → group_id
 UPDATE members m
@@ -23,3 +23,15 @@ UPDATE users u
 SET group_id = g.group_id
 FROM groups g
 WHERE u.username = g.group_code;
+
+-- 1e. Tambah updated_at trigger jika belum ada
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger WHERE tgname = 'update_users_updated_at'
+  ) THEN
+    CREATE TRIGGER update_users_updated_at
+      BEFORE UPDATE ON users
+      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  END IF;
+END$$;
