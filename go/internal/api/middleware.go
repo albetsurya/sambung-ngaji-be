@@ -236,6 +236,14 @@ func AuthMiddleware(svc *auth.Service) fiber.Handler {
 
 		c.Locals(LocalsUser, u)
 		c.Locals(LocalsClaims, claims)
+
+		// Inject group_id ke request body agar handler otomatis filter per kelompok
+		// SUPER_ADMIN (group_id=null) → tidak di-inject → handler lihat semua data
+		if u.GroupID != nil && *u.GroupID != "" {
+			body := BodyOf(c)
+			body["group_id"] = *u.GroupID
+		}
+
 		return c.Next()
 	}
 }

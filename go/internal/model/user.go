@@ -8,6 +8,7 @@ type User struct {
 	PasswordHash string
 	Nama         string
 	Role         string
+	GroupID      *string
 	MemberID     *string
 	StatusAktif  bool
 	CreatedAt    time.Time
@@ -22,6 +23,7 @@ type PublicUser struct {
 	Username     string `json:"username"`
 	Nama         string `json:"nama"`
 	Role         string `json:"role"`
+	GroupID      string `json:"group_id"`
 	MemberID     string `json:"member_id"`
 	JenisKelamin string `json:"jenis_kelamin"`
 	FotoURL      string `json:"foto_url"`
@@ -29,7 +31,8 @@ type PublicUser struct {
 
 // SessionClaims untuk JWT.
 type SessionClaims struct {
-	SessionID string `json:"sid"`
-	UserID    string `json:"uid"`
-	Role      string `json:"role"`
+	SessionID string  `json:"sid"`
+	UserID    string  `json:"uid"`
+	Role      string  `json:"role"`
+	GroupID   *string `json:"gid,omitempty"`
 }

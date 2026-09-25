@@ -7,7 +7,8 @@ import (
 )
 
 func handleGetDashboard(c *fiber.Ctx, svc *service.DashboardService) error {
-	d, err := svc.GetGeneral(c.Context())
+	groupID := BodyString(c, "group_id")
+	d, err := svc.GetGeneral(c.Context(), groupID)
 	if err != nil {
 		return Fail(c, "Gagal ambil dashboard: "+err.Error())
 	}

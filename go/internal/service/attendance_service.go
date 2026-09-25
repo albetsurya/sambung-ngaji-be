@@ -56,7 +56,7 @@ func (s *AttendanceService) GetAttendancePage(ctx context.Context, meetingID str
 	if err != nil {
 		return nil, errors.New("meeting tidak ditemukan")
 	}
-	members, err := s.memberSvc.GetAttendanceMembers(ctx, model.MemberListFilter{})
+	members, err := s.memberSvc.GetAttendanceMembers(ctx, model.MemberListFilter{}, "")
 	if err != nil {
 		return nil, err
 	}

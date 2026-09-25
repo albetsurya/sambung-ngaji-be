@@ -51,8 +51,8 @@ type GeneralDashboard struct {
 
 // GetGeneral: total 4 query (members, meetings, attendance-by-meeting, attendance-by-member).
 // Sebelumnya N+1 — sekarang O(1) query.
-func (s *DashboardService) GetGeneral(ctx context.Context) (*GeneralDashboard, error) {
-	members, err := s.memberRepo.FindAll(ctx)
+func (s *DashboardService) GetGeneral(ctx context.Context, groupID string) (*GeneralDashboard, error) {
+	members, err := s.memberRepo.FindAllByGroup(ctx, groupID)
 	if err != nil {
 		return nil, err
 	}
