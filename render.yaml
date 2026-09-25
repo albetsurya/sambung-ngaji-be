@@ -19,22 +19,20 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
-      - key: OMNIROUTE_ENDPOINT
-        sync: false
-      - key: OMNIROUTE_API_KEY
-        value: ""
-      - key: OMNIROUTE_MODEL
-        value: "auto/best-vision"
-      - key: OMNIROUTE_TIMEOUT_SEC
-        value: "60"
+      - key: AI_PROVIDER
+        value: "groq"
       - key: GROQ_API_KEY
         sync: false
       - key: GROQ_MODEL
-        value: "openai/gpt-oss-120b"
-      - key: GEMINI_API_KEY
-        value: ""
-      - key: GEMINI_MODEL
-        value: "gemini-3.6-flash"
+        value: "llama-3.3-70b-versatile"
+      - key: CEREBRAS_API_KEY
+        sync: false
+      - key: CEREBRAS_MODEL
+        value: "gpt-oss-120b"
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: OPENROUTER_MODEL
+        value: "meta-llama/llama-3.3-70b-instruct:free"
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
@@ -66,22 +64,20 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
-      - key: OMNIROUTE_ENDPOINT
-        sync: false
-      - key: OMNIROUTE_API_KEY
-        value: ""
-      - key: OMNIROUTE_MODEL
-        value: "auto/best-vision"
-      - key: OMNIROUTE_TIMEOUT_SEC
-        value: "60"
+      - key: AI_PROVIDER
+        value: "groq"
       - key: GROQ_API_KEY
         sync: false
       - key: GROQ_MODEL
-        value: "openai/gpt-oss-120b"
-      - key: GEMINI_API_KEY
-        value: ""
-      - key: GEMINI_MODEL
-        value: "gemini-3.6-flash"
+        value: "llama-3.3-70b-versatile"
+      - key: CEREBRAS_API_KEY
+        sync: false
+      - key: CEREBRAS_MODEL
+        value: "gpt-oss-120b"
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: OPENROUTER_MODEL
+        value: "meta-llama/llama-3.3-70b-instruct:free"
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY

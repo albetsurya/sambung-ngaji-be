@@ -88,7 +88,7 @@ func (o *OpenAICompat) doChat(ctx context.Context, messages []model.LLMMessage, 
 	if o.baseURL == "" {
 		return nil, fmt.Errorf("%s: base URL belum diatur", o.name)
 	}
-	if o.apiKey == "" && o.name != "omniroute" {
+	if o.apiKey == "" {
 		return nil, fmt.Errorf("%s: API key belum diatur", o.name)
 	}
 
