@@ -9,7 +9,7 @@ import (
 // Daftar key gratis: https://console.groq.com
 func NewGroq(apiKey, model string, timeout time.Duration) Provider {
 	if model == "" {
-		model = "llama-3.3-70b-versatile"
+		model = "openai/gpt-oss-120b"
 	}
 	return NewOpenAICompat(OpenAICompatConfig{
 		Name:    "groq",
