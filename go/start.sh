@@ -14,15 +14,6 @@ supabase --version 2>&1 || {
     exit 1
 }
 
-# 2) Link project (diperlukan supabase db push).
-#    Gunakan SUPABASE_ACCESS_TOKEN dari secret env Render.
-if [ -n "$SUPABASE_ACCESS_TOKEN" ] && [ -n "$SUPABASE_URL" ]; then
-    echo "--- supabase link ---"
-    supabase link --access-token "$SUPABASE_ACCESS_TOKEN" --project-ref "$(echo "$SUPABASE_URL" | sed -E 's|https?://([^.]+).*|\1|')" 2>&1 || {
-        echo "⚠️ WARNING: supabase link gagal (mungkin sudah linked), lanjut..."
-    }
-fi
-
 if [ -n "$DATABASE_URL" ]; then
     cd /app
 
