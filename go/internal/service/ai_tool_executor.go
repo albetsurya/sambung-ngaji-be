@@ -49,7 +49,7 @@ func NewAIToolExecutor(
 func (e *AIToolExecutor) Execute(ctx context.Context, name string, args map[string]interface{}, userID, memberID string, isMember bool) (interface{}, error) {
 	switch name {
 	case "get_dashboard_summary":
-		return e.dashboard.GetGeneral(ctx)
+		return e.dashboard.GetGeneral(ctx, "")
 
 	case "get_members_list":
 		f := model.MemberListFilter{
@@ -59,7 +59,7 @@ func (e *AIToolExecutor) Execute(ctx context.Context, name string, args map[stri
 			Search:       getStringArg(args, "search"),
 			Limit:        getIntArg(args, "limit", 50),
 		}
-		items, err := e.member.GetMembers(ctx, f)
+		items, err := e.member.GetMembers(ctx, f, "")
 		if err != nil {
 			return nil, err
 		}

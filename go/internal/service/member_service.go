@@ -19,8 +19,8 @@ func NewMemberService(repo *repository.MemberRepo) *MemberService {
 
 func (s *MemberService) Repo() *repository.MemberRepo { return s.repo }
 
-func (s *MemberService) GetMembers(ctx context.Context, f model.MemberListFilter) ([]model.MemberListDTO, error) {
-	all, err := s.repo.FindAll(ctx)
+func (s *MemberService) GetMembers(ctx context.Context, f model.MemberListFilter, groupID string) ([]model.MemberListDTO, error) {
+	all, err := s.repo.FindAllByGroup(ctx, groupID)
 	if err != nil {
 		return nil, err
 	}
@@ -56,8 +56,8 @@ func (s *MemberService) GetMembers(ctx context.Context, f model.MemberListFilter
 	return out, nil
 }
 
-func (s *MemberService) GetMembersPaged(ctx context.Context, f model.MemberListFilter) ([]model.MemberListDTO, int, error) {
-	all, err := s.repo.FindAll(ctx)
+func (s *MemberService) GetMembersPaged(ctx context.Context, f model.MemberListFilter, groupID string) ([]model.MemberListDTO, int, error) {
+	all, err := s.repo.FindAllByGroup(ctx, groupID)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -91,8 +91,8 @@ func (s *MemberService) GetMembersPaged(ctx context.Context, f model.MemberListF
 	return items, total, nil
 }
 
-func (s *MemberService) GetAttendanceMembers(ctx context.Context, f model.MemberListFilter) ([]model.AttendanceMemberDTO, error) {
-	all, err := s.repo.FindAll(ctx)
+func (s *MemberService) GetAttendanceMembers(ctx context.Context, f model.MemberListFilter, groupID string) ([]model.AttendanceMemberDTO, error) {
+	all, err := s.repo.FindAllByGroup(ctx, groupID)
 	if err != nil {
 		return nil, err
 	}

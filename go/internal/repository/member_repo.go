@@ -41,6 +41,25 @@ func (r *MemberRepo) FindAll(ctx context.Context) ([]model.Member, error) {
 	return scanMembers(rows)
 }
 
+// FindAllByGroup: seperti FindAll tapi difilter group_id.
+// groupId kosong → tidak difilter (global, untuk SUPER_ADMIN).
+func (r *MemberRepo) FindAllByGroup(ctx context.Context, groupID string) ([]model.Member, error) {
+	ctx, cancel := WithQueryTimeout(ctx)
+	defer cancel()
+
+	if groupID == "" {
+		return r.FindAll(ctx)
+	}
+	rows, err := r.pool.Query(ctx,
+		`SELECT `+memberSelectCols+` FROM members WHERE status_aktif = true AND group_id = $1 ORDER BY nama_lengkap`,
+		groupID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return scanMembers(rows)
+}
+
 func (r *MemberRepo) FindByID(ctx context.Context, id string) (*model.Member, error) {
 	ctx, cancel := WithQueryTimeout(ctx)
 	defer cancel()

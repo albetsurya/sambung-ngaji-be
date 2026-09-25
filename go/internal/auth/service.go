@@ -76,7 +76,7 @@ func (s *Service) Login(ctx context.Context, username, password string) (string,
 	_, _ = s.pool.Exec(ctx,
 		`UPDATE users SET last_login_at = now() WHERE user_id = $1`, u.UserID)
 
-	token, err := s.jwt.Generate(sessionID, u.UserID, u.Role)
+	token, err := s.jwt.Generate(sessionID, u.UserID, u.Role, ptrToString(u.GroupID))
 	if err != nil {
 		return "", nil, fmt.Errorf("generate jwt: %w", err)
 	}
@@ -128,14 +128,16 @@ func (s *Service) InvalidateUserSessions(ctx context.Context, userID string) err
 
 func (s *Service) findByUsername(ctx context.Context, username string) (*model.User, error) {
 	var u model.User
+	var gid *string
 	err := s.pool.QueryRow(ctx, `
-		SELECT user_id, username, password_hash, nama, role, member_id,
+		SELECT user_id, username, password_hash, nama, role, group_id, member_id,
 		       status_aktif, created_at, updated_at, last_login_at
 		FROM users WHERE username = $1
 	`, username).Scan(
 		&u.UserID, &u.Username, &u.PasswordHash, &u.Nama, &u.Role,
-		&u.MemberID, &u.StatusAktif, &u.CreatedAt, &u.UpdatedAt, &u.LastLoginAt,
+		&gid, &u.MemberID, &u.StatusAktif, &u.CreatedAt, &u.UpdatedAt, &u.LastLoginAt,
 	)
+	u.GroupID = gid
 	if err != nil {
 		return nil, err
 	}
@@ -144,18 +146,27 @@ func (s *Service) findByUsername(ctx context.Context, username string) (*model.U
 
 func (s *Service) findByID(ctx context.Context, userID string) (*model.User, error) {
 	var u model.User
+	var gid *string
 	err := s.pool.QueryRow(ctx, `
-		SELECT user_id, username, password_hash, nama, role, member_id,
+		SELECT user_id, username, password_hash, nama, role, group_id, member_id,
 		       status_aktif, created_at, updated_at, last_login_at
 		FROM users WHERE user_id = $1
 	`, userID).Scan(
 		&u.UserID, &u.Username, &u.PasswordHash, &u.Nama, &u.Role,
-		&u.MemberID, &u.StatusAktif, &u.CreatedAt, &u.UpdatedAt, &u.LastLoginAt,
+		&gid, &u.MemberID, &u.StatusAktif, &u.CreatedAt, &u.UpdatedAt, &u.LastLoginAt,
 	)
+	u.GroupID = gid
 	if err != nil {
 		return nil, err
 	}
 	return &u, nil
+}
+
+func ptrToString(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }
 
 // ToPublic mengubah User ke bentuk response frontend.
@@ -166,6 +177,7 @@ func (s *Service) ToPublic(ctx context.Context, u *model.User) model.PublicUser 
 		Username: u.Username,
 		Nama:     u.Nama,
 		Role:     u.Role,
+		GroupID:  ptrToString(u.GroupID),
 	}
 	if u.MemberID != nil && *u.MemberID != "" {
 		p.MemberID = *u.MemberID
