@@ -28,7 +28,7 @@ services:
       - key: GROQ_API_KEY
         sync: false
       - key: GROQ_MODELS
-        value: "openai/gpt-oss-120b,openai/gpt-oss-20b,llama-3.1-8b-instant"
+        value: "openai/gpt-oss-120b,openai/gpt-oss-20b,qwen/qwen3.8-27b"
       - key: NVIDIA_API_KEY
         sync: false
       - key: NVIDIA_MODELS
@@ -73,7 +73,7 @@ services:
       - key: GROQ_API_KEY
         sync: false
       - key: GROQ_MODELS
-        value: "openai/gpt-oss-120b,openai/gpt-oss-20b,llama-3.1-8b-instant"
+        value: "openai/gpt-oss-120b,openai/gpt-oss-20b,qwen/qwen3.8-27b"
       - key: NVIDIA_API_KEY
         sync: false
       - key: NVIDIA_MODELS
