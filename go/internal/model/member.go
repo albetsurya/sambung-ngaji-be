@@ -91,6 +91,7 @@ type MemberDetailDTO struct {
 	Kategori               string `json:"kategori"`
 	Usia                   int    `json:"usia"`
 	Pendidikan             []any  `json:"pendidikan"`
+	HasUser                bool   `json:"has_user"`
 }
 
 type MemberListFilter struct {
