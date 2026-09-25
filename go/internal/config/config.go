@@ -55,7 +55,7 @@ func Load() (*Config, error) {
 
 	cfg.AIProvider = getEnv("AI_PROVIDER", "groq")
 	cfg.GroqAPIKey = envTrim("GROQ_API_KEY")
-	cfg.GroqModel = getEnv("GROQ_MODEL", "llama-3.3-70b-versatile")
+	cfg.GroqModel = getEnv("GROQ_MODEL", "openai/gpt-oss-120b")
 	cfg.CerebrasAPIKey = envTrim("CEREBRAS_API_KEY")
 	cfg.CerebrasModel = getEnv("CEREBRAS_MODEL", "gpt-oss-120b")
 	cfg.OpenRouterAPIKey = envTrim("OPENROUTER_API_KEY")
