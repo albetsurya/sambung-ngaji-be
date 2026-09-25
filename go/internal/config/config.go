@@ -22,13 +22,14 @@ type Config struct {
 	DBMaxConnIdleTime   string
 	DBHealthCheckPeriod string
 	// AI (Gemini utama, Groq + Nvidia fallback — ketiganya gratis)
+	// Tiap provider coba daftar model berurutan sampai ada yang sukses.
 	AIProvider   string
 	GeminiAPIKey string
-	GeminiModel  string
+	GeminiModels []string
 	GroqAPIKey   string
-	GroqModel    string
+	GroqModels   []string
 	NvidiaAPIKey string
-	NvidiaModel  string
+	NvidiaModels []string
 
 	SupabaseURL        string
 	SupabaseServiceKey string
@@ -55,11 +56,11 @@ func Load() (*Config, error) {
 
 	cfg.AIProvider = getEnv("AI_PROVIDER", "gemini")
 	cfg.GeminiAPIKey = envTrim("GEMINI_API_KEY")
-	cfg.GeminiModel = getEnv("GEMINI_MODEL", "gemini-3.8-flash")
+	cfg.GeminiModels = getEnvList("GEMINI_MODELS", "GEMINI_MODEL", "gemini-3.8-flash,gemini-3.5-flash,gemini-2.5-pro")
 	cfg.GroqAPIKey = envTrim("GROQ_API_KEY")
-	cfg.GroqModel = getEnv("GROQ_MODEL", "openai/gpt-oss-120b")
+	cfg.GroqModels = getEnvList("GROQ_MODELS", "GROQ_MODEL", "openai/gpt-oss-120b,openai/gpt-oss-20b")
 	cfg.NvidiaAPIKey = envTrim("NVIDIA_API_KEY")
-	cfg.NvidiaModel = getEnv("NVIDIA_MODEL", "openai/gpt-oss-20b")
+	cfg.NvidiaModels = getEnvList("NVIDIA_MODELS", "NVIDIA_MODEL", "openai/gpt-oss-20b")
 
 	cfg.SupabaseURL = envTrim("SUPABASE_URL")
 	cfg.SupabaseServiceKey = envTrim("SUPABASE_SERVICE_ROLE_KEY")
@@ -85,6 +86,28 @@ func getEnv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+// getEnvList: baca daftar model koma-separated.
+// Prioritas: LIST_KEY (baru) > SINGLE_KEY (lama, 1 model) > default.
+func getEnvList(listKey, singleKey, def string) []string {
+	if v := strings.TrimSpace(os.Getenv(listKey)); v != "" {
+		return splitList(v)
+	}
+	if v := strings.TrimSpace(os.Getenv(singleKey)); v != "" {
+		return []string{v}
+	}
+	return splitList(def)
+}
+
+func splitList(s string) []string {
+	out := []string{}
+	for _, p := range strings.Split(s, ",") {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }
 
 func getEnvInt(key string, fallback int) int {

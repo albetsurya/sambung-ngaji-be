@@ -18,7 +18,7 @@ type OpenAICompat struct {
 	name         string
 	baseURL      string
 	apiKey       string
-	model        string
+	models       []string
 	client       *http.Client
 	extraHeaders map[string]string
 }
@@ -27,7 +27,7 @@ type OpenAICompatConfig struct {
 	Name         string
 	BaseURL      string
 	APIKey       string
-	Model        string
+	Models       []string
 	Timeout      time.Duration
 	ExtraHeaders map[string]string
 }
@@ -43,7 +43,7 @@ func NewOpenAICompat(cfg OpenAICompatConfig) *OpenAICompat {
 		name:         cfg.Name,
 		baseURL:      cfg.BaseURL,
 		apiKey:       cfg.APIKey,
-		model:        cfg.Model,
+		models:       dedupModels(cfg.Models),
 		client:       &http.Client{Timeout: cfg.Timeout},
 		extraHeaders: cfg.ExtraHeaders,
 	}
@@ -91,9 +91,27 @@ func (o *OpenAICompat) doChat(ctx context.Context, messages []model.LLMMessage, 
 	if o.apiKey == "" {
 		return nil, fmt.Errorf("%s: API key belum diatur", o.name)
 	}
+	if len(o.models) == 0 {
+		return nil, fmt.Errorf("%s: tidak ada model yang dikonfigurasi", o.name)
+	}
 
+	var lastErr error
+	for _, m := range o.models {
+		result, err := o.doChatOnce(ctx, messages, tools, m)
+		if err == nil {
+			return result, nil
+		}
+		lastErr = err
+		if !IsFallbackable(err) {
+			return nil, err
+		}
+	}
+	return nil, lastErr
+}
+
+func (o *OpenAICompat) doChatOnce(ctx context.Context, messages []model.LLMMessage, tools []model.LLMToolDef, chatModel string) (*LLMResult, error) {
 	body := openAIChatRequest{
-		Model:       o.model,
+		Model:       chatModel,
 		Messages:    messages,
 		Temperature: 0.3,
 	}

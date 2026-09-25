@@ -128,14 +128,14 @@ DATABASE_URL=postgres://user:pass@localhost:5432/sambung_ngaji?sslmode=disable
 JWT_SECRET=your-super-secret-key
 JWT_EXPIRY_HOURS=12
 
-# AI Providers (ketiganya gratis)
+# AI Providers (ketiganya gratis, fallback model + provider otomatis)
 AI_PROVIDER=gemini
 GEMINI_API_KEY=your-gemini-key
-GEMINI_MODEL=gemini-3.8-flash
+GEMINI_MODELS=gemini-3.8-flash,gemini-3.5-flash,gemini-2.5-pro
 GROQ_API_KEY=your-groq-key
-GROQ_MODEL=openai/gpt-oss-120b
+GROQ_MODELS=openai/gpt-oss-120b,openai/gpt-oss-20b
 NVIDIA_API_KEY=your-nvidia-key
-NVIDIA_MODEL=openai/gpt-oss-20b
+NVIDIA_MODELS=openai/gpt-oss-20b
 
 # Supabase Storage (foto jamaah)
 SUPABASE_URL=https://xxx.supabase.co
