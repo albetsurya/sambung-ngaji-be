@@ -18,8 +18,18 @@ SET group_id = g.group_id
 FROM groups g
 WHERE m.kelompok = g.group_name;
 
--- 1d. Backfill users.group_id (assign user ke kelompok via group_code match)
+-- 1d. Backfill users.group_id (lewat relasi: users -> members -> groups)
+-- SUPER_ADMIN sengaja tidak di-set (global)
+UPDATE users u
+SET group_id = m.group_id
+FROM members m
+WHERE u.member_id = m.member_id
+  AND m.group_id IS NOT NULL
+  AND u.role != 'SUPER_ADMIN';
+
 UPDATE users u
 SET group_id = g.group_id
 FROM groups g
-WHERE u.username = g.group_code;
+WHERE LOWER(TRIM(u.username)) = LOWER(TRIM(g.group_code))
+  AND u.group_id IS NULL
+  AND u.role != 'SUPER_ADMIN';
