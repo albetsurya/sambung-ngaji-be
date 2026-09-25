@@ -10,13 +10,6 @@ CREATE INDEX IF NOT EXISTS idx_friday_schedules_group_id ON friday_schedules(gro
 ALTER TABLE pending_members ADD COLUMN IF NOT EXISTS group_id TEXT REFERENCES groups(group_id);
 CREATE INDEX IF NOT EXISTS idx_pending_members_group_id ON pending_members(group_id);
 
--- Backfill pending_members.group_id dari kelompok jika match
-UPDATE pending_members pm
-SET group_id = g.group_id
-FROM groups g
-WHERE LOWER(TRIM(pm.kelompok)) = LOWER(TRIM(g.group_name))
-  AND pm.group_id IS NULL;
-
 -- 3. announcement_templates
 ALTER TABLE announcement_templates ADD COLUMN IF NOT EXISTS group_id TEXT REFERENCES groups(group_id);
 CREATE INDEX IF NOT EXISTS idx_announcement_templates_group_id ON announcement_templates(group_id);

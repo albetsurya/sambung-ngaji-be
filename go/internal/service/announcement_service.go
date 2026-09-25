@@ -36,8 +36,8 @@ var jadwalRutin = []string{"Minggu", "Selasa", "Kamis"}
 
 /* ===== Templates ===== */
 
-func (s *AnnouncementService) GetTemplates(ctx context.Context, includeInactive bool) ([]model.AnnouncementTemplateDTO, error) {
-	tpl, err := s.repo.FindTemplates(ctx, includeInactive)
+func (s *AnnouncementService) GetTemplates(ctx context.Context, groupID string, includeInactive bool) ([]model.AnnouncementTemplateDTO, error) {
+	tpl, err := s.repo.FindTemplates(ctx, groupID, includeInactive)
 	if err != nil {
 		return nil, err
 	}
@@ -58,6 +58,7 @@ func (s *AnnouncementService) GetTemplateDetail(ctx context.Context, id string) 
 }
 
 type CreateTemplateInput struct {
+	GroupID      string
 	NamaTemplate string
 	Kode         string
 	IsiTemplate  string
@@ -82,8 +83,14 @@ func (s *AnnouncementService) CreateTemplate(ctx context.Context, in CreateTempl
 		return nil, apperrors.Wrap(apperrors.ErrConflict, "kode template sudah dipakai")
 	}
 
+	var grpPtr *string
+	if in.GroupID != "" {
+		grpPtr = &in.GroupID
+	}
+
 	t := &model.AnnouncementTemplate{
 		TemplateID:   util.NewID("TPL"),
+		GroupID:      grpPtr,
 		NamaTemplate: strings.TrimSpace(in.NamaTemplate),
 		Kode:         kode,
 		IsiTemplate:  in.IsiTemplate,
@@ -392,8 +399,13 @@ func (s *AnnouncementService) GetRecipientSummary(ctx context.Context, groupID s
 /* ===== Helpers ===== */
 
 func toTemplateDTO(t model.AnnouncementTemplate) model.AnnouncementTemplateDTO {
+	gid := ""
+	if t.GroupID != nil {
+		gid = *t.GroupID
+	}
 	return model.AnnouncementTemplateDTO{
 		TemplateID:   t.TemplateID,
+		GroupID:      gid,
 		NamaTemplate: t.NamaTemplate,
 		Kode:         t.Kode,
 		IsiTemplate:  t.IsiTemplate,

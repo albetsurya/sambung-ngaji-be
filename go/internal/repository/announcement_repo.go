@@ -19,15 +19,22 @@ func NewAnnouncementRepo(pool *pgxpool.Pool) *AnnouncementRepo {
 /* ===== Templates ===== */
 
 const templateSelectCols = `
-	template_id, nama_template, kode, isi_template, status_aktif, created_at, updated_at`
+	template_id, group_id, nama_template, kode, isi_template, status_aktif, created_at, updated_at`
 
-func (r *AnnouncementRepo) FindTemplates(ctx context.Context, includeInactive bool) ([]model.AnnouncementTemplate, error) {
-	q := `SELECT ` + templateSelectCols + ` FROM announcement_templates`
+func (r *AnnouncementRepo) FindTemplates(ctx context.Context, groupID string, includeInactive bool) ([]model.AnnouncementTemplate, error) {
+	q := `SELECT ` + templateSelectCols + ` FROM announcement_templates WHERE 1=1`
+	args := []interface{}{}
+	n := 1
+	if groupID != "" {
+		q += ` AND (group_id = $` + itoa(n) + ` OR group_id IS NULL)`
+		args = append(args, groupID)
+		n++
+	}
 	if !includeInactive {
-		q += ` WHERE status_aktif = true`
+		q += ` AND status_aktif = true`
 	}
 	q += ` ORDER BY nama_template`
-	rows, err := r.pool.Query(ctx, q)
+	rows, err := r.pool.Query(ctx, q, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +43,7 @@ func (r *AnnouncementRepo) FindTemplates(ctx context.Context, includeInactive bo
 	for rows.Next() {
 		var t model.AnnouncementTemplate
 		if err := rows.Scan(
-			&t.TemplateID, &t.NamaTemplate, &t.Kode, &t.IsiTemplate,
+			&t.TemplateID, &t.GroupID, &t.NamaTemplate, &t.Kode, &t.IsiTemplate,
 			&t.StatusAktif, &t.CreatedAt, &t.UpdatedAt,
 		); err != nil {
 			return nil, err
@@ -51,7 +58,7 @@ func (r *AnnouncementRepo) FindTemplateByID(ctx context.Context, id string) (*mo
 	err := r.pool.QueryRow(ctx,
 		`SELECT `+templateSelectCols+` FROM announcement_templates WHERE template_id = $1`, id,
 	).Scan(
-		&t.TemplateID, &t.NamaTemplate, &t.Kode, &t.IsiTemplate,
+		&t.TemplateID, &t.GroupID, &t.NamaTemplate, &t.Kode, &t.IsiTemplate,
 		&t.StatusAktif, &t.CreatedAt, &t.UpdatedAt,
 	)
 	if err != nil {
@@ -65,7 +72,7 @@ func (r *AnnouncementRepo) FindTemplateByKode(ctx context.Context, kode string) 
 	err := r.pool.QueryRow(ctx,
 		`SELECT `+templateSelectCols+` FROM announcement_templates WHERE kode = $1`, kode,
 	).Scan(
-		&t.TemplateID, &t.NamaTemplate, &t.Kode, &t.IsiTemplate,
+		&t.TemplateID, &t.GroupID, &t.NamaTemplate, &t.Kode, &t.IsiTemplate,
 		&t.StatusAktif, &t.CreatedAt, &t.UpdatedAt,
 	)
 	if err != nil {
@@ -77,9 +84,9 @@ func (r *AnnouncementRepo) FindTemplateByKode(ctx context.Context, kode string) 
 func (r *AnnouncementRepo) InsertTemplate(ctx context.Context, t *model.AnnouncementTemplate) error {
 	_, err := r.pool.Exec(ctx, `
 		INSERT INTO announcement_templates
-		(template_id, nama_template, kode, isi_template, status_aktif, created_at, updated_at)
-		VALUES ($1,$2,$3,$4,$5,now(),now())
-	`, t.TemplateID, t.NamaTemplate, t.Kode, t.IsiTemplate, t.StatusAktif)
+		(template_id, group_id, nama_template, kode, isi_template, status_aktif, created_at, updated_at)
+		VALUES ($1,$2,$3,$4,$5,$6,now(),now())
+	`, t.TemplateID, t.GroupID, t.NamaTemplate, t.Kode, t.IsiTemplate, t.StatusAktif)
 	return err
 }
 

@@ -243,8 +243,8 @@ type BulkTemplateDTO struct {
 	IsiTemplate  string `json:"isi_template"`
 }
 
-func (s *BulkMeetingService) GetTemplates(ctx context.Context) ([]BulkTemplateDTO, error) {
-	tpls, err := s.annRepo.FindTemplates(ctx, false)
+func (s *BulkMeetingService) GetTemplates(ctx context.Context, groupID string) ([]BulkTemplateDTO, error) {
+	tpls, err := s.annRepo.FindTemplates(ctx, groupID, false)
 	if err != nil {
 		return nil, err
 	}

@@ -204,7 +204,7 @@ func (s *FridayReminderService) MarkSent(ctx context.Context, tanggal string) er
 	if _, err := time.Parse("2006-01-02", tanggal); err != nil {
 		return errors.New("tanggal tidak valid (YYYY-MM-DD)")
 	}
-	if _, err := s.repo.FindByDate(ctx, tanggal); err != nil {
+	if _, err := s.repo.FindByDate(ctx, "", tanggal); err != nil {
 		return errors.New("jadwal tidak ditemukan")
 	}
 	return s.repo.MarkReminderSent(ctx, tanggal)

@@ -21,6 +21,7 @@ func handleSubmitPublicRegistration(c *fiber.Ctx, svc *service.PendingService) e
 		clientIP = v
 	}
 	in := service.SubmitRegistrationInput{
+		GroupID:                BodyString(c, "group_id"),
 		NamaLengkap:            BodyString(c, "nama_lengkap"),
 		NamaPanggilan:          BodyString(c, "nama_panggilan"),
 		JenisKelamin:           BodyString(c, "jenis_kelamin"),
@@ -51,8 +52,9 @@ func handleSubmitPublicRegistration(c *fiber.Ctx, svc *service.PendingService) e
 }
 
 func handleGetPendingMembers(c *fiber.Ctx, svc *service.PendingService) error {
+	groupID := BodyString(c, "group_id")
 	status := BodyString(c, "status")
-	items, err := svc.GetPendingMembers(c.Context(), status)
+	items, err := svc.GetPendingMembers(c.Context(), groupID, status)
 	if err != nil {
 		return Fail(c, err.Error())
 	}

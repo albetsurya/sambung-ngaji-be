@@ -72,6 +72,7 @@ func (s *PendingService) CheckUsername(ctx context.Context, username string) (*C
 /* ===== Public: submit registration ===== */
 
 type SubmitRegistrationInput struct {
+	GroupID                string
 	NamaLengkap            string
 	NamaPanggilan          string
 	JenisKelamin           string
@@ -206,8 +207,14 @@ func (s *PendingService) SubmitRegistration(ctx context.Context, in SubmitRegist
 		jkPtr = &jk
 	}
 
+	var groupIDPtr *string
+	if in.GroupID != "" {
+		groupIDPtr = &in.GroupID
+	}
+
 	p := &model.PendingMember{
 		SubmissionID:           util.NewID("SUB"),
+		GroupID:                groupIDPtr,
 		NamaLengkap:            nama,
 		NamaPanggilan:          strings.TrimSpace(in.NamaPanggilan),
 		JenisKelamin:           jkPtr,
@@ -245,8 +252,8 @@ func (s *PendingService) SubmitRegistration(ctx context.Context, in SubmitRegist
 
 /* ===== Admin: list & detail ===== */
 
-func (s *PendingService) GetPendingMembers(ctx context.Context, status string) ([]model.PendingMemberDTO, error) {
-	rows, err := s.repo.FindAll(ctx, status)
+func (s *PendingService) GetPendingMembers(ctx context.Context, groupID, status string) ([]model.PendingMemberDTO, error) {
+	rows, err := s.repo.FindAll(ctx, groupID, status)
 	if err != nil {
 		return nil, err
 	}
@@ -410,8 +417,13 @@ func toPendingDTO(p model.PendingMember) model.PendingMemberDTO {
 	if p.CreatedMemberID != nil {
 		cmid = *p.CreatedMemberID
 	}
+	grpID := ""
+	if p.GroupID != nil {
+		grpID = *p.GroupID
+	}
 	return model.PendingMemberDTO{
 		SubmissionID:           p.SubmissionID,
+		GroupID:                grpID,
 		NamaLengkap:            p.NamaLengkap,
 		NamaPanggilan:          p.NamaPanggilan,
 		JenisKelamin:           jk,

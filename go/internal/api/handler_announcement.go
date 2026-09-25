@@ -7,7 +7,8 @@ import (
 )
 
 func handleGetAnnouncementTemplates(c *fiber.Ctx, svc *service.AnnouncementService) error {
-	items, err := svc.GetTemplates(c.Context(), false)
+	groupID := BodyString(c, "group_id")
+	items, err := svc.GetTemplates(c.Context(), groupID, false)
 	if err != nil {
 		return Fail(c, err.Error())
 	}
@@ -15,8 +16,9 @@ func handleGetAnnouncementTemplates(c *fiber.Ctx, svc *service.AnnouncementServi
 }
 
 func handleGetAllAnnouncementTemplates(c *fiber.Ctx, svc *service.AnnouncementService) error {
+	groupID := BodyString(c, "group_id")
 	includeInactive := BodyBool(c, "include_inactive")
-	items, err := svc.GetTemplates(c.Context(), includeInactive)
+	items, err := svc.GetTemplates(c.Context(), groupID, includeInactive)
 	if err != nil {
 		return Fail(c, err.Error())
 	}
@@ -34,6 +36,7 @@ func handleGetAnnouncementTemplateDetail(c *fiber.Ctx, svc *service.Announcement
 
 func handleCreateAnnouncementTemplate(c *fiber.Ctx, svc *service.AnnouncementService) error {
 	in := service.CreateTemplateInput{
+		GroupID:      BodyString(c, "group_id"),
 		NamaTemplate: BodyString(c, "nama_template"),
 		Kode:         BodyString(c, "kode"),
 		IsiTemplate:  BodyString(c, "isi_template"),

@@ -4,6 +4,7 @@ import "time"
 
 type PendingMember struct {
 	SubmissionID           string
+	GroupID                *string
 	NamaLengkap            string
 	NamaPanggilan          string
 	JenisKelamin           *string
@@ -35,6 +36,7 @@ type PendingMember struct {
 
 type PendingMemberDTO struct {
 	SubmissionID           string `json:"submission_id"`
+	GroupID                string `json:"group_id"`
 	NamaLengkap            string `json:"nama_lengkap"`
 	NamaPanggilan          string `json:"nama_panggilan"`
 	JenisKelamin           string `json:"jenis_kelamin"`

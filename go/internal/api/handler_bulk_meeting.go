@@ -64,7 +64,8 @@ func handleBulkCreateMeetings(c *fiber.Ctx, svc *service.BulkMeetingService) err
 }
 
 func handleGetBulkMeetingTemplates(c *fiber.Ctx, svc *service.BulkMeetingService) error {
-	items, err := svc.GetTemplates(c.Context())
+	groupID := BodyString(c, "group_id")
+	items, err := svc.GetTemplates(c.Context(), groupID)
 	if err != nil {
 		return Fail(c, err.Error())
 	}

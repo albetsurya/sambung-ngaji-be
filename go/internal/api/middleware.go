@@ -237,11 +237,17 @@ func AuthMiddleware(svc *auth.Service) fiber.Handler {
 		c.Locals(LocalsUser, u)
 		c.Locals(LocalsClaims, claims)
 
-		// Inject group_id ke request body agar handler otomatis filter per kelompok
-		// SUPER_ADMIN (group_id=null) → tidak di-inject → handler lihat semua data
-		if u.GroupID != nil && *u.GroupID != "" {
+		// Visibilitas Data berbasis Group ID:
+		// 1. SUPER_ADMIN -> Akses Global. Tidak di-override; jika SUPER_ADMIN kirim group_id di body maka ter-filter, jika tidak maka lihat semua data.
+		// 2. Role selain SUPER_ADMIN -> Hanya bisa melihat data dalam 1 kelompok yang ditugaskan. group_id di body dipaksa menjadi u.GroupID.
+		if u.Role != "SUPER_ADMIN" {
 			body := BodyOf(c)
-			body["group_id"] = *u.GroupID
+			if u.GroupID != nil && *u.GroupID != "" {
+				body["group_id"] = *u.GroupID
+			} else {
+				// User non-SUPER_ADMIN yang belum punya group_id tidak boleh melihat data kelompok lain
+				body["group_id"] = "__UNASSIGNED_GROUP__"
+			}
 		}
 
 		return c.Next()

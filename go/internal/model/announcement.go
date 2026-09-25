@@ -4,6 +4,7 @@ import "time"
 
 type AnnouncementTemplate struct {
 	TemplateID   string
+	GroupID      *string
 	NamaTemplate string
 	Kode         string
 	IsiTemplate  string
@@ -14,6 +15,7 @@ type AnnouncementTemplate struct {
 
 type AnnouncementTemplateDTO struct {
 	TemplateID   string `json:"template_id"`
+	GroupID      string `json:"group_id"`
 	NamaTemplate string `json:"nama_template"`
 	Kode         string `json:"kode"`
 	IsiTemplate  string `json:"isi_template"`

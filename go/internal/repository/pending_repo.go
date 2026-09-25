@@ -17,19 +17,26 @@ func NewPendingRepo(pool *pgxpool.Pool) *PendingRepo {
 }
 
 const pendingSelectCols = `
-	submission_id, nama_lengkap, nama_panggilan, jenis_kelamin,
+	submission_id, group_id, nama_lengkap, nama_panggilan, jenis_kelamin,
 	tempat_lahir, tanggal_lahir, no_wa, alamat_rumah, desa, daerah,
 	pekerjaan, hobi, is_nikah, jenjang_pendidikan, sekolah, jurusan,
 	tahun_mulai_pendidikan, tahun_selesai_pendidikan, foto_url,
 	username, password_hash, status, submitted_at, submitted_ip,
 	reviewed_by, reviewed_at, rejection_reason, created_member_id`
 
-func (r *PendingRepo) FindAll(ctx context.Context, status string) ([]model.PendingMember, error) {
-	q := `SELECT ` + pendingSelectCols + ` FROM pending_members`
+func (r *PendingRepo) FindAll(ctx context.Context, groupID, status string) ([]model.PendingMember, error) {
+	q := `SELECT ` + pendingSelectCols + ` FROM pending_members WHERE 1=1`
 	args := []interface{}{}
+	n := 1
+	if groupID != "" {
+		q += ` AND group_id = $` + itoa(n)
+		args = append(args, groupID)
+		n++
+	}
 	if status != "" {
-		q += ` WHERE status = $1`
+		q += ` AND status = $` + itoa(n)
 		args = append(args, status)
+		n++
 	}
 	q += ` ORDER BY submitted_at DESC`
 	rows, err := r.pool.Query(ctx, q, args...)
@@ -76,14 +83,14 @@ func (r *PendingRepo) CountByUsernamePending(ctx context.Context, username strin
 func (r *PendingRepo) Insert(ctx context.Context, p *model.PendingMember) error {
 	_, err := r.pool.Exec(ctx, `
 		INSERT INTO pending_members
-		(submission_id, nama_lengkap, nama_panggilan, jenis_kelamin,
+		(submission_id, group_id, nama_lengkap, nama_panggilan, jenis_kelamin,
 		 tempat_lahir, tanggal_lahir, no_wa, alamat_rumah, desa, daerah,
 		 pekerjaan, hobi, is_nikah, jenjang_pendidikan, sekolah, jurusan,
 		 tahun_mulai_pendidikan, tahun_selesai_pendidikan, foto_url,
 		 username, password_hash, status, submitted_at, submitted_ip,
 		 reviewed_by, reviewed_at, rejection_reason, created_member_id)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,now(),$23,$24,$25,$26,$27)
-	`, p.SubmissionID, p.NamaLengkap, p.NamaPanggilan, p.JenisKelamin,
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,now(),$24,$25,$26,$27,$28)
+	`, p.SubmissionID, p.GroupID, p.NamaLengkap, p.NamaPanggilan, p.JenisKelamin,
 		p.TempatLahir, p.TanggalLahir, p.NoWA, p.AlamatRumah, p.Desa, p.Daerah,
 		p.Pekerjaan, p.Hobi, p.IsNikah, p.JenjangPendidikan, p.Sekolah, p.Jurusan,
 		p.TahunMulaiPendidikan, p.TahunSelesaiPendidikan, p.FotoURL,
@@ -113,7 +120,7 @@ func (r *PendingRepo) UpdateRejected(ctx context.Context, id, reviewedBy, reason
 func scanPending(s rowScanner) (*model.PendingMember, error) {
 	var p model.PendingMember
 	err := s.Scan(
-		&p.SubmissionID, &p.NamaLengkap, &p.NamaPanggilan, &p.JenisKelamin,
+		&p.SubmissionID, &p.GroupID, &p.NamaLengkap, &p.NamaPanggilan, &p.JenisKelamin,
 		&p.TempatLahir, &p.TanggalLahir, &p.NoWA, &p.AlamatRumah, &p.Desa, &p.Daerah,
 		&p.Pekerjaan, &p.Hobi, &p.IsNikah, &p.JenjangPendidikan, &p.Sekolah, &p.Jurusan,
 		&p.TahunMulaiPendidikan, &p.TahunSelesaiPendidikan, &p.FotoURL,
@@ -131,7 +138,7 @@ func scanPendings(rows rowsScanner) ([]model.PendingMember, error) {
 	for rows.Next() {
 		var p model.PendingMember
 		err := rows.Scan(
-			&p.SubmissionID, &p.NamaLengkap, &p.NamaPanggilan, &p.JenisKelamin,
+			&p.SubmissionID, &p.GroupID, &p.NamaLengkap, &p.NamaPanggilan, &p.JenisKelamin,
 			&p.TempatLahir, &p.TanggalLahir, &p.NoWA, &p.AlamatRumah, &p.Desa, &p.Daerah,
 			&p.Pekerjaan, &p.Hobi, &p.IsNikah, &p.JenjangPendidikan, &p.Sekolah, &p.Jurusan,
 			&p.TahunMulaiPendidikan, &p.TahunSelesaiPendidikan, &p.FotoURL,

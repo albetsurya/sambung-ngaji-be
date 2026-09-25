@@ -9,6 +9,7 @@ import (
 // handleSaveFridaySchedule: admin/tim absensi simpan jadwal petugas jumat (upsert by tanggal).
 func handleSaveFridaySchedule(c *fiber.Ctx, svc *service.FridayService) error {
 	in := service.SaveFridayInput{
+		GroupID:       BodyString(c, "group_id"),
 		Tanggal:       BodyString(c, "tanggal"),
 		KhatibImam:    BodyString(c, "khatib_imam"),
 		Muadzin:       BodyString(c, "muadzin"),
@@ -29,7 +30,7 @@ func handleSaveFridaySchedule(c *fiber.Ctx, svc *service.FridayService) error {
 
 // handleGetFridaySchedules: list jadwal petugas jumat dalam rentang tanggal.
 func handleGetFridaySchedules(c *fiber.Ctx, svc *service.FridayService) error {
-	res, err := svc.List(c.Context(), BodyString(c, "from"), BodyString(c, "to"))
+	res, err := svc.List(c.Context(), BodyString(c, "group_id"), BodyString(c, "from"), BodyString(c, "to"))
 	if err != nil {
 		return Fail(c, err.Error())
 	}
@@ -38,7 +39,7 @@ func handleGetFridaySchedules(c *fiber.Ctx, svc *service.FridayService) error {
 
 // handleDeleteFridaySchedule: hapus jadwal jumat berdasarkan tanggal.
 func handleDeleteFridaySchedule(c *fiber.Ctx, svc *service.FridayService) error {
-	if err := svc.Delete(c.Context(), BodyString(c, "tanggal")); err != nil {
+	if err := svc.Delete(c.Context(), BodyString(c, "group_id"), BodyString(c, "tanggal")); err != nil {
 		return Fail(c, err.Error())
 	}
 	return Ok(c, fiber.Map{"tanggal": BodyString(c, "tanggal"), "deleted": true})

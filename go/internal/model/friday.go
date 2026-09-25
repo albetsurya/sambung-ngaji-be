@@ -4,6 +4,7 @@ import "time"
 
 type FridaySchedule struct {
 	FridayID       string
+	GroupID        *string
 	Tanggal        time.Time
 	KhatibImam     string
 	Muadzin        string
@@ -19,6 +20,7 @@ type FridaySchedule struct {
 
 type FridayScheduleDTO struct {
 	FridayID       string `json:"friday_id"`
+	GroupID        string `json:"group_id"`
 	Tanggal        string `json:"tanggal"`
 	Hari           string `json:"hari"`
 	KhatibImam     string `json:"khatib_imam"`
