@@ -197,8 +197,9 @@ func (s *AIService) Chat(ctx context.Context, user *model.User, req model.ChatRe
 			return resp, nil
 		}
 		lastErr = err
-		// Kalau bukan quota error, tidak usah fallback
-		if !ai.IsQuotaError(err) {
+		// Kuota habis ATAU model tidak bisa dipakai → fallback ke provider berikut.
+		// Error lain langsung gagal supaya cepat ketahuan.
+		if !ai.IsFallbackable(err) {
 			return nil, fmt.Errorf("%s: %w", name, err)
 		}
 	}
