@@ -43,16 +43,13 @@ func main() {
 	authSvc := auth.NewService(db, jwtMgr)
 
 	providers := map[string]ai.Provider{}
+	if cfg.GeminiAPIKey != "" {
+		providers["gemini"] = ai.NewGemini(cfg.GeminiAPIKey, cfg.GeminiModel, 60*time.Second)
+	}
 	if cfg.GroqAPIKey != "" {
 		providers["groq"] = ai.NewGroq(cfg.GroqAPIKey, cfg.GroqModel, 60*time.Second)
 	}
-	if cfg.CerebrasAPIKey != "" {
-		providers["cerebras"] = ai.NewCerebras(cfg.CerebrasAPIKey, cfg.CerebrasModel, 60*time.Second)
-	}
-	if cfg.OpenRouterAPIKey != "" {
-		providers["openrouter"] = ai.NewOpenRouter(cfg.OpenRouterAPIKey, cfg.OpenRouterModel, 60*time.Second)
-	}
-	providerOrder := []string{"groq", "cerebras", "openrouter"}
+	providerOrder := []string{"gemini", "groq"}
 
 	app := fiber.New(fiber.Config{
 		AppName:      "Pengajian Backend",
