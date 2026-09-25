@@ -7,7 +7,7 @@ import "time"
 type ChatRequest struct {
 	Message  string        `json:"message"`
 	History  []ChatHistory `json:"history"`
-	Provider string        `json:"provider"` // omniroute|gemini|groq|auto (default)
+	Provider string        `json:"provider"` // groq|cerebras|openrouter|auto (default)
 }
 
 type ChatHistory struct {

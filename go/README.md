@@ -48,7 +48,7 @@ Backend API untuk aplikasi manajemen pengajian **Sambung Ngaji**. Dibangun denga
 - Riwayat pengumuman per kelompok
 
 ### 🤖 AI Assistant
-- **Multi-provider**: OmniRoute (utama), Gemini, Groq (fallback otomatis)
+- **Multi-provider gratis**: Groq (utama), Cerebras, OpenRouter (fallback otomatis)
 - **Tool calling** untuk akses data real-time (jamaah, jadwal, absensi, monitoring)
 - Chat history tersimpan di database
 - Usage tracking & quota per user
@@ -82,9 +82,9 @@ Backend API untuk aplikasi manajemen pengajian **Sambung Ngaji**. Dibangun denga
 | **JWT-Go** | v5.3 | Token authentication |
 | **zerolog** | v1.35 | Structured logging |
 | **Supabase Go** | - | Storage (foto jamaah) |
-| **Google AI** | - | Gemini provider |
-| **Groq** | - | Groq provider |
-| **OmniRoute** | - | AI gateway provider |
+| **Groq** | - | Groq provider (gratis) |
+| **Cerebras** | - | Cerebras provider (gratis) |
+| **OpenRouter** | - | OpenRouter provider (model :free) |
 
 ## 📁 Struktur Project
 
@@ -94,7 +94,7 @@ backend/go/
 │   ├── api/           # Entry point HTTP server
 │   └── import/        # CLI import data massal (CSV)
 ├── internal/
-│   ├── ai/            # AI providers (OmniRoute, Gemini, Groq) + tools
+│   ├── ai/            # AI providers (Groq, Cerebras, OpenRouter) + tools
 │   ├── api/           # HTTP handlers, middleware, dispatcher
 │   ├── auth/          # JWT, password hashing, permissions
 │   ├── config/        # Config loader (env-based)
@@ -128,16 +128,14 @@ DATABASE_URL=postgres://user:pass@localhost:5432/sambung_ngaji?sslmode=disable
 JWT_SECRET=your-super-secret-key
 JWT_EXPIRY_HOURS=12
 
-# AI Providers
-AI_PROVIDER=omniroute
-OMNIROUTE_ENDPOINT=https://your-omniroute-endpoint
-OMNIROUTE_API_KEY=your-key
-OMNIROUTE_MODEL=auto/best-vision
-OMNIROUTE_TIMEOUT_SEC=60
+# AI Providers (semua gratis)
+AI_PROVIDER=groq
 GROQ_API_KEY=your-groq-key
-GROQ_MODEL=openai/gpt-oss-120b
-GEMINI_API_KEY=your-gemini-key
-GEMINI_MODEL=gemini-2.5-flash
+GROQ_MODEL=llama-3.3-70b-versatile
+CEREBRAS_API_KEY=your-cerebras-key
+CEREBRAS_MODEL=llama-3.3-70b
+OPENROUTER_API_KEY=your-openrouter-key
+OPENROUTER_MODEL=meta-llama/llama-3.3-70b-instruct:free
 
 # Supabase Storage (foto jamaah)
 SUPABASE_URL=https://xxx.supabase.co

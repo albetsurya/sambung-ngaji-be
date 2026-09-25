@@ -71,7 +71,7 @@ func (s *AIService) getStoredProvider(ctx context.Context) string {
 // SetProvider: simpan preferensi provider.
 func (s *AIService) SetProvider(ctx context.Context, provider string) error {
 	provider = strings.ToLower(strings.TrimSpace(provider))
-	allowed := map[string]bool{"omniroute": true, "gemini": true, "groq": true, "auto": true}
+	allowed := map[string]bool{"groq": true, "cerebras": true, "openrouter": true, "auto": true}
 	if !allowed[provider] {
 		return errors.New("provider tidak valid")
 	}
@@ -98,7 +98,7 @@ func (s *AIService) firstAvailable() string {
 			return name
 		}
 	}
-	return "omniroute"
+	return "groq"
 }
 
 // buildChain: tentukan urutan provider yang dicoba.
