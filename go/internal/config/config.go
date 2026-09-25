@@ -21,16 +21,14 @@ type Config struct {
 	DBMaxConnLifetime   string
 	DBMaxConnIdleTime   string
 	DBHealthCheckPeriod string
-	// AI
-	AIProvider        string
-	OmniRouteEndpoint string
-	OmniRouteAPIKey   string
-	OmniRouteModel    string
-	OmniRouteTimeout  int
-	GroqAPIKey        string
-	GroqModel         string
-	GeminiAPIKey      string
-	GeminiModel       string
+	// AI (semua gratis: Groq + Cerebras + OpenRouter)
+	AIProvider       string
+	GroqAPIKey       string
+	GroqModel        string
+	CerebrasAPIKey   string
+	CerebrasModel    string
+	OpenRouterAPIKey string
+	OpenRouterModel  string
 
 	SupabaseURL        string
 	SupabaseServiceKey string
@@ -55,15 +53,13 @@ func Load() (*Config, error) {
 		DBHealthCheckPeriod: getEnv("DB_HEALTH_CHECK_PERIOD", "30s"),
 	}
 
-	cfg.AIProvider = getEnv("AI_PROVIDER", "omniroute")
-	cfg.OmniRouteEndpoint = envTrim("OMNIROUTE_ENDPOINT")
-	cfg.OmniRouteAPIKey = envTrim("OMNIROUTE_API_KEY")
-	cfg.OmniRouteModel = getEnv("OMNIROUTE_MODEL", "auto/best-vision")
-	cfg.OmniRouteTimeout = getEnvInt("OMNIROUTE_TIMEOUT_SEC", 60)
+	cfg.AIProvider = getEnv("AI_PROVIDER", "groq")
 	cfg.GroqAPIKey = envTrim("GROQ_API_KEY")
-	cfg.GroqModel = getEnv("GROQ_MODEL", "openai/gpt-oss-120b")
-	cfg.GeminiAPIKey = envTrim("GEMINI_API_KEY")
-	cfg.GeminiModel = getEnv("GEMINI_MODEL", "gemini-3.6-flash")
+	cfg.GroqModel = getEnv("GROQ_MODEL", "llama-3.3-70b-versatile")
+	cfg.CerebrasAPIKey = envTrim("CEREBRAS_API_KEY")
+	cfg.CerebrasModel = getEnv("CEREBRAS_MODEL", "gpt-oss-120b")
+	cfg.OpenRouterAPIKey = envTrim("OPENROUTER_API_KEY")
+	cfg.OpenRouterModel = getEnv("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct:free")
 
 	cfg.SupabaseURL = envTrim("SUPABASE_URL")
 	cfg.SupabaseServiceKey = envTrim("SUPABASE_SERVICE_ROLE_KEY")

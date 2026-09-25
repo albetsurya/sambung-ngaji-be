@@ -42,21 +42,17 @@ func main() {
 	jwtMgr := auth.NewJWTManager(cfg.JWTSecret, cfg.JWTExpiryHrs)
 	authSvc := auth.NewService(db, jwtMgr)
 
-	providers := map[string]ai.Provider{
-		"omniroute": ai.NewOmniRoute(
-			cfg.OmniRouteEndpoint,
-			cfg.OmniRouteAPIKey,
-			cfg.OmniRouteModel,
-			time.Duration(cfg.OmniRouteTimeout)*time.Second,
-		),
-	}
+	providers := map[string]ai.Provider{}
 	if cfg.GroqAPIKey != "" {
 		providers["groq"] = ai.NewGroq(cfg.GroqAPIKey, cfg.GroqModel, 60*time.Second)
 	}
-	if cfg.GeminiAPIKey != "" {
-		providers["gemini"] = ai.NewGemini(cfg.GeminiAPIKey, cfg.GeminiModel, 60*time.Second)
+	if cfg.CerebrasAPIKey != "" {
+		providers["cerebras"] = ai.NewCerebras(cfg.CerebrasAPIKey, cfg.CerebrasModel, 60*time.Second)
 	}
-	providerOrder := []string{"omniroute", "gemini", "groq"}
+	if cfg.OpenRouterAPIKey != "" {
+		providers["openrouter"] = ai.NewOpenRouter(cfg.OpenRouterAPIKey, cfg.OpenRouterModel, 60*time.Second)
+	}
+	providerOrder := []string{"groq", "cerebras", "openrouter"}
 
 	app := fiber.New(fiber.Config{
 		AppName:      "Pengajian Backend",
