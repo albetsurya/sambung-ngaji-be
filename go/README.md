@@ -133,7 +133,7 @@ AI_PROVIDER=gemini
 GEMINI_API_KEY=your-gemini-key
 GEMINI_MODELS=gemini-3.8-flash,gemini-3.7-flash,gemini-3.6-flash,gemini-3.5-flash,gemini-2.5-pro
 GROQ_API_KEY=your-groq-key
-GROQ_MODELS=openai/gpt-oss-120b,openai/gpt-oss-20b,llama-3.1-8b-instant
+GROQ_MODELS=openai/gpt-oss-120b,openai/gpt-oss-20b,qwen/qwen3.8-27b
 NVIDIA_API_KEY=your-nvidia-key
 NVIDIA_MODELS=openai/gpt-oss-20b
 
