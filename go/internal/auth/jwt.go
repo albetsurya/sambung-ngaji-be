@@ -25,14 +25,17 @@ func NewJWTManager(secret string, ttlHours int) *JWTManager {
 
 func (m *JWTManager) TTL() time.Duration { return m.ttl }
 
-// Generate membuat JWT dengan claims session_id, user_id, role.
-func (m *JWTManager) Generate(sessionID, userID, role string) (string, error) {
+// Generate membuat JWT dengan claims session_id, user_id, role, group_id.
+func (m *JWTManager) Generate(sessionID, userID, role string, groupID ...string) (string, error) {
 	claims := jwt.MapClaims{
 		"sid":  sessionID,
 		"uid":  userID,
 		"role": role,
 		"iat":  time.Now().Unix(),
 		"exp":  time.Now().Add(m.ttl).Unix(),
+	}
+	if len(groupID) > 0 && groupID[0] != "" {
+		claims["gid"] = groupID[0]
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString(m.secret)
@@ -56,8 +59,12 @@ func (m *JWTManager) Parse(tokenStr string) (*model.SessionClaims, error) {
 	sid, _ := claims["sid"].(string)
 	uid, _ := claims["uid"].(string)
 	role, _ := claims["role"].(string)
+	var gid *string
+	if g, ok := claims["gid"].(string); ok && g != "" {
+		gid = &g
+	}
 	if sid == "" || uid == "" {
 		return nil, ErrInvalidToken
 	}
-	return &model.SessionClaims{SessionID: sid, UserID: uid, Role: role}, nil
+	return &model.SessionClaims{SessionID: sid, UserID: uid, Role: role, GroupID: gid}, nil
 }

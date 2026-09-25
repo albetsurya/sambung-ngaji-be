@@ -22,7 +22,8 @@ func parseMemberFilter(c *fiber.Ctx) model.MemberListFilter {
 
 func handleGetMembers(c *fiber.Ctx, svc *service.MemberService) error {
 	f := parseMemberFilter(c)
-	items, err := svc.GetMembers(c.Context(), f)
+	groupID := BodyString(c, "group_id")
+	items, err := svc.GetMembers(c.Context(), f, groupID)
 	if err != nil {
 		return Fail(c, "Gagal ambil members: "+err.Error())
 	}
@@ -31,7 +32,8 @@ func handleGetMembers(c *fiber.Ctx, svc *service.MemberService) error {
 
 func handleGetMembersPaged(c *fiber.Ctx, svc *service.MemberService) error {
 	f := parseMemberFilter(c)
-	items, total, err := svc.GetMembersPaged(c.Context(), f)
+	groupID := BodyString(c, "group_id")
+	items, total, err := svc.GetMembersPaged(c.Context(), f, groupID)
 	if err != nil {
 		return Fail(c, "Gagal ambil members: "+err.Error())
 	}
@@ -55,7 +57,8 @@ func handleGetMembersPaged(c *fiber.Ctx, svc *service.MemberService) error {
 func handleGetPNKBMembers(c *fiber.Ctx, svc *service.MemberService) error {
 	f := parseMemberFilter(c)
 	f.Kategori = "PRA_NIKAH"
-	items, err := svc.GetMembers(c.Context(), f)
+	groupID := BodyString(c, "group_id")
+	items, err := svc.GetMembers(c.Context(), f, groupID)
 	if err != nil {
 		return Fail(c, err.Error())
 	}
@@ -65,7 +68,8 @@ func handleGetPNKBMembers(c *fiber.Ctx, svc *service.MemberService) error {
 func handleGetPNKBMembersPaged(c *fiber.Ctx, svc *service.MemberService) error {
 	f := parseMemberFilter(c)
 	f.Kategori = "PRA_NIKAH"
-	items, total, err := svc.GetMembersPaged(c.Context(), f)
+	groupID := BodyString(c, "group_id")
+	items, total, err := svc.GetMembersPaged(c.Context(), f, groupID)
 	if err != nil {
 		return Fail(c, err.Error())
 	}
@@ -88,7 +92,8 @@ func handleGetPNKBMembersPaged(c *fiber.Ctx, svc *service.MemberService) error {
 
 func handleGetAttendanceMembers(c *fiber.Ctx, svc *service.MemberService) error {
 	f := parseMemberFilter(c)
-	items, err := svc.GetAttendanceMembers(c.Context(), f)
+	groupID := BodyString(c, "group_id")
+	items, err := svc.GetAttendanceMembers(c.Context(), f, groupID)
 	if err != nil {
 		return Fail(c, err.Error())
 	}
