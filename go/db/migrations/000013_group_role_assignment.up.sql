@@ -23,15 +23,3 @@ UPDATE users u
 SET group_id = g.group_id
 FROM groups g
 WHERE u.username = g.group_code;
-
--- 1e. Tambah updated_at trigger jika belum ada
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_trigger WHERE tgname = 'update_users_updated_at'
-  ) THEN
-    CREATE TRIGGER update_users_updated_at
-      BEFORE UPDATE ON users
-      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-  END IF;
-END$$;
