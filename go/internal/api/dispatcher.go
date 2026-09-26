@@ -191,7 +191,11 @@ func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, providers map[string
 
 	return &Services{
 		Auth:    authSvc,
-		Member:  service.NewMemberService(repository.NewMemberRepo(pool)),
+		Member: func() *service.MemberService {
+			s := service.NewMemberService(repository.NewMemberRepo(pool))
+			s.SetGroupRepo(repository.NewGroupRepo(pool))
+			return s
+		}(),
 		Group:   service.NewGroupService(repository.NewGroupRepo(pool)),
 		Meeting: service.NewMeetingService(repository.NewMeetingRepo(pool)),
 		BulkMeeting: service.NewBulkMeetingService(

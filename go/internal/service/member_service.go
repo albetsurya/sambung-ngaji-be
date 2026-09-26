@@ -11,6 +11,7 @@ import (
 
 type MemberService struct {
 	repo *repository.MemberRepo
+	groupRepo *repository.GroupRepo
 }
 
 func NewMemberService(repo *repository.MemberRepo) *MemberService {
@@ -18,6 +19,9 @@ func NewMemberService(repo *repository.MemberRepo) *MemberService {
 }
 
 func (s *MemberService) Repo() *repository.MemberRepo { return s.repo }
+
+func (s *MemberService) SetGroupRepo(gr *repository.GroupRepo) { s.groupRepo = gr }
+func (s *MemberService) GroupRepo() *repository.GroupRepo { return s.groupRepo }
 
 func (s *MemberService) GetMembers(ctx context.Context, f model.MemberListFilter, groupID string) ([]model.MemberListDTO, error) {
 	all, err := s.repo.FindAllByGroup(ctx, groupID)

@@ -7,13 +7,21 @@ import (
 )
 
 func handleCreateMember(c *fiber.Ctx, svc *service.MemberService) error {
+	claims := ClaimsOf(c)
+	groupName := ""
+	if claims != nil && claims.Role != "SUPER_ADMIN" && claims.GroupID != nil && *claims.GroupID != "" {
+		if grp, err := svc.GroupRepo().FindByID(c.Context(), *claims.GroupID); err == nil && grp != nil {
+			groupName = grp.GroupName
+		}
+	}
+
 	in := service.CreateMemberInput{
 		NamaLengkap:            BodyString(c, "nama_lengkap"),
 		NamaPanggilan:          BodyString(c, "nama_panggilan"),
 		JenisKelamin:           BodyString(c, "jenis_kelamin"),
 		TempatLahir:            BodyString(c, "tempat_lahir"),
 		TanggalLahir:           BodyString(c, "tanggal_lahir"),
-		Kelompok:               BodyString(c, "kelompok"),
+		Kelompok:               func() string { if groupName != "" { return groupName }; return BodyString(c, "kelompok") }(),
 		Desa:                   BodyString(c, "desa"),
 		Daerah:                 BodyString(c, "daerah"),
 		AlamatRumah:            BodyString(c, "alamat_rumah"),
@@ -44,6 +52,13 @@ func handleCreateMember(c *fiber.Ctx, svc *service.MemberService) error {
 func handleUpdateMember(c *fiber.Ctx, svc *service.MemberService) error {
 	body := BodyOf(c)
 	in := service.UpdateMemberInput{MemberID: BodyString(c, "member_id")}
+
+	claims := ClaimsOf(c)
+	if claims != nil && claims.Role != "SUPER_ADMIN" && claims.GroupID != nil && *claims.GroupID != "" {
+		if grp, err := svc.GroupRepo().FindByID(c.Context(), *claims.GroupID); err == nil && grp != nil {
+			body["kelompok"] = grp.GroupName
+		}
+	}
 
 	pickStr := func(k string) *string {
 		if v, ok := body[k].(string); ok {
