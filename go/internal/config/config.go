@@ -15,14 +15,11 @@ type Config struct {
 	DatabaseURL  string
 	JWTSecret    string
 	JWTExpiryHrs int
-	// DB Pool
 	DBMaxConns          int
 	DBMinConns          int
 	DBMaxConnLifetime   string
 	DBMaxConnIdleTime   string
 	DBHealthCheckPeriod string
-	// AI (Gemini utama, Groq + Nvidia fallback — ketiganya gratis)
-	// Tiap provider coba daftar model berurutan sampai ada yang sukses.
 	AIProvider   string
 	GeminiAPIKey string
 	GeminiModels []string
@@ -37,7 +34,6 @@ type Config struct {
 }
 
 func Load() (*Config, error) {
-	// .env opsional — di production pakai secrets platform
 	_ = godotenv.Load()
 
 	cfg := &Config{
@@ -46,7 +42,6 @@ func Load() (*Config, error) {
 		DatabaseURL:  envTrim("DATABASE_URL"),
 		JWTSecret:    envTrim("JWT_SECRET"),
 		JWTExpiryHrs: getEnvInt("JWT_EXPIRY_HOURS", 12),
-		// DB Pool defaults
 		DBMaxConns:          getEnvInt("DB_MAX_CONNS", 10),
 		DBMinConns:          getEnvInt("DB_MIN_CONNS", 1),
 		DBMaxConnLifetime:   getEnv("DB_MAX_CONN_LIFETIME", "1h"),
@@ -76,7 +71,6 @@ func Load() (*Config, error) {
 	return cfg, nil
 }
 
-// envTrim: baca env var + trim whitespace (proteksi newline dari paste).
 func envTrim(key string) string {
 	return strings.TrimSpace(os.Getenv(key))
 }
@@ -88,8 +82,6 @@ func getEnv(key, fallback string) string {
 	return fallback
 }
 
-// getEnvList: baca daftar model koma-separated.
-// Prioritas: LIST_KEY (baru) > SINGLE_KEY (lama, 1 model) > default.
 func getEnvList(listKey, singleKey, def string) []string {
 	if v := strings.TrimSpace(os.Getenv(listKey)); v != "" {
 		return splitList(v)

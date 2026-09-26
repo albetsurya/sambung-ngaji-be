@@ -139,8 +139,6 @@ func handleResetUserPassword(c *fiber.Ctx, svc *service.UserService) error {
 	return Ok(c, fiber.Map{"reset": true})
 }
 
-// handleDeleteUserPermanent — hapus user + member permanen.
-// Hanya SUPER_ADMIN. Aksi destruktif, tidak bisa dibatalkan.
 func handleDeleteUserPermanent(c *fiber.Ctx, svc *service.UserService) error {
 	u := UserOf(c)
 	if u == nil {

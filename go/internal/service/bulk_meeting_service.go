@@ -81,7 +81,6 @@ func buildDateList(p BulkParams) []time.Time {
 		return nil
 	}
 
-	// hari terakhir di bulan tsb
 	daysInMonth := time.Date(p.Tahun, time.Month(p.Bulan)+1, 0, 0, 0, 0, 0, time.UTC).Day()
 	out := []time.Time{}
 	for d := 1; d <= daysInMonth; d++ {

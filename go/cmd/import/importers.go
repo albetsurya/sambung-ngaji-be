@@ -8,7 +8,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-/* ---------- settings ---------- */
 
 func importSettings(ctx context.Context, pool *pgxpool.Pool, rows []map[string]string) error {
 	sql := `INSERT INTO settings (key, value, updated_at) VALUES ($1,$2,$3)
@@ -30,7 +29,6 @@ func importSettings(ctx context.Context, pool *pgxpool.Pool, rows []map[string]s
 	return nil
 }
 
-/* ---------- announcement_templates ---------- */
 
 func importAnnouncementTemplates(ctx context.Context, pool *pgxpool.Pool, rows []map[string]string) error {
 	sql := `INSERT INTO announcement_templates
@@ -61,7 +59,6 @@ func importAnnouncementTemplates(ctx context.Context, pool *pgxpool.Pool, rows [
 	return nil
 }
 
-/* ---------- members ---------- */
 
 func importMembers(ctx context.Context, pool *pgxpool.Pool, rows []map[string]string) error {
 	sql := `INSERT INTO members (
@@ -128,7 +125,6 @@ func importMembers(ctx context.Context, pool *pgxpool.Pool, rows []map[string]st
 	return nil
 }
 
-/* ---------- groups ---------- */
 
 func importGroups(ctx context.Context, pool *pgxpool.Pool, rows []map[string]string) error {
 	sql := `INSERT INTO groups
@@ -160,10 +156,8 @@ func importGroups(ctx context.Context, pool *pgxpool.Pool, rows []map[string]str
 	return nil
 }
 
-/* ---------- users ---------- */
 
 func importUsers(ctx context.Context, pool *pgxpool.Pool, rows []map[string]string) error {
-	// Load valid member_ids
 	existing := map[string]bool{}
 	rs, err := pool.Query(ctx, "SELECT member_id FROM members")
 	if err != nil {
@@ -219,7 +213,6 @@ func importUsers(ctx context.Context, pool *pgxpool.Pool, rows []map[string]stri
 	return nil
 }
 
-/* ---------- meetings ---------- */
 
 func importMeetings(ctx context.Context, pool *pgxpool.Pool, rows []map[string]string) error {
 	sql := `INSERT INTO meetings
@@ -270,7 +263,6 @@ func importMeetings(ctx context.Context, pool *pgxpool.Pool, rows []map[string]s
 	return nil
 }
 
-/* ---------- attendance ---------- */
 
 func importAttendance(ctx context.Context, pool *pgxpool.Pool, rows []map[string]string) error {
 	sql := `INSERT INTO attendance
@@ -302,7 +294,6 @@ func importAttendance(ctx context.Context, pool *pgxpool.Pool, rows []map[string
 	return nil
 }
 
-/* ---------- monitoring ---------- */
 
 func importMonitoring(ctx context.Context, pool *pgxpool.Pool, rows []map[string]string) error {
 	sql := `INSERT INTO monitoring
@@ -338,7 +329,6 @@ func importMonitoring(ctx context.Context, pool *pgxpool.Pool, rows []map[string
 	return nil
 }
 
-/* ---------- announcements ---------- */
 
 func importAnnouncements(ctx context.Context, pool *pgxpool.Pool, rows []map[string]string) error {
 	sql := `INSERT INTO announcements
@@ -374,7 +364,6 @@ func importAnnouncements(ctx context.Context, pool *pgxpool.Pool, rows []map[str
 	return nil
 }
 
-/* ---------- pending_members ---------- */
 
 func importPendingMembers(ctx context.Context, pool *pgxpool.Pool, rows []map[string]string) error {
 	sql := `INSERT INTO pending_members
@@ -438,7 +427,6 @@ func importPendingMembers(ctx context.Context, pool *pgxpool.Pool, rows []map[st
 	return nil
 }
 
-/* ---------- audit_logs ---------- */
 
 func importAuditLogs(ctx context.Context, pool *pgxpool.Pool, rows []map[string]string) error {
 	sql := `INSERT INTO audit_logs
@@ -470,7 +458,6 @@ func importAuditLogs(ctx context.Context, pool *pgxpool.Pool, rows []map[string]
 	return nil
 }
 
-/* ---------- ai_usage ---------- */
 
 func importAiUsage(ctx context.Context, pool *pgxpool.Pool, rows []map[string]string) error {
 	sql := `INSERT INTO ai_usage
@@ -513,7 +500,6 @@ func atoi(s string) int {
 	return n
 }
 
-/* ---------- wa_queue ---------- */
 
 func importWaQueue(ctx context.Context, pool *pgxpool.Pool, rows []map[string]string) error {
 	sql := `INSERT INTO wa_queue

@@ -15,14 +15,6 @@ import (
 	"pengajian-backend/internal/repository"
 )
 
-// FridayReminderService — kirim info petugas Jumat besok ke grup WA pengurus
-// via Fonnte. Dipanggil dari cron tiap 1 jam, tapi hanya benar-benar mengirim
-// pada hari Kamis jam 12 siang WIB untuk Jumat keesokan harinya, sekali per
-// jadwal (kolom reminder_sent_at sebagai anti double-kirim).
-//
-// Override untuk pengujian:
-//   - FRIDAY_REMINDER_FORCE=true → abaikan jendela hari/jam.
-//   - FRIDAY_REMINDER_DATE=YYYY-MM-DD → tanggal target (default: besok).
 type FridayReminderService struct {
 	repo     *repository.FridayRepo
 	settings *repository.SettingsRepo
@@ -43,7 +35,6 @@ func NewFridayReminderService(
 	}
 }
 
-// ReminderStatus — kondisi kesiapan kirim untuk indikator aplikasi.
 type ReminderStatus struct {
 	ServerNow     string                    `json:"server_now"`
 	ServerWeekday string                    `json:"server_weekday"`
@@ -86,7 +77,6 @@ func (s *FridayReminderService) GetReminderStatus(ctx context.Context) (*Reminde
 	}, nil
 }
 
-// nextThursdayNoon — Kamis 12:00 berikutnya (termasuk hari ini bila Kamis pagi).
 func nextThursdayNoon(now time.Time) time.Time {
 	d := now
 	for {
@@ -103,10 +93,6 @@ func nextThursdayNoon(now time.Time) time.Time {
 	}
 }
 
-// RunOnce — kirim sekali kalau waktunya tepat dan ada jadwal belum terkirim.
-// Mode manual (default): set FRIDAY_REMINDER_ENABLED=true untuk mengaktifkan
-// pengiriman otomatis. Tanpa itu, pengiriman dilakukan manual dari aplikasi
-// lalu ditandai via MarkSent.
 func (s *FridayReminderService) RunOnce(ctx context.Context) error {
 	if os.Getenv("FRIDAY_REMINDER_ENABLED") != "true" {
 		return nil
@@ -128,8 +114,6 @@ func (s *FridayReminderService) RunOnce(ctx context.Context) error {
 	}
 
 	if !force {
-		// Hanya Kamis jam 12 siang (12:00–12:59 waktu lokal,
-		// container TZ=Asia/Jakarta), dan target harus hari Jumat (besok).
 		if now.Weekday() != time.Thursday {
 			return nil
 		}
@@ -196,7 +180,6 @@ func buildFridayReminderMessage(f *model.FridaySchedule) string {
 	return b.String()
 }
 
-// MarkSent — tandai jadwal sudah dikirim manual (tombol aplikasi).
 func (s *FridayReminderService) MarkSent(ctx context.Context, tanggal string) error {
 	if tanggal == "" {
 		return errors.New("tanggal wajib diisi (YYYY-MM-DD)")

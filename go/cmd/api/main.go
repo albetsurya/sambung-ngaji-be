@@ -31,7 +31,6 @@ func main() {
 		log.Fatal().Err(err).Msg("gagal load config")
 	}
 
-	// Use background context for DB connection (no timeout on startup)
 	db, err := database.Connect(context.Background(), cfg.DatabaseURL, cfg)
 	if err != nil {
 		log.Fatal().Err(err).Msg("gagal koneksi database")
@@ -60,8 +59,6 @@ func main() {
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,
 		BodyLimit:    2 * 1024 * 1024,
-		// Render berjalan di balik proxy: baca client IP dari X-Forwarded-For
-		// hanya bila request datang dari proxy tepercaya (Render).
 		ProxyHeader:             fiber.HeaderXForwardedFor,
 		EnableTrustedProxyCheck: true,
 		TrustedProxies:          []string{"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"},
@@ -71,7 +68,6 @@ func main() {
 			if errors.As(err, &e) {
 				code = e.Code
 			}
-			// Jangan bocorkan detail error internal ke klien; log di server.
 			log.Error().Err(err).Str("path", c.Path()).Msg("request error")
 			msg := "Gagal memproses permintaan"
 			if code >= 400 && code < 500 {
@@ -85,7 +81,6 @@ func main() {
 		},
 	})
 
-	// Security headers
 	app.Use(helmet.New(helmet.Config{
 		XSSProtection:      "1; mode=block",
 		ContentTypeNosniff: "nosniff",
@@ -94,10 +89,6 @@ func main() {
 		HSTSMaxAge:         31536000,
 	}))
 
-	// CORS — allowlist origin frontend via CORS_ORIGINS (koma-separated).
-	// Cth: CORS_ORIGINS=https://app.example.com,https://app.vercel.app
-	// Default mencakup 5173 & 5174 karena port 5173 sering kepakai proses
-	// vite lain sehingga frontend sambung-ngaji jalan di 5174.
 	corsOrigins := os.Getenv("CORS_ORIGINS")
 	if corsOrigins == "" {
 		corsOrigins = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,https://sambung-ngaji.vercel.app,https://sambung-ngaji-staging.vercel.app,https://sambung-ngaji-stag.vercel.app,https://sambung-ngaji-dev.vercel.app"
@@ -106,25 +97,17 @@ func main() {
 		AllowOrigins: corsOrigins,
 		AllowMethods: "GET,POST,PUT,DELETE,OPTIONS",
 		AllowHeaders: "Content-Type,Authorization,ngrok-skip-browser-warning",
-		// Wajib true agar browser mengirim/menyimpan HttpOnly cookie
-		// sesi (credentials:include). Aman karena origin di-allowlist.
 		AllowCredentials: true,
 		MaxAge:           3600,
 	}))
 
-	// Request ID middleware for correlation logging
 	app.Use(api.RequestIDMiddleware())
 
-	// Prometheus metrics middleware
 	app.Use(api.MetricsMiddleware())
 
-	// Rate limiting middleware — global longgar + login ketat.
-	// Login dibatasi per-IP+username agar brute-force per akun tetap kena throttle
-	// walau attacker rotasi IP, dan per-IP agar rotasi username tetap kena.
 	app.Use(api.RateLimiterMiddleware(api.DefaultRateLimiterConfig(), nil))
 	app.Use(api.LoginRateLimiterMiddleware())
 
-	// Logging middleware with correlation ID
 	app.Use(api.LoggingMiddleware(&log.Logger))
 
 	handler.RegisterHealth(app, db)
@@ -136,18 +119,13 @@ func main() {
 	services := api.NewServices(db, authSvc, providers, providerOrder, storageSvc)
 	api.RegisterAPI(app, services)
 
-	// Cron eksternal (dipanggil cron-job.org tiap 1 jam)
 	api.SetCronServices(services)
 	app.Post("/cron/reminder", api.HandleCronReminder)
 
 	log.Info().Strs("actions", api.ListRegisteredActions()).Msg("actions terdaftar")
 
-	// Create a context that will be cancelled on shutdown signal
 	shutdownCtx, shutdownCancel := context.WithCancel(context.Background())
 
-	// Cron reminder WA — cek tiap jam:
-	// - Reminder meeting H-8 jam (mati default, MEETING_REMINDER_ENABLED=true)
-	// - Info petugas Jumat: Kamis jam 12 siang WIB untuk Jumat besok.
 	go func() {
 		ticker := time.NewTicker(1 * time.Hour)
 		defer ticker.Stop()
@@ -187,9 +165,8 @@ func main() {
 	<-quit
 
 	log.Info().Msg("shutdown signal received, draining connections...")
-	shutdownCancel() // Cancel context for any background work
+	shutdownCancel()
 
-	// Graceful shutdown with timeout
 	shutdownTimeout := 15 * time.Second
 	if err := app.ShutdownWithTimeout(shutdownTimeout); err != nil {
 		log.Error().Err(err).Msg("shutdown error")

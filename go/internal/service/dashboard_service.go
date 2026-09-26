@@ -49,8 +49,6 @@ type GeneralDashboard struct {
 	DataBelumLengkap     int                    `json:"data_belum_lengkap"`
 }
 
-// GetGeneral: total 4 query (members, meetings, attendance-by-meeting, attendance-by-member).
-// Sebelumnya N+1 — sekarang O(1) query.
 func (s *DashboardService) GetGeneral(ctx context.Context, groupID string) (*GeneralDashboard, error) {
 	members, err := s.memberRepo.FindAllByGroup(ctx, groupID)
 	if err != nil {
@@ -62,7 +60,6 @@ func (s *DashboardService) GetGeneral(ctx context.Context, groupID string) (*Gen
 		return nil, err
 	}
 
-	// ===== Batch fetch attendance =====
 
 	meetingIDs := make([]string, 0, len(meetings))
 	for _, m := range meetings {
@@ -82,13 +79,11 @@ func (s *DashboardService) GetGeneral(ctx context.Context, groupID string) (*Gen
 		return nil, err
 	}
 
-	// Group attendance per member (urutan tetap DESC by created_at).
 	attGrouped := make(map[string][]model.Attendance, len(members))
 	for _, a := range attByMember {
 		attGrouped[a.MemberID] = append(attGrouped[a.MemberID], a)
 	}
 
-	// ===== Kategori =====
 
 	perKategori := map[string]int{
 		util.KatBalita: 0, util.KatCaberawit: 0, util.KatPraRemaja: 0,
@@ -99,7 +94,6 @@ func (s *DashboardService) GetGeneral(ctx context.Context, groupID string) (*Gen
 		perKategori[k]++
 	}
 
-	// ===== Pengajian terdekat =====
 
 	today := time.Now().Format("2006-01-02")
 	var upcoming *model.Meeting
@@ -116,7 +110,6 @@ func (s *DashboardService) GetGeneral(ctx context.Context, groupID string) (*Gen
 		upcoming = &futureMeetings[0]
 	}
 
-	// ===== Rata-rata kehadiran (pakai attByMeeting flat) =====
 
 	liburMeetingIDs := util.LiburMeetingIDs(meetings)
 
@@ -135,7 +128,6 @@ func (s *DashboardService) GetGeneral(ctx context.Context, groupID string) (*Gen
 		rate = (hadirCount * 100) / allCount
 	}
 
-	// ===== Attention list (pakai attGrouped) =====
 
 	meetingDates := make(map[string]time.Time, len(meetings))
 	for _, m := range meetings {
@@ -144,7 +136,6 @@ func (s *DashboardService) GetGeneral(ctx context.Context, groupID string) (*Gen
 
 	attention := s.buildAttentionList(members, attGrouped, meetingDates, liburMeetingIDs)
 
-	// ===== Data belum lengkap =====
 
 	incomplete := 0
 	for _, m := range members {
@@ -175,13 +166,6 @@ func (s *DashboardService) GetGeneral(ctx context.Context, groupID string) (*Gen
 	}, nil
 }
 
-// buildAttentionList: terima attendance yang sudah di-preload per member + map tanggal meeting.
-// Aturan flag (window rolling 30 hari terakhir dari hari ini):
-//   - Kehadiran < 50% dalam 30 hari (minimal 3 absensi di window)
-//   - SAKIT >= 3 pertemuan berturut-turut (run maksimal di window)
-//   - ALPA >= 5 pertemuan berturut-turut (run maksimal di window)
-//
-// Plus status pembinaan & data lama (dari logika sebelumnya).
 func (s *DashboardService) buildAttentionList(
 	members []model.Member,
 	attByMember map[string][]model.Attendance,
@@ -194,7 +178,6 @@ func (s *DashboardService) buildAttentionList(
 	for _, m := range members {
 		rows := attByMember[m.MemberID]
 
-		// Ambil absensi dalam window 30 hari + urutkan tanggal meeting terbaru dulu
 		window := make([]model.Attendance, 0, len(rows))
 		for _, r := range rows {
 			if liburMeetingIDs[r.MeetingID] {
@@ -210,7 +193,6 @@ func (s *DashboardService) buildAttentionList(
 
 		reasons := []string{}
 
-		// 1. Kehadiran < 50% dalam 30 hari
 		if len(window) >= 3 {
 			hadir := 0
 			for _, r := range window {
@@ -224,12 +206,10 @@ func (s *DashboardService) buildAttentionList(
 			}
 		}
 
-		// 2. SAKIT >= 3 berturut dalam window
 		if run := maxConsecutiveRun(window, "SAKIT"); run >= 3 {
 			reasons = append(reasons, "Sakit "+strconv.Itoa(run)+" pertemuan berturut-turut")
 		}
 
-		// 3. ALPA >= 5 berturut dalam window
 		if run := maxConsecutiveRun(window, "ALPA"); run >= 5 {
 			reasons = append(reasons, "Tanpa keterangan "+strconv.Itoa(run)+" pertemuan berturut-turut")
 		}
@@ -256,10 +236,6 @@ func (s *DashboardService) buildAttentionList(
 	return out
 }
 
-// maxConsecutiveRun: panjang run terpanjang status tertentu pada window yang
-// sudah diurutkan tanggal terbaru→terlama. "Berturut-turut" = record absensi
-// yang urut (pertemuan berurutan), bukan adjacency hari kalender (pengajian
-// tidak harian).
 func maxConsecutiveRun(window []model.Attendance, status string) int {
 	maxRun, cur := 0, 0
 	for _, r := range window {
@@ -275,7 +251,6 @@ func maxConsecutiveRun(window []model.Attendance, status string) int {
 	return maxRun
 }
 
-/* ===== My Dashboard (MEMBER) ===== */
 
 type MyDashboard struct {
 	Profile    map[string]interface{}   `json:"profile"`

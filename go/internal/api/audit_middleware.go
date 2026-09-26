@@ -10,7 +10,6 @@ import (
 	"pengajian-backend/internal/service"
 )
 
-// AuditableActions — whitelist action yang perlu di-audit.
 var AuditableActions = map[string]bool{
 	"createMember":                   true,
 	"updateMember":                   true,
@@ -81,7 +80,6 @@ var actionToTargetType = map[string]string{
 	"setAIProvider":        "settings",
 }
 
-// AuditMiddleware — auto-log action mutation yang sukses.
 func AuditMiddleware(auditSvc *service.AuditService) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		err := c.Next()

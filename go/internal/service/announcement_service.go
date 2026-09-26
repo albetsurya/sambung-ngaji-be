@@ -34,7 +34,6 @@ func NewAnnouncementService(
 
 var jadwalRutin = []string{"Minggu", "Selasa", "Kamis"}
 
-/* ===== Templates ===== */
 
 func (s *AnnouncementService) GetTemplates(ctx context.Context, groupID string, includeInactive bool) ([]model.AnnouncementTemplateDTO, error) {
 	tpl, err := s.repo.FindTemplates(ctx, groupID, includeInactive)
@@ -181,7 +180,6 @@ func (s *AnnouncementService) CreateTemplateFromAnnouncement(ctx context.Context
 	})
 }
 
-/* ===== Generate ===== */
 
 type GenerateAnnouncementInput struct {
 	TemplateID    string
@@ -252,7 +250,6 @@ func (s *AnnouncementService) Generate(ctx context.Context, in GenerateAnnouncem
 	}, nil
 }
 
-/* ===== CRUD Announcements ===== */
 
 type CreateAnnouncementInput struct {
 	TemplateID string
@@ -396,7 +393,6 @@ func (s *AnnouncementService) GetRecipientSummary(ctx context.Context, groupID s
 	}, nil
 }
 
-/* ===== Helpers ===== */
 
 func toTemplateDTO(t model.AnnouncementTemplate) model.AnnouncementTemplateDTO {
 	gid := ""

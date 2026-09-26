@@ -44,8 +44,6 @@ func NewAIToolExecutor(
 	}
 }
 
-// Execute: dispatch tool by name.
-// context: userID (untuk audit), memberID (kalau MEMBER), isMember bool.
 func (e *AIToolExecutor) Execute(ctx context.Context, name string, args map[string]interface{}, userID, memberID string, isMember bool) (interface{}, error) {
 	switch name {
 	case "get_dashboard_summary":
@@ -98,7 +96,6 @@ func (e *AIToolExecutor) Execute(ctx context.Context, name string, args map[stri
 		if err != nil {
 			return nil, err
 		}
-		// Filter dari hari ini
 		return capItems(meetings, limit), nil
 
 	case "get_monitoring_list":
@@ -107,7 +104,6 @@ func (e *AIToolExecutor) Execute(ctx context.Context, name string, args map[stri
 		if memberIDArg != "" {
 			return e.monitoring.FindByMember(ctx, memberIDArg)
 		}
-		// Kalau tanpa member_id, hanya bisa lihat per member. Return empty.
 		_ = status
 		return []interface{}{}, nil
 
@@ -120,7 +116,6 @@ func (e *AIToolExecutor) Execute(ctx context.Context, name string, args map[stri
 		}
 		return capItems(items, 100), nil
 
-	// ===== Member tools =====
 
 	case "get_my_profile":
 		if memberID == "" {
@@ -157,7 +152,6 @@ func (e *AIToolExecutor) Execute(ctx context.Context, name string, args map[stri
 	return nil, fmt.Errorf("tool tidak dikenal: %s", name)
 }
 
-/* ===== helpers ===== */
 
 func (e *AIToolExecutor) attendanceSummary(ctx context.Context, from, to, groupID string) (map[string]interface{}, error) {
 	meetings, err := e.meeting.GetMeetings(ctx, model.MeetingListFilter{From: from, To: to, GroupID: groupID})
@@ -229,8 +223,6 @@ func (e *AIToolExecutor) myAttendanceStats(ctx context.Context, memberID string)
 }
 
 func capItems(items interface{}, limit int) interface{} {
-	// Reflection-less: kalau slice, kita limit via type switch
-	// Ini untuk mencegah AI dapat data terlalu banyak.
 	return items
 }
 

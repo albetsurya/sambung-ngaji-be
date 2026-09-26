@@ -87,7 +87,6 @@ func (s *AttendanceService) SaveAttendance(ctx context.Context, in SaveAttendanc
 		return nil, errors.New("status absensi tidak valid")
 	}
 
-	// Guard: tidak bisa absen di meeting yang berstatus LIBUR
 	meeting, err := s.meetingRepo.FindByID(ctx, in.MeetingID)
 	if err != nil {
 		return nil, errors.New("meeting tidak ditemukan")
@@ -152,7 +151,6 @@ func (s *AttendanceService) BulkSave(ctx context.Context, in BulkSaveInput) (*Bu
 		return nil, errors.New("items wajib diisi")
 	}
 
-	// Guard: tidak bisa absen di meeting yang berstatus LIBUR
 	meeting, err := s.meetingRepo.FindByID(ctx, in.MeetingID)
 	if err != nil {
 		return nil, errors.New("meeting tidak ditemukan")

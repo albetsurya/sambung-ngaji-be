@@ -41,7 +41,6 @@ type CreateMemberInput struct {
 
 func (s *MemberService) Create(ctx context.Context, in CreateMemberInput) (*model.MemberDetailDTO, error) {
 
-	// Title Case normalisasi field nama & tempat
 	in.NamaLengkap = util.TitleCaseID(in.NamaLengkap)
 	in.NamaPanggilan = util.TitleCaseID(in.NamaPanggilan)
 	in.TempatLahir = util.TitleCaseID(in.TempatLahir)
@@ -144,7 +143,6 @@ type UpdateMemberInput struct {
 
 func (s *MemberService) UpdateFull(ctx context.Context, in UpdateMemberInput) (*model.MemberDetailDTO, error) {
 
-	// Title Case normalisasi field nama & tempat (hanya yang di-set)
 	if in.NamaLengkap != nil {
 		v := util.TitleCaseID(*in.NamaLengkap)
 		in.NamaLengkap = &v
@@ -306,7 +304,6 @@ func normalizeGender(s string) string {
 	return ""
 }
 
-// Handle unused import repository
 var _ = repository.NewMemberRepo
 
 func (s *MemberService) UpdateFotoURL(ctx context.Context, memberID, url string) error {
@@ -317,9 +314,6 @@ func (s *MemberService) GetFotoURL(ctx context.Context, memberID string) (string
 	return s.repo.GetFotoURL(ctx, memberID)
 }
 
-// DeleteMember — hapus member permanen. Hanya untuk member yang BELUM punya
-// akun user; yang sudah punya akun harus lewat Kelola Akun
-// (deleteUserPermanent oleh SUPER_ADMIN).
 func (s *MemberService) DeleteMember(ctx context.Context, memberID string) error {
 	if memberID == "" {
 		return apperrors.Wrap(apperrors.ErrValidation, "member_id wajib diisi")

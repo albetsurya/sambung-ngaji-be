@@ -2,7 +2,6 @@ package ai
 
 import "pengajian-backend/internal/model"
 
-// AdminTools: 9 tool dari AI_TOOL_DEFS_ di Apps Script.
 func AdminTools() []model.LLMToolDef {
 	return []model.LLMToolDef{
 		{
@@ -130,7 +129,6 @@ func AdminTools() []model.LLMToolDef {
 	}
 }
 
-// MemberTools: 5 tool dari AI_TOOL_DEFS_MEMBER_ di Apps Script.
 func MemberTools() []model.LLMToolDef {
 	return []model.LLMToolDef{
 		{

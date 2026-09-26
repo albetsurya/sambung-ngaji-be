@@ -2,10 +2,8 @@ package api
 
 import "github.com/gofiber/fiber/v2"
 
-// LocalsSuccess — flag untuk middleware audit baca hasil handler.
 const LocalsSuccess = "success"
 
-// Envelope response — KONTRAK INI HARUS DIPERTAHANKAN.
 type Envelope struct {
 	Success bool        `json:"success"`
 	Data    interface{} `json:"data"`

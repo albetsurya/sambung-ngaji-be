@@ -4,8 +4,6 @@ import (
 	"context"
 )
 
-// Update: patch kolom members sesuai map (whitelist di service).
-// Key harus nama kolom Postgres yang valid.
 func (r *MemberRepo) Update(ctx context.Context, id string, patch map[string]interface{}) error {
 	if len(patch) == 0 {
 		return nil

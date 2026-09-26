@@ -16,8 +16,6 @@ type User struct {
 	LastLoginAt  *time.Time
 }
 
-// PublicUser = bentuk user yang dikirim ke frontend,
-// kompatibel dengan publicUser_() di Apps Script.
 type PublicUser struct {
 	UserID       string `json:"user_id"`
 	Username     string `json:"username"`
@@ -29,7 +27,6 @@ type PublicUser struct {
 	FotoURL      string `json:"foto_url"`
 }
 
-// SessionClaims untuk JWT.
 type SessionClaims struct {
 	SessionID string  `json:"sid"`
 	UserID    string  `json:"uid"`

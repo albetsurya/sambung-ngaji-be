@@ -36,7 +36,6 @@ func NewGemini(apiKey string, models []string, timeout time.Duration) Provider {
 
 func (g *Gemini) Name() string { return "gemini" }
 
-// ===== Gemini wire format =====
 
 type gemPart struct {
 	Text             string       `json:"text,omitempty"`
@@ -112,8 +111,6 @@ func (g *Gemini) Chat(ctx context.Context, messages []model.LLMMessage, tools []
 	return result, err
 }
 
-// doChat: coba tiap model berurutan sampai ada yang sukses.
-// Gagal di satu model (404/403/kuota) bukan akhir — lanjut ke model berikut.
 func (g *Gemini) doChat(ctx context.Context, messages []model.LLMMessage, tools []model.LLMToolDef) (*LLMResult, error) {
 	var lastErr error
 	for _, m := range g.models {
@@ -138,8 +135,7 @@ func (g *Gemini) doChatOnce(ctx context.Context, messages []model.LLMMessage, to
 	}
 	var sysText strings.Builder
 
-	// Konversi messages → contents
-	toolCallIDToName := map[string]string{} // untuk memetakan tool_call_id → nama fungsi
+	toolCallIDToName := map[string]string{}
 
 	for _, m := range messages {
 		switch m.Role {
@@ -171,7 +167,6 @@ func (g *Gemini) doChatOnce(ctx context.Context, messages []model.LLMMessage, to
 						Args: args,
 					},
 				})
-				// Simpan mapping ID → nama (untuk tool response)
 				toolCallIDToName[tc.ID] = tc.Function.Name
 			}
 			if len(parts) == 0 {
@@ -183,7 +178,6 @@ func (g *Gemini) doChatOnce(ctx context.Context, messages []model.LLMMessage, to
 			})
 
 		case "tool":
-			// Cari nama fungsi. Kalau tidak ada di map, fallback ke tool_call_id.
 			name := toolCallIDToName[m.ToolCallID]
 			if name == "" {
 				name = m.ToolCallID
@@ -279,7 +273,7 @@ func (g *Gemini) doChatOnce(ctx context.Context, messages []model.LLMMessage, to
 		if p.FunctionCall != nil {
 			argsBytes, _ := json.Marshal(p.FunctionCall.Args)
 			result.ToolCalls = append(result.ToolCalls, model.LLMToolCall{
-				ID:   "gem_" + p.FunctionCall.Name, // Gemini tidak kasih ID, kita generate
+				ID:   "gem_" + p.FunctionCall.Name,
 				Type: "function",
 				Function: model.LLMToolCallFunc{
 					Name:      p.FunctionCall.Name,

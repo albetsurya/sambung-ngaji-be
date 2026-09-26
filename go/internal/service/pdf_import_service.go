@@ -11,9 +11,8 @@ import (
 	"pengajian-backend/internal/util"
 )
 
-// ParsedPdfMeeting — hasil parsing AI dari text PDF.
 type ParsedPdfMeeting struct {
-	Tanggal string          `json:"tanggal"` // YYYY-MM-DD
+	Tanggal string          `json:"tanggal"`
 	Hari    string          `json:"hari"`
 	Acara   string          `json:"acara"`
 	Tempat  string          `json:"tempat"`
@@ -67,7 +66,6 @@ ATURAN:
 TEKS PDF:
 `
 
-// ParsePDF menerima text mentah dari PDF, return structured JSON.
 func (s *PDFImportService) ParsePDF(ctx context.Context, rawText string) (*ParsedPdfMeeting, error) {
 	if strings.TrimSpace(rawText) == "" {
 		return nil, errors.New("teks PDF kosong")
@@ -121,7 +119,6 @@ func (s *PDFImportService) ParsePDF(ctx context.Context, rawText string) (*Parse
 	return &parsed, nil
 }
 
-/* ===== helpers ===== */
 
 func stripCodeBlock(s string) string {
 	s = strings.TrimSpace(s)

@@ -28,8 +28,6 @@ func NewService(pool *pgxpool.Pool, jwt *JWTManager) *Service {
 	return &Service{pool: pool, jwt: jwt}
 }
 
-// Login: cari user, verifikasi password (SHA-256 legacy atau bcrypt),
-// auto-upgrade ke bcrypt kalau masih SHA-256, buat session + JWT.
 func (s *Service) Login(ctx context.Context, username, password string) (string, *model.User, error) {
 	username = strings.TrimSpace(strings.ToLower(username))
 	if username == "" || password == "" {
@@ -84,13 +82,11 @@ func (s *Service) Login(ctx context.Context, username, password string) (string,
 	return token, u, nil
 }
 
-// Logout: hapus session (revoke).
 func (s *Service) Logout(ctx context.Context, sessionID string) error {
 	_, err := s.pool.Exec(ctx, `DELETE FROM sessions WHERE token = $1`, sessionID)
 	return err
 }
 
-// ValidateSession: cek JWT lalu cek session masih ada di DB.
 func (s *Service) ValidateSession(ctx context.Context, token string) (*model.User, *model.SessionClaims, error) {
 	claims, err := s.jwt.Parse(token)
 	if err != nil {
@@ -119,8 +115,6 @@ func (s *Service) ValidateSession(ctx context.Context, token string) (*model.Use
 	return u, claims, nil
 }
 
-// InvalidateUserSessions: hapus semua session user (untuk change password,
-// ubah role, atau ubah status aktif).
 func (s *Service) InvalidateUserSessions(ctx context.Context, userID string) error {
 	_, err := s.pool.Exec(ctx, `DELETE FROM sessions WHERE user_id = $1`, userID)
 	return err
@@ -169,8 +163,6 @@ func ptrToString(s *string) string {
 	return *s
 }
 
-// ToPublic mengubah User ke bentuk response frontend.
-// jenis_kelamin diambil dari members kalau member_id ada.
 func (s *Service) ToPublic(ctx context.Context, u *model.User) model.PublicUser {
 	p := model.PublicUser{
 		UserID:   u.UserID,

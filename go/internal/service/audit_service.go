@@ -29,8 +29,6 @@ func (s *AuditService) GetAuditLogs(ctx context.Context, userID, targetType stri
 	return out, nil
 }
 
-// Log: helper untuk dipakai service lain.
-// Fire-and-forget — error di-log tapi tidak menggagalkan operasi utama.
 func (s *AuditService) Log(ctx context.Context, userID, action, targetType, targetID string) {
 	userNama := ""
 	var uidPtr *string

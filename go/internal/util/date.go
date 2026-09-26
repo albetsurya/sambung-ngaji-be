@@ -7,8 +7,6 @@ import (
 	"time"
 )
 
-// GetAge: hitung usia dari tanggal lahir.
-// Return -1 kalau tanggal invalid/nil.
 func GetAge(tglLahir *time.Time) int {
 	if tglLahir == nil {
 		return -1
@@ -22,7 +20,6 @@ func GetAge(tglLahir *time.Time) int {
 	return age
 }
 
-// FormatDate: return "YYYY-MM-DD" atau "" kalau nil.
 func FormatDate(t *time.Time) string {
 	if t == nil {
 		return ""
@@ -30,7 +27,6 @@ func FormatDate(t *time.Time) string {
 	return t.Format("2006-01-02")
 }
 
-// ParseFlexibleDate mencoba beberapa format tanggal umum.
 func ParseFlexibleDate(s string) (*time.Time, error) {
 	s = strings.TrimSpace(s)
 	if s == "" {

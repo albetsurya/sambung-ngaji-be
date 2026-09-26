@@ -21,7 +21,7 @@ const (
 
 type AIService struct {
 	providers map[string]ai.Provider
-	order     []string // urutan fallback
+	order     []string
 	repo      *repository.AIRepo
 	executor  *AIToolExecutor
 	settings  *repository.SettingsRepo
@@ -52,7 +52,6 @@ var aiDailyLimit = map[string]int{
 	"PENGAWAS":    30,
 }
 
-// getStoredProvider: baca preferensi dari settings. Default "auto".
 func (s *AIService) getStoredProvider(ctx context.Context) string {
 	if s.settings == nil {
 		return "auto"
@@ -68,7 +67,6 @@ func (s *AIService) getStoredProvider(ctx context.Context) string {
 	return p
 }
 
-// SetProvider: simpan preferensi provider.
 func (s *AIService) SetProvider(ctx context.Context, provider string) error {
 	provider = strings.ToLower(strings.TrimSpace(provider))
 	allowed := map[string]bool{"gemini": true, "groq": true, "nvidia": true, "auto": true}
@@ -78,7 +76,6 @@ func (s *AIService) SetProvider(ctx context.Context, provider string) error {
 	return s.settings.Upsert(ctx, "AI_PROVIDER", provider)
 }
 
-// GetProviderInfo: return stored + active.
 func (s *AIService) GetProviderInfo(ctx context.Context) map[string]string {
 	stored := s.getStoredProvider(ctx)
 	active := stored
@@ -91,7 +88,6 @@ func (s *AIService) GetProviderInfo(ctx context.Context) map[string]string {
 	}
 }
 
-// firstAvailable: pilih provider pertama yang tersedia.
 func (s *AIService) firstAvailable() string {
 	for _, name := range s.order {
 		if _, ok := s.providers[name]; ok {
@@ -101,8 +97,6 @@ func (s *AIService) firstAvailable() string {
 	return "gemini"
 }
 
-// buildChain: tentukan urutan provider yang dicoba.
-// Kalau requested != "auto", provider itu dulu, lalu fallback ke sisanya.
 func (s *AIService) buildChain(requested string) []string {
 	requested = strings.ToLower(strings.TrimSpace(requested))
 	chain := []string{}
@@ -127,9 +121,7 @@ func (s *AIService) buildChain(requested string) []string {
 	return chain
 }
 
-// Chat: entry point utama.
 func (s *AIService) Chat(ctx context.Context, user *model.User, req model.ChatRequest) (*model.ChatResponse, error) {
-	// 1. Cek quota
 	limit := aiDailyLimit[user.Role]
 	if limit > 0 {
 		used, err := s.repo.GetQuota(ctx, user.UserID, time.Now())
@@ -144,7 +136,6 @@ func (s *AIService) Chat(ctx context.Context, user *model.User, req model.ChatRe
 		memberID = *user.MemberID
 	}
 
-	// 2. Pilih tools + system prompt
 	var tools []model.LLMToolDef
 	var sysPrompt string
 	if isMember {
@@ -155,7 +146,6 @@ func (s *AIService) Chat(ctx context.Context, user *model.User, req model.ChatRe
 		sysPrompt = buildSystemPrompt(user.Nama)
 	}
 
-	// 3. Bangun messages
 	messages := []model.LLMMessage{
 		{Role: "system", Content: sysPrompt},
 	}
@@ -174,7 +164,6 @@ func (s *AIService) Chat(ctx context.Context, user *model.User, req model.ChatRe
 		Content: req.Message,
 	})
 
-	// 4. Tentukan provider chain
 	requested := req.Provider
 	if requested == "" {
 		requested = s.getStoredProvider(ctx)
@@ -184,7 +173,6 @@ func (s *AIService) Chat(ctx context.Context, user *model.User, req model.ChatRe
 		return nil, errors.New("tidak ada provider AI yang tersedia")
 	}
 
-	// 5. Coba setiap provider sampai sukses
 	var lastErr error
 	for _, name := range chain {
 		provider := s.providers[name]
@@ -197,8 +185,6 @@ func (s *AIService) Chat(ctx context.Context, user *model.User, req model.ChatRe
 			return resp, nil
 		}
 		lastErr = err
-		// Kuota habis ATAU model tidak bisa dipakai → fallback ke provider berikut.
-		// Error lain langsung gagal supaya cepat ketahuan.
 		if !ai.IsFallbackable(err) {
 			return nil, fmt.Errorf("%s: %w", name, err)
 		}
@@ -206,7 +192,6 @@ func (s *AIService) Chat(ctx context.Context, user *model.User, req model.ChatRe
 	return nil, fmt.Errorf("semua provider gagal: %w", lastErr)
 }
 
-// ActiveProvider: return provider yang aktif saat ini (untuk dipakai service lain).
 func (s *AIService) ActiveProvider() ai.Provider {
 	chain := s.buildChain(s.getStoredProvider(context.Background()))
 	if len(chain) == 0 {
@@ -215,7 +200,6 @@ func (s *AIService) ActiveProvider() ai.Provider {
 	return s.providers[chain[0]]
 }
 
-// runProvider: jalankan loop tool calling untuk satu provider.
 func (s *AIService) runProvider(
 	ctx context.Context,
 	provider ai.Provider,
@@ -225,7 +209,6 @@ func (s *AIService) runProvider(
 	memberID string,
 	isMember bool,
 ) (*model.ChatResponse, error) {
-	// copy messages biar tidak mengganggu fallback berikutnya
 	msgs := make([]model.LLMMessage, len(messages))
 	copy(msgs, messages)
 
@@ -274,7 +257,6 @@ func (s *AIService) runProvider(
 		return nil, errors.New("tidak ada respons dari provider")
 	}
 
-	// Log usage (fire-and-forget)
 	_ = s.repo.InsertUsage(ctx, &model.AIUsageLog{
 		UsageID:      util.NewID("USE"),
 		UserID:       &user.UserID,
@@ -297,7 +279,6 @@ func (s *AIService) runProvider(
 	}, nil
 }
 
-// GetUsageStats: untuk admin monitoring.
 func (s *AIService) GetUsageStats(ctx context.Context, user *model.User) (*model.AIUsageStats, error) {
 	if user.Role != "SUPER_ADMIN" && user.Role != "ADMIN" {
 		return nil, errors.New("hanya admin yang bisa akses monitoring AI")
@@ -386,7 +367,6 @@ func (s *AIService) GetUsageStats(ctx context.Context, user *model.User) (*model
 	}, nil
 }
 
-/* ===== Helpers ===== */
 
 func buildSystemPrompt(user string) string {
 	today := time.Now().Format("Monday, 2 January 2006")

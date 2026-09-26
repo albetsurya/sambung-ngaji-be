@@ -8,7 +8,6 @@ import (
 	"time"
 )
 
-// RetryConfig holds retry configuration
 type RetryConfig struct {
 	MaxAttempts   int
 	BaseDelay     time.Duration
@@ -17,7 +16,6 @@ type RetryConfig struct {
 	Jitter        bool
 }
 
-// DefaultRetryConfig returns a sensible default retry config
 func DefaultRetryConfig() RetryConfig {
 	return RetryConfig{
 		MaxAttempts:   3,
@@ -28,7 +26,6 @@ func DefaultRetryConfig() RetryConfig {
 	}
 }
 
-// Retry executes fn with exponential backoff retry
 func Retry(ctx context.Context, cfg RetryConfig, fn func() error) error {
 	var lastErr error
 
@@ -40,23 +37,19 @@ func Retry(ctx context.Context, cfg RetryConfig, fn func() error) error {
 
 		lastErr = err
 
-		// Check if error is retryable
 		if !isRetryableError(err) {
 			return err
 		}
 
-		// Don't wait after the last attempt
 		if attempt == cfg.MaxAttempts-1 {
 			break
 		}
 
-		// Calculate delay with exponential backoff
 		delay := time.Duration(float64(cfg.BaseDelay) * math.Pow(cfg.BackoffFactor, float64(attempt)))
 		if delay > cfg.MaxDelay {
 			delay = cfg.MaxDelay
 		}
 
-		// Add jitter to prevent thundering herd
 		if cfg.Jitter {
 			jitter := time.Duration(rand.Float64() * float64(delay) * 0.1)
 			delay += jitter
@@ -66,20 +59,17 @@ func Retry(ctx context.Context, cfg RetryConfig, fn func() error) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-time.After(delay):
-			// Continue to next attempt
 		}
 	}
 
 	return fmt.Errorf("after %d attempts: %w", cfg.MaxAttempts, lastErr)
 }
 
-// isRetryableError determines if an error should trigger a retry
 func isRetryableError(err error) bool {
 	if err == nil {
 		return false
 	}
 
-	// Retry on network errors, timeouts, 5xx errors
 	errStr := err.Error()
 	retryablePatterns := []string{
 		"timeout",
@@ -90,7 +80,7 @@ func isRetryableError(err error) bool {
 		"503",
 		"502",
 		"504",
-		"429", // rate limited
+		"429",
 	}
 
 	for _, p := range retryablePatterns {

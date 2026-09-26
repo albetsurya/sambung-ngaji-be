@@ -25,7 +25,6 @@ const (
 	LocalsRequestID = "request_id"
 )
 
-// Prometheus metrics
 var (
 	httpRequestsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
@@ -50,19 +49,16 @@ var (
 	)
 )
 
-// PublicActions — action yang tidak butuh token.
 var PublicActions = map[string]bool{
 	"login":                     true,
 	"submitPublicRegistration":  true,
 	"checkUsernameAvailability": true,
 	"health":                    true,
 	"ready":                     true,
-	// Fitur publik tanpa login (jadwal umum, info petugas).
 	"getMeetings":        true,
 	"getFridaySchedules": true,
 }
 
-// MetricsMiddleware records Prometheus metrics for HTTP requests
 func MetricsMiddleware() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		start := time.Now()
@@ -82,7 +78,6 @@ func MetricsMiddleware() fiber.Handler {
 	}
 }
 
-// RequestIDMiddleware adds a correlation ID to each request for tracing
 func RequestIDMiddleware() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		requestID := c.Get("X-Request-ID")
@@ -95,7 +90,6 @@ func RequestIDMiddleware() fiber.Handler {
 	}
 }
 
-// RequestIDOf returns the correlation ID for the current request
 func RequestIDOf(c *fiber.Ctx) string {
 	if v := c.Locals(LocalsRequestID); v != nil {
 		if s, ok := v.(string); ok {
@@ -105,7 +99,6 @@ func RequestIDOf(c *fiber.Ctx) string {
 	return ""
 }
 
-// BodyParserMiddleware baca raw body JSON sekali, simpan di Locals.
 func BodyParserMiddleware() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		raw := c.Body()
@@ -167,7 +160,6 @@ func BodyFloat(c *fiber.Ctx, key string) float64 {
 	return 0
 }
 
-// ValidateBody validates required fields in the request body
 func ValidateBody(requiredFields ...string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		body := BodyOf(c)
@@ -190,12 +182,6 @@ func ValidateBody(requiredFields ...string) fiber.Handler {
 	}
 }
 
-// AuthMiddleware + Permission check.
-// Untuk public action: lewat.
-// Untuk action lain: JWT valid + role boleh akses.
-// Token diambil dari header Authorization, fallback ke HttpOnly cookie.
-// Kalau token berasal dari cookie (bukan header), origin request wajib
-// ada di allowlist CORS — proteksi CSRF untuk cookie auth.
 func AuthMiddleware(svc *auth.Service) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		body := BodyOf(c)
@@ -224,12 +210,10 @@ func AuthMiddleware(svc *auth.Service) fiber.Handler {
 			return Fail(c, "Unauthorized: sesi tidak valid atau kadaluarsa")
 		}
 
-		// Super admin only
 		if auth.IsSuperAdminOnly(action) && u.Role != "SUPER_ADMIN" {
 			return Fail(c, "Forbidden: hanya SUPER_ADMIN")
 		}
 
-		// Permission check
 		if !auth.CanAccess(u.Role, action) {
 			return Fail(c, "Forbidden: role "+u.Role+" tidak memiliki akses ke "+action)
 		}
@@ -237,15 +221,11 @@ func AuthMiddleware(svc *auth.Service) fiber.Handler {
 		c.Locals(LocalsUser, u)
 		c.Locals(LocalsClaims, claims)
 
-		// Visibilitas Data berbasis Group ID:
-		// 1. SUPER_ADMIN -> Akses Global. Tidak di-override; jika SUPER_ADMIN kirim group_id di body maka ter-filter, jika tidak maka lihat semua data.
-		// 2. Role selain SUPER_ADMIN -> Hanya bisa melihat data dalam 1 kelompok yang ditugaskan. group_id di body dipaksa menjadi u.GroupID.
 		if u.Role != "SUPER_ADMIN" {
 			body := BodyOf(c)
 			if u.GroupID != nil && *u.GroupID != "" {
 				body["group_id"] = *u.GroupID
 			} else {
-				// User non-SUPER_ADMIN yang belum punya group_id tidak boleh melihat data kelompok lain
 				body["group_id"] = "__UNASSIGNED_GROUP__"
 			}
 		}
@@ -254,8 +234,6 @@ func AuthMiddleware(svc *auth.Service) fiber.Handler {
 	}
 }
 
-// originAllowed: cek Origin terhadap allowlist CORS yang sama dengan main.go.
-// Origin kosong diizinkan (request same-origin/non-browser tidak kirim Origin).
 func originAllowed(origin string) bool {
 	if origin == "" {
 		return true
@@ -290,7 +268,6 @@ func ClaimsOf(c *fiber.Ctx) *model.SessionClaims {
 	return nil
 }
 
-// fmtSscan helper kecil (hindari import fmt di file ini).
 func fmtSscan(s string, f *float64) (int, error) {
 	var n int
 	for i := 0; i < len(s); i++ {
@@ -307,21 +284,16 @@ func fmtSscan(s string, f *float64) (int, error) {
 	return 1, nil
 }
 
-// RateLimiterConfig holds rate limiter configuration
 type RateLimiterConfig struct {
 	MaxRequests int
 	Window      time.Duration
 	KeyFunc     func(*fiber.Ctx) string
 }
 
-// RateLimiterStore defines the interface for rate limiter storage backends.
-// Implement this to swap in-memory store with Redis, etc.
 type RateLimiterStore interface {
 	CheckAndInc(key string, window time.Duration, maxRequests int) (bool, error)
 }
 
-// InMemoryStore is a RateLimiterStore implementation using an in-memory map.
-// Suitable for single-instance deployments. Use Redis for multi-instance.
 type InMemoryStore struct {
 	mu      sync.Mutex
 	clients map[string]*clientData
@@ -332,7 +304,6 @@ type clientData struct {
 	resetAt time.Time
 }
 
-// NewInMemoryStore creates a new InMemoryStore
 func NewInMemoryStore() *InMemoryStore {
 	return &InMemoryStore{
 		clients: make(map[string]*clientData),
@@ -360,7 +331,6 @@ func (s *InMemoryStore) CheckAndInc(key string, window time.Duration, maxRequest
 	return true, nil
 }
 
-// DefaultRateLimiterConfig returns a default rate limiter config
 func DefaultRateLimiterConfig() RateLimiterConfig {
 	return RateLimiterConfig{
 		MaxRequests: 100,
@@ -371,10 +341,6 @@ func DefaultRateLimiterConfig() RateLimiterConfig {
 	}
 }
 
-// LoginRateLimiterMiddleware — throttle ketat khusus action login.
-// Kunci: IP + username (lowercase, max 64 char) agar brute-force per akun
-// tetap kena throttle walau attacker rotasi IP. Fail-closed: saat store
-// error, login ditolak sementara (aman) alih-alih diloloskan.
 func LoginRateLimiterMiddleware() fiber.Handler {
 	store := NewInMemoryStore()
 	const maxAttempts = 10
@@ -418,7 +384,6 @@ func RateLimiterMiddleware(config RateLimiterConfig, store RateLimiterStore) fib
 
 		allowed, err := store.CheckAndInc(key, config.Window, config.MaxRequests)
 		if err != nil {
-			// Jika store error, allow request (fail open)
 			return c.Next()
 		}
 
@@ -434,13 +399,11 @@ func RateLimiterMiddleware(config RateLimiterConfig, store RateLimiterStore) fib
 	}
 }
 
-// LoggingMiddleware logs HTTP requests with correlation ID
 func LoggingMiddleware(logger *zerolog.Logger) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		start := time.Now()
 		requestID := RequestIDOf(c)
 
-		// Log request
 		logger.Info().
 			Str("request_id", requestID).
 			Str("method", c.Method()).
@@ -451,7 +414,6 @@ func LoggingMiddleware(logger *zerolog.Logger) fiber.Handler {
 
 		err := c.Next()
 
-		// Log response
 		logger.Info().
 			Str("request_id", requestID).
 			Str("method", c.Method()).

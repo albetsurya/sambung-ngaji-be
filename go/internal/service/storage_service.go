@@ -28,8 +28,6 @@ func NewStorageService(url, serviceKey, bucket string) *StorageService {
 	}
 }
 
-// UploadPhoto: decode base64 → upload ke Supabase Storage → return public URL.
-// Nama file: {memberID}_{unix}.{ext}
 func (s *StorageService) UploadPhoto(ctx context.Context, memberID, base64Data, mimeType string) (string, error) {
 	if s.url == "" || s.serviceKey == "" || s.bucket == "" {
 		return "", errors.New("Supabase Storage belum dikonfigurasi")
@@ -41,7 +39,6 @@ func (s *StorageService) UploadPhoto(ctx context.Context, memberID, base64Data, 
 		return "", errors.New("file foto wajib diisi")
 	}
 
-	// Validasi mime type
 	allowed := map[string]string{
 		"image/jpeg": "jpg",
 		"image/png":  "png",
@@ -52,10 +49,8 @@ func (s *StorageService) UploadPhoto(ctx context.Context, memberID, base64Data, 
 		return "", errors.New("tipe file harus JPEG/PNG/WEBP")
 	}
 
-	// Decode base64
 	data, err := base64.StdEncoding.DecodeString(base64Data)
 	if err != nil {
-		// coba raw (tanpa padding)
 		data, err = base64.RawStdEncoding.DecodeString(base64Data)
 		if err != nil {
 			return "", errors.New("data foto tidak valid")
@@ -68,7 +63,6 @@ func (s *StorageService) UploadPhoto(ctx context.Context, memberID, base64Data, 
 	filename := fmt.Sprintf("%s_%d.%s", memberID, time.Now().Unix(), ext)
 	path := filename
 
-	// Upload
 	uploadURL := fmt.Sprintf("%s/storage/v1/object/%s/%s", s.url, s.bucket, path)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, uploadURL, bytes.NewReader(data))
 	if err != nil {
@@ -93,15 +87,13 @@ func (s *StorageService) UploadPhoto(ctx context.Context, memberID, base64Data, 
 	return publicURL, nil
 }
 
-// DeletePhoto: hapus file berdasarkan URL publik.
 func (s *StorageService) DeletePhoto(ctx context.Context, publicURL string) error {
 	if publicURL == "" {
 		return nil
 	}
-	// Extract path dari URL
 	prefix := fmt.Sprintf("%s/storage/v1/object/public/%s/", s.url, s.bucket)
 	if !strings.HasPrefix(publicURL, prefix) {
-		return nil // bukan file kita, skip
+		return nil
 	}
 	path := strings.TrimPrefix(publicURL, prefix)
 	if path == "" {

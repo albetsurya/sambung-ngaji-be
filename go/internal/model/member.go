@@ -35,7 +35,6 @@ type Member struct {
 	UpdatedAt              time.Time
 }
 
-// DTO minimal untuk list — port dari MEMBER_LIST_FIELDS.
 type MemberListDTO struct {
 	MemberID      string `json:"member_id"`
 	NamaLengkap   string `json:"nama_lengkap"`
@@ -47,7 +46,6 @@ type MemberListDTO struct {
 	HasUser       bool   `json:"has_user"`
 }
 
-// DTO untuk absensi — port dari ATTENDANCE_MEMBER_FIELDS.
 type AttendanceMemberDTO struct {
 	MemberID     string `json:"member_id"`
 	NamaLengkap  string `json:"nama_lengkap"`
@@ -56,7 +54,6 @@ type AttendanceMemberDTO struct {
 	JenisKelamin string `json:"jenis_kelamin"`
 }
 
-// Detail lengkap — port dari MEMBER_DETAIL_FIELDS.
 type MemberDetailDTO struct {
 	MemberID               string `json:"member_id"`
 	NamaLengkap            string `json:"nama_lengkap"`

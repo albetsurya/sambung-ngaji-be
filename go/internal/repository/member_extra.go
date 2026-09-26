@@ -85,9 +85,6 @@ func (r *MemberRepo) GetFotoURL(ctx context.Context, memberID string) (string, e
 	return url, nil
 }
 
-// MemberIDsWithUsers — himpunan member_id yang punya akun user AKTIF
-// (bisa login). Akun nonaktif tidak dihitung agar konsisten dengan
-// GetMemberUserStatus dan indikator has_user di frontend.
 func (r *MemberRepo) MemberIDsWithUsers(ctx context.Context) (map[string]bool, error) {
 	ctx, cancel := WithQueryTimeout(ctx)
 	defer cancel()
@@ -111,9 +108,6 @@ func (r *MemberRepo) MemberIDsWithUsers(ctx context.Context) (map[string]bool, e
 	return out, rows.Err()
 }
 
-// CountUsersByMemberID — jumlah akun user AKTIF yang terhubung ke member.
-// Dipakai guard hapus member: akun nonaktif tidak menghalangi
-// (FK users.member_id ON DELETE SET NULL, baris user tetap aman).
 func (r *MemberRepo) CountUsersByMemberID(ctx context.Context, memberID string) (int, error) {
 	ctx, cancel := WithQueryTimeout(ctx)
 	defer cancel()
@@ -124,7 +118,6 @@ func (r *MemberRepo) CountUsersByMemberID(ctx context.Context, memberID string) 
 	return n, err
 }
 
-// MemberHasActiveUser — apakah member punya akun user aktif.
 func (r *MemberRepo) MemberHasActiveUser(ctx context.Context, memberID string) (bool, error) {
 	ctx, cancel := WithQueryTimeout(ctx)
 	defer cancel()
@@ -135,9 +128,6 @@ func (r *MemberRepo) MemberHasActiveUser(ctx context.Context, memberID string) (
 	return exists, err
 }
 
-// Delete — hapus member permanen (cascade ke attendance, monitoring,
-// member_moods via FK). Dipanggil hanya untuk member tanpa akun user
-// (dicek di service).
 func (r *MemberRepo) Delete(ctx context.Context, id string) error {
 	ctx, cancel := WithQueryTimeout(ctx)
 	defer cancel()

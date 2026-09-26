@@ -21,7 +21,6 @@ const fridaySelectCols = `friday_id, group_id, tanggal, khatib_imam, muadzin, pe
 	petugas_parkir, penata_sandal, catatan, created_by, created_at, updated_at,
 	reminder_sent_at`
 
-// FindByRange: jadwal jumat dalam rentang tanggal ( inklusif ), urut naik.
 func (r *FridayRepo) FindByRange(ctx context.Context, groupID, from, to string) ([]model.FridaySchedule, error) {
 	q := `SELECT ` + fridaySelectCols + ` FROM friday_schedules
 		 WHERE ($1 = '' OR tanggal >= $1::date) AND ($2 = '' OR tanggal <= $2::date)`
@@ -40,7 +39,6 @@ func (r *FridayRepo) FindByRange(ctx context.Context, groupID, from, to string) 
 	return scanFridays(rows)
 }
 
-// FindByDate: satu jadwal berdasarkan tanggal (YYYY-MM-DD).
 func (r *FridayRepo) FindByDate(ctx context.Context, groupID, tanggal string) (*model.FridaySchedule, error) {
 	q := `SELECT ` + fridaySelectCols + ` FROM friday_schedules WHERE tanggal=$1::date`
 	args := []interface{}{tanggal}
@@ -56,7 +54,6 @@ func (r *FridayRepo) FindByDate(ctx context.Context, groupID, tanggal string) (*
 	return &f, nil
 }
 
-// Upsert: insert atau update berdasarkan tanggal (1 jadwal per tanggal).
 func (r *FridayRepo) Upsert(ctx context.Context, f *model.FridaySchedule) error {
 	_, err := r.pool.Exec(ctx,
 		`INSERT INTO friday_schedules
@@ -78,7 +75,6 @@ func (r *FridayRepo) Upsert(ctx context.Context, f *model.FridaySchedule) error 
 	return err
 }
 
-// Delete: hapus berdasarkan tanggal (YYYY-MM-DD).
 func (r *FridayRepo) Delete(ctx context.Context, groupID, tanggal string) error {
 	q := `DELETE FROM friday_schedules WHERE tanggal=$1::date`
 	args := []interface{}{tanggal}
@@ -90,8 +86,6 @@ func (r *FridayRepo) Delete(ctx context.Context, groupID, tanggal string) error 
 	return err
 }
 
-// FindUnsentByDate: satu jadwal yang reminder WA-nya belum terkirim.
-// Return pgx.ErrNoRows kalau tidak ada (sudah terkirim / belum ada jadwal).
 func (r *FridayRepo) FindUnsentByDate(ctx context.Context, tanggal string) (*model.FridaySchedule, error) {
 	row := r.pool.QueryRow(ctx,
 		`SELECT `+fridaySelectCols+` FROM friday_schedules
@@ -103,7 +97,6 @@ func (r *FridayRepo) FindUnsentByDate(ctx context.Context, tanggal string) (*mod
 	return &f, nil
 }
 
-// MarkReminderSent: tandai reminder WA sudah terkirim untuk satu tanggal.
 func (r *FridayRepo) MarkReminderSent(ctx context.Context, tanggal string) error {
 	_, err := r.pool.Exec(ctx,
 		`UPDATE friday_schedules SET reminder_sent_at=now(), updated_at=now()
@@ -133,7 +126,6 @@ func scanFridays(rows rowsScanner) ([]model.FridaySchedule, error) {
 	return out, rows.Err()
 }
 
-// MaxReminderSent — waktu kirim terakhir (NULL bila belum pernah).
 func (r *FridayRepo) MaxReminderSent(ctx context.Context) (*string, error) {
 	var v *string
 	err := r.pool.QueryRow(ctx,
@@ -142,7 +134,6 @@ func (r *FridayRepo) MaxReminderSent(ctx context.Context) (*string, error) {
 	return v, err
 }
 
-// FindUpcoming — N jadwal ke depan mulai hari ini, urut naik.
 func (r *FridayRepo) FindUpcoming(ctx context.Context, limit int) ([]model.FridaySchedule, error) {
 	if limit <= 0 {
 		limit = 4

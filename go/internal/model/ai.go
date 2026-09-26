@@ -2,12 +2,11 @@ package model
 
 import "time"
 
-// ===== Request/Response ke API /api =====
 
 type ChatRequest struct {
 	Message  string        `json:"message"`
 	History  []ChatHistory `json:"history"`
-	Provider string        `json:"provider"` // gemini|groq|nvidia|auto (default)
+	Provider string        `json:"provider"`
 }
 
 type ChatHistory struct {
@@ -22,7 +21,6 @@ type ChatResponse struct {
 	RequestedProvider string `json:"requestedProvider,omitempty"`
 }
 
-// ===== Internal: message untuk provider =====
 
 type LLMMessage struct {
 	Role       string        `json:"role"`
@@ -33,17 +31,17 @@ type LLMMessage struct {
 
 type LLMToolCall struct {
 	ID       string          `json:"id"`
-	Type     string          `json:"type"` // "function"
+	Type     string          `json:"type"`
 	Function LLMToolCallFunc `json:"function"`
 }
 
 type LLMToolCallFunc struct {
 	Name      string `json:"name"`
-	Arguments string `json:"arguments"` // JSON string
+	Arguments string `json:"arguments"`
 }
 
 type LLMToolDef struct {
-	Type     string         `json:"type"` // "function"
+	Type     string         `json:"type"`
 	Function LLMToolDefFunc `json:"function"`
 }
 
@@ -53,7 +51,6 @@ type LLMToolDefFunc struct {
 	Parameters  map[string]interface{} `json:"parameters"`
 }
 
-// ===== Usage & Quota =====
 
 type AIUsageLog struct {
 	UsageID      string

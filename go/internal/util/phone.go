@@ -2,7 +2,6 @@ package util
 
 import "strings"
 
-// NormalizePhone: port dari normalizePhoneNumber di utils.js.
 func NormalizePhone(raw string) string {
 	if raw == "" {
 		return ""
@@ -26,13 +25,11 @@ func NormalizePhone(raw string) string {
 	return s
 }
 
-// BuildSapaan: sapaan berdasarkan usia + jenis kelamin.
 func BuildSapaan(jenisKelamin string, tanggalLahir interface{}) string {
 	usia := -1
 	if t, ok := tanggalLahir.(interface{ Year() int }); ok {
 		_ = t
 	}
-	// Caller pakai GetAge, ini stub
 	jk := strings.ToUpper(jenisKelamin)
 	if usia >= 0 && usia < 13 {
 		return "Adik"

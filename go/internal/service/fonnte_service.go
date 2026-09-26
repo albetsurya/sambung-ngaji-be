@@ -14,8 +14,6 @@ import (
 	"time"
 )
 
-// FonnteService — unofficial WhatsApp API (fonnte.com).
-// Kirim teks ke nomor atau grup via REST API.
 type FonnteService struct {
 	enabled    bool
 	token      string
@@ -36,7 +34,6 @@ func (s *FonnteService) IsEnabled() bool {
 	return s.enabled && s.token != ""
 }
 
-// SendText — kirim pesan teks ke target (nomor atau group ID).
 func (s *FonnteService) SendText(ctx context.Context, target, message string) error {
 	if !s.IsEnabled() {
 		return errors.New("fonnte service disabled")

@@ -43,7 +43,7 @@ type CreateMeetingInput struct {
 	Status         string
 	Catatan        string
 	KategoriTarget []string
-	GenderTarget   string // ← BARU: "L" / "P" / ""
+	GenderTarget   string
 	SendReminder   *bool
 	CreatedBy      string
 }
@@ -114,7 +114,7 @@ type UpdateMeetingInput struct {
 	Status         string
 	Catatan        string
 	KategoriTarget *[]string
-	GenderTarget   *string // ← BARU
+	GenderTarget   *string
 	SendReminder   *bool
 }
 
@@ -193,7 +193,6 @@ type DeleteMeetingsBulkResult struct {
 }
 
 func (s *MeetingService) DeleteMeetingBulk(ctx context.Context, in DeleteMeetingsBulkInput) (*DeleteMeetingsBulkResult, error) {
-	// Dedup + filter kosong
 	seen := map[string]bool{}
 	ids := make([]string, 0, len(in.MeetingIDs))
 	for _, id := range in.MeetingIDs {
@@ -276,7 +275,7 @@ func toMeetingDTO(m model.Meeting) model.MeetingDTO {
 		Status:         m.Status,
 		Catatan:        m.Catatan,
 		KategoriTarget: kat,
-		GenderTarget:   gt, // ← BARU
+		GenderTarget:   gt,
 		SendReminder:   sendReminder,
 		CreatedBy:      cby,
 		CreatedAt:      m.CreatedAt.Format("2006-01-02T15:04:05.000Z07:00"),

@@ -8,8 +8,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// RegisterHealth memasang endpoint /health dan /ready.
-// Response mengikuti kontrak existing: { success, data, message }.
 func RegisterHealth(app *fiber.App, db *pgxpool.Pool) {
 	app.Get("/health", func(c *fiber.Ctx) error {
 		ctx, cancel := context.WithTimeout(c.Context(), 3*time.Second)
@@ -31,12 +29,10 @@ func RegisterHealth(app *fiber.App, db *pgxpool.Pool) {
 		})
 	})
 
-	// Readiness probe — stricter check for k8s readiness
 	app.Get("/ready", func(c *fiber.Ctx) error {
 		ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
 		defer cancel()
 
-		// Check DB connectivity with a simple query
 		var result int
 		err := db.QueryRow(ctx, "SELECT 1").Scan(&result)
 		dbStatus := "ok"
@@ -44,10 +40,8 @@ func RegisterHealth(app *fiber.App, db *pgxpool.Pool) {
 			dbStatus = "error"
 		}
 
-		// Touch pool agar readiness mencerminkan konektivitas aktual.
 		_ = db.Stat().TotalConns()
 
-		// Return 503 if DB not ready
 		if err != nil {
 			return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
 				"success": false,

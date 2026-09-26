@@ -57,5 +57,4 @@ func (r *MemberRepo) Insert(ctx context.Context, in NewMemberInput) error {
 	return err
 }
 
-// Helper untuk dipakai service biar model tetap bersih.
 var _ = model.Member{}

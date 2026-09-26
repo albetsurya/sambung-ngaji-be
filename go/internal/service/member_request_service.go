@@ -30,9 +30,6 @@ type RequestBecomeMemberResult struct {
 	Message     string  `json:"message"`
 }
 
-// Request: user yang sudah login tapi belum punya member.
-// - ADMIN / SUPER_ADMIN → auto-create member & tautkan user langsung.
-// - selain itu → buat request menunggu approve admin/superadmin.
 func (s *MemberRequestService) Request(ctx context.Context, user *model.User) (*RequestBecomeMemberResult, error) {
 	if user == nil {
 		return nil, errors.New("Unauthorized")
@@ -52,7 +49,6 @@ func (s *MemberRequestService) Request(ctx context.Context, user *model.User) (*
 		}, nil
 	}
 
-	// Non-admin: cek apakah sudah ada request PENDING
 	existing, err := s.requestRepo.FindByUserID(ctx, user.UserID)
 	if err == nil && existing != nil && strings.ToUpper(existing.Status) == "PENDING" {
 		return &RequestBecomeMemberResult{

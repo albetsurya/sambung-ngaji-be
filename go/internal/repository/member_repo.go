@@ -41,8 +41,6 @@ func (r *MemberRepo) FindAll(ctx context.Context) ([]model.Member, error) {
 	return scanMembers(rows)
 }
 
-// FindAllByGroup: seperti FindAll tapi difilter group_id.
-// groupId kosong → tidak difilter (global, untuk SUPER_ADMIN).
 func (r *MemberRepo) FindAllByGroup(ctx context.Context, groupID string) ([]model.Member, error) {
 	ctx, cancel := WithQueryTimeout(ctx)
 	defer cancel()

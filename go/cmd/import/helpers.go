@@ -93,8 +93,6 @@ func parseGender(s string) *string {
 	return nil
 }
 
-// parseDate untuk kolom DATE.
-// ISO datetime (bug GAS) → convert +7 jam, ambil tanggal.
 func parseDate(s string) *time.Time {
 	s = strings.TrimSpace(s)
 	if s == "" {
@@ -118,7 +116,6 @@ func parseDate(s string) *time.Time {
 	return nil
 }
 
-// parseTime untuk kolom TIMESTAMPTZ (asumsi UTC).
 func parseTime(s string) *time.Time {
 	s = strings.TrimSpace(s)
 	if s == "" {

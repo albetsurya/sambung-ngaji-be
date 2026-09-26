@@ -23,7 +23,6 @@ type SaveGroupInput struct {
 
 func (s *GroupService) Save(ctx context.Context, in SaveGroupInput) (*model.GroupDTO, error) {
 	if in.GroupID != "" {
-		// UPDATE
 		existing, err := s.repo.FindByID(ctx, in.GroupID)
 		if err != nil || existing == nil {
 			return nil, errors.New("kelompok tidak ditemukan")
@@ -58,7 +57,6 @@ func (s *GroupService) Save(ctx context.Context, in SaveGroupInput) (*model.Grou
 		return &dto, nil
 	}
 
-	// CREATE
 	if strings.TrimSpace(in.GroupName) == "" {
 		return nil, errors.New("group_name wajib diisi")
 	}
@@ -86,5 +84,4 @@ func (s *GroupService) Save(ctx context.Context, in SaveGroupInput) (*model.Grou
 	return &dto, nil
 }
 
-// Pastikan import repository terpakai
 var _ = repository.NewGroupRepo

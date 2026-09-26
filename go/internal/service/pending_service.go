@@ -37,7 +37,6 @@ func NewPendingService(
 	}
 }
 
-/* ===== Public: check username ===== */
 
 type CheckUsernameResult struct {
 	Available bool   `json:"available"`
@@ -69,7 +68,6 @@ func (s *PendingService) CheckUsername(ctx context.Context, username string) (*C
 	return &CheckUsernameResult{Available: true}, nil
 }
 
-/* ===== Public: submit registration ===== */
 
 type SubmitRegistrationInput struct {
 	GroupID                string
@@ -104,7 +102,6 @@ type SubmitRegistrationResult struct {
 
 func (s *PendingService) SubmitRegistration(ctx context.Context, in SubmitRegistrationInput) (*SubmitRegistrationResult, error) {
 
-	// Title Case normalisasi field nama & tempat
 	in.NamaLengkap = util.TitleCaseID(in.NamaLengkap)
 	in.NamaPanggilan = util.TitleCaseID(in.NamaPanggilan)
 	in.TempatLahir = util.TitleCaseID(in.TempatLahir)
@@ -161,7 +158,6 @@ func (s *PendingService) SubmitRegistration(ctx context.Context, in SubmitRegist
 		return nil, errors.New("Terlalu banyak pendaftaran dari perangkat ini. Coba lagi besok.")
 	}
 
-	// Cek WA existing di members
 	allMembers, err := s.memberRepo.FindAll(ctx)
 	if err != nil {
 		return nil, err
@@ -172,7 +168,6 @@ func (s *PendingService) SubmitRegistration(ctx context.Context, in SubmitRegist
 		}
 	}
 
-	// Cek WA pending
 	waPending, err := s.repo.CountByWAPending(ctx, normalizedWA)
 	if err != nil {
 		return nil, err
@@ -181,7 +176,6 @@ func (s *PendingService) SubmitRegistration(ctx context.Context, in SubmitRegist
 		return nil, errors.New("Pendaftaran dengan nomor ini sedang menunggu verifikasi")
 	}
 
-	// Cek username pending
 	userPending, err := s.repo.CountByUsernamePending(ctx, username)
 	if err != nil {
 		return nil, err
@@ -250,7 +244,6 @@ func (s *PendingService) SubmitRegistration(ctx context.Context, in SubmitRegist
 	}, nil
 }
 
-/* ===== Admin: list & detail ===== */
 
 func (s *PendingService) GetPendingMembers(ctx context.Context, groupID, status string) ([]model.PendingMemberDTO, error) {
 	rows, err := s.repo.FindAll(ctx, groupID, status)
@@ -273,7 +266,6 @@ func (s *PendingService) GetPendingMemberDetail(ctx context.Context, id string) 
 	return &dto, nil
 }
 
-/* ===== Admin: approve ===== */
 
 type ApproveResult struct {
 	MemberID     string `json:"member_id"`
@@ -309,7 +301,6 @@ func (s *PendingService) Approve(ctx context.Context, submissionID, kelompok, re
 		return nil, errors.New("Username sudah dipakai. Tolak pendaftar dan minta daftar ulang dengan username lain.")
 	}
 
-	// Title Case normalisasi nama sebelum copy ke members
 	p.NamaLengkap = util.TitleCaseID(p.NamaLengkap)
 	p.NamaPanggilan = util.TitleCaseID(p.NamaPanggilan)
 	p.TempatLahir = util.TitleCaseID(p.TempatLahir)
@@ -370,7 +361,6 @@ func (s *PendingService) Approve(ctx context.Context, submissionID, kelompok, re
 	}, nil
 }
 
-/* ===== Admin: reject ===== */
 
 func (s *PendingService) Reject(ctx context.Context, submissionID, reviewerID, reason string) error {
 	if submissionID == "" {
@@ -394,7 +384,6 @@ func (s *PendingService) Reject(ctx context.Context, submissionID, reviewerID, r
 	return nil
 }
 
-/* ===== Helpers ===== */
 
 func toPendingDTO(p model.PendingMember) model.PendingMemberDTO {
 	jk := ""

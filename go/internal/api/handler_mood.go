@@ -6,7 +6,6 @@ import (
 	"pengajian-backend/internal/service"
 )
 
-// handleSaveMood: member mencatat mood hariannya (member_id dari JWT).
 func handleSaveMood(c *fiber.Ctx, svc *service.MoodService) error {
 	memberID, err := requireMemberID(c)
 	if err != nil {
@@ -27,7 +26,6 @@ func handleSaveMood(c *fiber.Ctx, svc *service.MoodService) error {
 	return Ok(c, res)
 }
 
-// handleGetMyMoods: member melihat riwayat mood sendiri.
 func handleGetMyMoods(c *fiber.Ctx, svc *service.MoodService) error {
 	memberID, err := requireMemberID(c)
 	if err != nil {
@@ -40,7 +38,6 @@ func handleGetMyMoods(c *fiber.Ctx, svc *service.MoodService) error {
 	return Ok(c, res)
 }
 
-// handleGetMemberMoods: admin/pengawas melihat mood member tertentu.
 func handleGetMemberMoods(c *fiber.Ctx, svc *service.MoodService) error {
 	memberID := BodyString(c, "member_id")
 	if memberID == "" {

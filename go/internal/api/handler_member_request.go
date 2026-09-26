@@ -6,8 +6,6 @@ import (
 	"pengajian-backend/internal/service"
 )
 
-// handleRequestBecomeMember: user yang belum punya member.
-// Admin/SA auto-create; non-admin buat request menunggu approve.
 func handleRequestBecomeMember(c *fiber.Ctx, svc *service.MemberRequestService) error {
 	u := UserOf(c)
 	if u == nil {

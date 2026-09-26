@@ -70,11 +70,9 @@ func (s *MonitoringService) Create(ctx context.Context, in CreateMonitoringInput
 		return nil, err
 	}
 
-	// Update status_pembinaan di members
 	if err := s.memberRepo.Update(ctx, in.MemberID, map[string]interface{}{
 		"status_pembinaan": in.Status,
 	}); err != nil {
-		// tidak fatal, log saja
 		_ = err
 	}
 

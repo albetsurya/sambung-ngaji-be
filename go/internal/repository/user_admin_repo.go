@@ -101,7 +101,6 @@ func (r *UserAdminRepo) DeleteAllSessions(ctx context.Context, userID string) er
 	return err
 }
 
-// DeleteAllSessionsExcept — hapus semua sesi user kecuali sesi berjalan (by token).
 func (r *UserAdminRepo) DeleteAllSessionsExcept(ctx context.Context, userID, keepToken string) error {
 	_, err := r.pool.Exec(ctx, `DELETE FROM sessions WHERE user_id = $1 AND token <> $2`, userID, keepToken)
 	return err
@@ -114,10 +113,6 @@ func (r *UserAdminRepo) UpdatePasswordHash(ctx context.Context, userID, hash str
 	return err
 }
 
-// DeleteUserAndMember — hapus user + member permanen dalam transaction.
-// Tolak jika user ber-role SUPER_ADMIN.
-// Cascade otomatis: sessions, member_requests (via users),
-// attendance, monitoring, member_moods (via members).
 func (r *UserAdminRepo) DeleteUserAndMember(ctx context.Context, userID string) error {
 	if userID == "" {
 		return errors.New("user_id wajib diisi")
@@ -129,7 +124,6 @@ func (r *UserAdminRepo) DeleteUserAndMember(ctx context.Context, userID string) 
 	}
 	defer tx.Rollback(ctx)
 
-	// Cek role + member_id dulu
 	var role string
 	var memberID *string
 	err = tx.QueryRow(ctx,
@@ -142,12 +136,10 @@ func (r *UserAdminRepo) DeleteUserAndMember(ctx context.Context, userID string) 
 		return errors.New("tidak bisa menghapus user SUPER_ADMIN")
 	}
 
-	// Hapus user (cascade ke sessions, member_requests)
 	if _, err := tx.Exec(ctx, `DELETE FROM users WHERE user_id = $1`, userID); err != nil {
 		return err
 	}
 
-	// Hapus member (cascade ke attendance, monitoring, member_moods)
 	if memberID != nil && *memberID != "" {
 		if _, err := tx.Exec(ctx, `DELETE FROM members WHERE member_id = $1`, *memberID); err != nil {
 			return err

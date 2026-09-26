@@ -177,7 +177,6 @@ func truncateStr(s string, n int) string {
 	return s[:n] + "..."
 }
 
-// IsQuotaError: cek error 429/rate limit untuk trigger fallback.
 func IsQuotaError(err error) bool {
 	if err == nil {
 		return false

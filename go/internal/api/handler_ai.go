@@ -21,7 +21,6 @@ func handleAiChat(c *fiber.Ctx, svc *service.AIService) error {
 		Provider: BodyString(c, "provider"),
 	}
 
-	// history: bisa string JSON atau array
 	if v, ok := body["history"].(string); ok && v != "" {
 		var hist []model.ChatHistory
 		if err := json.Unmarshal([]byte(v), &hist); err == nil {

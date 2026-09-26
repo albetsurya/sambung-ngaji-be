@@ -121,7 +121,7 @@ type MeetingPatch struct {
 	Status         *string
 	Catatan        *string
 	KategoriTarget *[]string
-	GenderTarget   *string // ← BARU
+	GenderTarget   *string
 	SendReminder   *bool
 }
 
@@ -176,8 +176,6 @@ func (r *MeetingRepo) Delete(ctx context.Context, id string) error {
 	return err
 }
 
-// DeleteMany: hapus multiple meetings dalam transaction.
-// Return: jumlah meeting terhapus, error.
 func (r *MeetingRepo) DeleteMany(ctx context.Context, ids []string) (int64, error) {
 	if len(ids) == 0 {
 		return 0, nil
@@ -199,7 +197,6 @@ func (r *MeetingRepo) DeleteMany(ctx context.Context, ids []string) (int64, erro
 	return tag.RowsAffected(), nil
 }
 
-/* ===== Reminder WA (Fonnte) ===== */
 
 type ReminderMeetingRow struct {
 	MeetingID string
@@ -208,9 +205,6 @@ type ReminderMeetingRow struct {
 	Jam       string
 }
 
-// FindPendingReminder — meeting dalam window [from, to] yang reminder-nya belum dikirim.
-// Jam di-parse: kalau format HH:MM pakai itu, kalau bukan (mis. "Isya di tempat")
-// fallback ke 19:00.
 func (r *MeetingRepo) FindPendingReminder(ctx context.Context, from, to time.Time) ([]ReminderMeetingRow, error) {
 	rows, err := r.pool.Query(ctx, `
 		SELECT meeting_id, COALESCE(acara, ''),
@@ -243,7 +237,6 @@ func (r *MeetingRepo) FindPendingReminder(ctx context.Context, from, to time.Tim
 	return out, rows.Err()
 }
 
-// MarkReminderSent — tandai meeting sudah di-reminder, biar tidak dobel.
 func (r *MeetingRepo) MarkReminderSent(ctx context.Context, meetingID string) error {
 	_, err := r.pool.Exec(ctx,
 		`UPDATE meetings SET reminder_sent_at = now() WHERE meeting_id = $1`,

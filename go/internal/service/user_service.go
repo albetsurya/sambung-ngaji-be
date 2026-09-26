@@ -142,7 +142,6 @@ func (s *UserService) UpdateUser(ctx context.Context, in UpdateUserInput) (*mode
 		return nil, errors.New("role tidak valid")
 	}
 
-	// Proteksi super admin terakhir
 	if in.Role != nil && existing.Role == "SUPER_ADMIN" && *in.Role != "SUPER_ADMIN" {
 		n, _ := s.repo.CountActiveSuperAdminsExcept(ctx, in.UserID)
 		if n == 0 {
@@ -245,7 +244,6 @@ func (s *UserService) GetMemberUserStatus(ctx context.Context, memberID string) 
 	}, nil
 }
 
-/* ===== Password ===== */
 
 type ChangePasswordInput struct {
 	UserID           string
@@ -282,8 +280,6 @@ func (s *UserService) ChangeMyPassword(ctx context.Context, in ChangePasswordInp
 	if err := s.repo.UpdatePasswordHash(ctx, in.UserID, hash); err != nil {
 		return err
 	}
-	// Invalidate semua sesi lain agar sesi curian mati setelah ganti password.
-	// Sesi berjalan (CurrentSessionID) dipertahankan supaya user tidak ter-logout paksa.
 	if in.CurrentSessionID != "" {
 		_ = s.repo.DeleteAllSessionsExcept(ctx, in.UserID, in.CurrentSessionID)
 	} else {
@@ -292,7 +288,6 @@ func (s *UserService) ChangeMyPassword(ctx context.Context, in ChangePasswordInp
 	return nil
 }
 
-/* ===== Username ===== */
 
 type ChangeUsernameInput struct {
 	UserID      string
@@ -322,13 +317,11 @@ func (s *UserService) ChangeMyUsername(ctx context.Context, in ChangeUsernameInp
 		return nil, errors.New("username baru sama dengan username lama")
 	}
 
-	// Konfirmasi password lama
 	match, _ := auth.VerifyPassword(in.OldPassword, u.PasswordHash)
 	if !match {
 		return nil, errors.New("password salah")
 	}
 
-	// Cek ketersediaan username baru
 	exists, err := s.authRepo.UsernameExists(ctx, username)
 	if err != nil {
 		return nil, err
@@ -337,11 +330,9 @@ func (s *UserService) ChangeMyUsername(ctx context.Context, in ChangeUsernameInp
 		return nil, errors.New("username sudah digunakan")
 	}
 
-	// Update
 	if err := s.repo.Update(ctx, in.UserID, map[string]interface{}{
 		"username": username,
 	}); err != nil {
-		// Handle unique constraint violation (race condition, double-tap, dll)
 		msg := strings.ToLower(err.Error())
 		if strings.Contains(msg, "duplicate key") || strings.Contains(msg, "unique") {
 			return nil, errors.New("username sudah digunakan")
@@ -381,7 +372,6 @@ func (s *UserService) ResetPassword(ctx context.Context, userID, newPassword str
 	return nil
 }
 
-/* ===== Helpers ===== */
 
 var validRoles = map[string]bool{
 	"SUPER_ADMIN": true,
@@ -418,8 +408,6 @@ func toUserDTO(u model.User) model.UserDTO {
 
 var _ = strings.TrimSpace
 
-// DeleteUserPermanent — hapus user + member permanen.
-// Wajib dipanggil oleh SUPER_ADMIN (double-check di handler + service).
 func (s *UserService) DeleteUserPermanent(ctx context.Context, requesterRole, userID string) error {
 	if requesterRole != "SUPER_ADMIN" {
 		return errors.New("hanya SUPER_ADMIN yang boleh menghapus user permanen")

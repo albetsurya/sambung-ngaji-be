@@ -4,9 +4,6 @@ import (
 	"time"
 )
 
-// Groq: provider OpenAI-compatible, ada free tier.
-// Endpoint default: https://api.groq.com/openai/v1
-// Daftar key gratis: https://console.groq.com
 func NewGroq(apiKey string, models []string, timeout time.Duration) Provider {
 	models = dedupModels(models)
 	if len(models) == 0 {

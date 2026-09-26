@@ -19,7 +19,6 @@ func parseBulkParams(c *fiber.Ctx) service.BulkParams {
 		Catatan: BodyString(c, "catatan"),
 	}
 
-	// hari: bisa array string
 	if v, ok := body["hari"].([]interface{}); ok {
 		for _, x := range v {
 			if s, ok := x.(string); ok && s != "" {
@@ -28,7 +27,6 @@ func parseBulkParams(c *fiber.Ctx) service.BulkParams {
 		}
 	}
 
-	// kategori_target
 	if v, ok := body["kategori_target"].([]interface{}); ok {
 		for _, x := range v {
 			if s, ok := x.(string); ok && s != "" {

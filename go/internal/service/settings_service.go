@@ -16,8 +16,6 @@ func NewSettingsService(repo *repository.SettingsRepo) *SettingsService {
 	return &SettingsService{repo: repo}
 }
 
-// GetSettings mengembalikan map dengan value yang sudah di-parse JSON
-// (fallback ke string mentah kalau bukan JSON).
 func (s *SettingsService) GetSettings(ctx context.Context) (map[string]interface{}, error) {
 	raw, err := s.repo.GetAll(ctx)
 	if err != nil {

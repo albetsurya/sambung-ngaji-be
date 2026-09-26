@@ -168,8 +168,6 @@ func generateAttendanceID() string {
 	return newIDWithPrefix("ATD")
 }
 
-// FindByMeetingIDs: batch fetch attendance untuk banyak meeting sekaligus.
-// Dipakai untuk hindari N+1 di dashboard.
 func (r *AttendanceRepo) FindByMeetingIDs(ctx context.Context, meetingIDs []string) ([]model.Attendance, error) {
 	if len(meetingIDs) == 0 {
 		return nil, nil
@@ -184,8 +182,6 @@ func (r *AttendanceRepo) FindByMeetingIDs(ctx context.Context, meetingIDs []stri
 	return scanAttendances(rows)
 }
 
-// FindByMemberIDs: batch fetch attendance untuk banyak member sekaligus.
-// Order global DESC by created_at — saat di-group per member, urutan tetap terjaga.
 func (r *AttendanceRepo) FindByMemberIDs(ctx context.Context, memberIDs []string) ([]model.Attendance, error) {
 	if len(memberIDs) == 0 {
 		return nil, nil

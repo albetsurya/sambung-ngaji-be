@@ -11,8 +11,6 @@ import (
 	"pengajian-backend/internal/repository"
 )
 
-// ReminderService — kirim reminder pengajian ke grup WA via Fonnte.
-// Dipanggil dari cron goroutine di main.go setiap 1 jam.
 type ReminderService struct {
 	meetingRepo *repository.MeetingRepo
 	fonnte      *FonnteService
@@ -30,10 +28,6 @@ func NewReminderService(
 	}
 }
 
-// RunOnce — cari meeting dalam window H-7 s/d H-9 jam, kirim reminder kalau belum.
-// Sengaja MATI secara default; aktifkan eksplisit via MEETING_REMINDER_ENABLED=true
-// agar mengaktifkan Fonnte untuk keperluan lain (misal reminder Jumat) tidak
-// ikut menghidupkan reminder meeting.
 func (s *ReminderService) RunOnce(ctx context.Context) error {
 	if os.Getenv("MEETING_REMINDER_ENABLED") != "true" {
 		return nil

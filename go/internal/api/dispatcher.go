@@ -17,7 +17,6 @@ var RegisteredActions = map[string]bool{
 	"logout":          true,
 	"validateSession": true,
 
-	// Members
 	"getMembers":           true,
 	"getMembersPaged":      true,
 	"getPNKBMembers":       true,
@@ -31,22 +30,18 @@ var RegisteredActions = map[string]bool{
 	"deleteMember":        true,
 	"getMembersForExport": true,
 
-	// Groups
 	"getGroups": true,
 
-	// Meetings
 	"getMeetings":        true,
 	"createMeeting":      true,
 	"updateMeeting":      true,
 	"deleteMeeting":      true,
 	"deleteMeetingsBulk": true,
 
-	// Bulk Meeting
 	"previewBulkMeetings":     true,
 	"bulkCreateMeetings":      true,
 	"getBulkMeetingTemplates": true,
 
-	// Attendance
 	"getAttendance":             true,
 	"getAttendancePage":         true,
 	"saveAttendance":            true,
@@ -55,16 +50,13 @@ var RegisteredActions = map[string]bool{
 	"deleteAttendanceByMeeting": true,
 	"deleteAttendanceByMember":  true,
 
-	// Dashboard & Monitoring
 	"getDashboard":   true,
 	"getMyDashboard": true,
 	"getMonitoring":  true,
 
-	// Settings
 	"getSettings":    true,
 	"updateSettings": true,
 
-	// Announcements
 	"getAnnouncementTemplates":        true,
 	"getAllAnnouncementTemplates":     true,
 	"getAnnouncementTemplateDetail":   true,
@@ -84,7 +76,6 @@ var RegisteredActions = map[string]bool{
 	"createMonitoring": true,
 	"updateMonitoring": true,
 
-	// Pending
 	"getPendingMembers":         true,
 	"getPendingMemberDetail":    true,
 	"approvePendingMember":      true,
@@ -92,7 +83,6 @@ var RegisteredActions = map[string]bool{
 	"submitPublicRegistration":  true,
 	"checkUsernameAvailability": true,
 
-	// Users
 	"getUsers":            true,
 	"getUserDetail":       true,
 	"createUser":          true,
@@ -104,28 +94,23 @@ var RegisteredActions = map[string]bool{
 	"changeMyUsername":    true,
 	"resetUserPassword":   true,
 
-	// Profile (member self-service)
 	"getMyProfile":        true,
 	"updateMyProfile":     true,
 	"getMyAttendance":     true,
 	"getMyMonitoring":     true,
 	"getUpcomingMeetings": true,
 
-	// Mood (member tracker)
 	"saveMood":       true,
 	"getMyMoods":     true,
 	"getMemberMoods": true,
 
-	// Member request (user tanpa member)
 	"requestBecomeMember":  true,
 	"getMemberRequests":    true,
 	"approveMemberRequest": true,
 	"rejectMemberRequest":  true,
 
-	// Audit
 	"getAuditLogs": true,
 
-	// AI
 	"aiChat":             true,
 	"getAiUsageStats":    true,
 	"getCurrentProvider": true,
@@ -133,7 +118,6 @@ var RegisteredActions = map[string]bool{
 
 	"parsePdfMeeting": true,
 
-	// Friday schedule (petugas sholat jumat)
 	"getFridaySchedules":      true,
 	"getFridayReminderStatus": true,
 	"markFridayReminderSent":  true,
@@ -341,7 +325,6 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 		}
 
 		switch action {
-		// Auth
 		case "login":
 			return handleLogin(c, svc.Auth, svc.Audit)
 		case "logout":
@@ -349,7 +332,6 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 		case "validateSession":
 			return handleValidateSession(c, svc.Auth)
 
-		// Members
 		case "getMembers":
 			return handleGetMembers(c, svc.Member)
 		case "getMembersPaged":
@@ -373,11 +355,9 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 		case "getMembersForExport":
 			return handleGetMembersForExport(c, svc.Member)
 
-		// Groups
 		case "getGroups":
 			return handleGetGroups(c, svc.Group)
 
-		// Meetings
 		case "getMeetings":
 			return handleGetMeetings(c, svc.Meeting)
 		case "createMeeting":
@@ -389,7 +369,6 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 		case "deleteMeetingsBulk":
 			return handleDeleteMeetingsBulk(c, svc.Meeting)
 
-		// Bulk Meeting
 		case "previewBulkMeetings":
 			return handlePreviewBulkMeetings(c, svc.BulkMeeting)
 		case "bulkCreateMeetings":
@@ -397,7 +376,6 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 		case "getBulkMeetingTemplates":
 			return handleGetBulkMeetingTemplates(c, svc.BulkMeeting)
 
-		// Attendance
 		case "getAttendance":
 			return handleGetAttendance(c, svc.Attendance)
 		case "getAttendancePage":
@@ -413,7 +391,6 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 		case "deleteAttendanceByMember":
 			return handleDeleteAttendanceByMember(c, svc.Attendance)
 
-		// Dashboard & Monitoring
 		case "getDashboard":
 			return handleGetDashboard(c, svc.Dashboard)
 		case "getMyDashboard":
@@ -429,13 +406,11 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 		case "updateMonitoring":
 			return handleUpdateMonitoring(c, svc.Monitoring)
 
-		// Settings
 		case "getSettings":
 			return handleGetSettings(c, svc.Settings)
 		case "updateSettings":
 			return handleUpdateSettings(c, svc.Settings)
 
-		// Announcements
 		case "getAnnouncementTemplates":
 			return handleGetAnnouncementTemplates(c, svc.Announcement)
 		case "getAllAnnouncementTemplates":
@@ -463,7 +438,6 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 		case "generateWeeklyAnnouncements":
 			return handleGenerateWeeklyAnnouncements(c, svc.Announcement)
 
-		// Pending
 		case "checkUsernameAvailability":
 			return handleCheckUsernameAvailability(c, svc.Pending)
 		case "submitPublicRegistration":
@@ -477,7 +451,6 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 		case "rejectPendingMember":
 			return handleRejectPendingMember(c, svc.Pending)
 
-		// Users
 		case "getUsers":
 			return handleGetUsers(c, svc.User)
 		case "getUserDetail":
@@ -499,7 +472,6 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 		case "resetUserPassword":
 			return handleResetUserPassword(c, svc.User)
 
-		// Profile
 		case "getMyProfile":
 			return handleGetMyProfile(c, svc.Profile)
 		case "updateMyProfile":
@@ -511,7 +483,6 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 		case "getUpcomingMeetings":
 			return handleGetUpcomingMeetings(c, svc.Profile)
 
-		// Mood
 		case "saveMood":
 			return handleSaveMood(c, svc.Mood)
 		case "getMyMoods":
@@ -519,7 +490,6 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 		case "getMemberMoods":
 			return handleGetMemberMoods(c, svc.Mood)
 
-		// Member request
 		case "requestBecomeMember":
 			return handleRequestBecomeMember(c, svc.MemberReq)
 		case "getMemberRequests":
@@ -529,11 +499,9 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 		case "rejectMemberRequest":
 			return handleRejectMemberRequest(c, svc.MemberReq)
 
-			// Audit
 		case "getAuditLogs":
 			return handleGetAuditLogs(c, svc.Audit)
 
-		// AI
 		case "aiChat":
 			return handleAiChat(c, svc.AI)
 		case "getAiUsageStats":
@@ -551,7 +519,6 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 		case "parsePdfMeeting":
 			return handleParsePdfMeeting(c, svc.PDFImport)
 
-		// Friday schedule
 		case "getFridaySchedules":
 			return handleGetFridaySchedules(c, svc.Friday)
 		case "saveFridaySchedule":

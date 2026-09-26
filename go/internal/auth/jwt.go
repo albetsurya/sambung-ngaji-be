@@ -25,7 +25,6 @@ func NewJWTManager(secret string, ttlHours int) *JWTManager {
 
 func (m *JWTManager) TTL() time.Duration { return m.ttl }
 
-// Generate membuat JWT dengan claims session_id, user_id, role, group_id.
 func (m *JWTManager) Generate(sessionID, userID, role string, groupID ...string) (string, error) {
 	claims := jwt.MapClaims{
 		"sid":  sessionID,

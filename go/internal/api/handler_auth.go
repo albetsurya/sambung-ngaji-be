@@ -10,8 +10,6 @@ import (
 	"pengajian-backend/internal/service"
 )
 
-// Nama cookie sesi. Frontend lama membaca cookie non-HttpOnly yang sama;
-// cookie baru HttpOnly (tidak bisa dibaca JS → kebal pencurian via XSS).
 const sessionCookieName = "pengajian_token"
 
 func isProduction() bool {
@@ -25,8 +23,6 @@ func sessionCookieMaxAge() int {
 	return 12 * 3600
 }
 
-// sessionCookieAttrs: Lax+non-Secure untuk dev lokal (http, same-site),
-// None+Secure untuk production (cross-site https).
 func setSessionCookie(c *fiber.Ctx, token string, maxAge int) {
 	sameSite := "Lax"
 	secure := false
@@ -66,10 +62,8 @@ func handleLogin(c *fiber.Ctx, svc *auth.Service, auditSvc *service.AuditService
 		return Fail(c, "Gagal login")
 	}
 
-	// Simpan sesi ke HttpOnly cookie (browser kirim otomatis berikutnya).
 	setSessionCookie(c, token, sessionCookieMaxAge())
 
-	// Audit login manual (public action, UserOf kosong di middleware)
 	if auditSvc != nil {
 		uid := u.UserID
 		auditSvc.Log(c.Context(), uid, "login", "session", uid)
