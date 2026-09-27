@@ -3,6 +3,7 @@ package api
 import (
 	"github.com/gofiber/fiber/v2"
 
+	"pengajian-backend/internal/model"
 	"pengajian-backend/internal/service"
 )
 
@@ -11,6 +12,17 @@ func handleGetGroups(c *fiber.Ctx, svc *service.GroupService) error {
 	items, err := svc.GetGroups(c.Context(), includeInactive)
 	if err != nil {
 		return Fail(c, "Gagal ambil groups: "+err.Error())
+	}
+	/* Akun ber-kelompok hanya melihat kelompoknya sendiri.
+	   SUPER_ADMIN / akun global tetap melihat semua (perilaku lama). */
+	if groupID, isSuper := ActorOf(c); !isSuper && groupID != "" && groupID != UnassignedGroup {
+		filtered := make([]model.GroupDTO, 0, 1)
+		for _, g := range items {
+			if g.GroupID == groupID {
+				filtered = append(filtered, g)
+			}
+		}
+		items = filtered
 	}
 	return Ok(c, items)
 }

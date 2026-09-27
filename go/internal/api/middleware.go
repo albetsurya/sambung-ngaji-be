@@ -55,8 +55,6 @@ var PublicActions = map[string]bool{
 	"checkUsernameAvailability": true,
 	"health":                    true,
 	"ready":                     true,
-	"getMeetings":        true,
-	"getFridaySchedules": true,
 }
 
 func MetricsMiddleware() fiber.Handler {

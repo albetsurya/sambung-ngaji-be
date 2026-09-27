@@ -67,12 +67,12 @@ var rolePermissions = map[string][]string{
 	"getSettings":    {"ADMIN", "TIM_ABSENSI", "TIM_PNKB", "PENGAWAS"},
 	"updateSettings": {"SUPER_ADMIN"},
 
-	"getUsers":            {"SUPER_ADMIN"},
-	"createUser":          {"SUPER_ADMIN"},
-	"updateUser":          {"SUPER_ADMIN"},
-	"updateUserRole":      {"SUPER_ADMIN"},
+	"getUsers":            {"SUPER_ADMIN", "ADMIN"},
+	"createUser":          {"SUPER_ADMIN", "ADMIN"},
+	"updateUser":          {"SUPER_ADMIN", "ADMIN"},
+	"updateUserRole":      {"SUPER_ADMIN", "ADMIN"},
 	"deleteUserPermanent": {"SUPER_ADMIN"},
-	"resetUserPassword":   {"SUPER_ADMIN"},
+	"resetUserPassword":   {"SUPER_ADMIN", "ADMIN"},
 
 	"getAuditLogs": {"SUPER_ADMIN"},
 
@@ -80,7 +80,7 @@ var rolePermissions = map[string][]string{
 	"getCurrentProvider": {"SUPER_ADMIN", "ADMIN", "TIM_PNKB", "TIM_ABSENSI", "PENGAWAS", "MEMBER"},
 	"setAIProvider":      {"SUPER_ADMIN", "ADMIN", "TIM_PNKB", "TIM_ABSENSI"},
 
-	"getAiUsageStats": {"SUPER_ADMIN", "ADMIN"},
+	"getAiUsageStats": {"SUPER_ADMIN"},
 
 	"parsePdfMeeting": {"ADMIN", "TIM_ABSENSI"},
 
@@ -135,15 +135,9 @@ func CanAccess(role, action string) bool {
 }
 
 var SuperAdminOnlyActions = map[string]bool{
-	"getUsers":            true,
-	"getUserDetail":       true,
-	"createUser":          true,
-	"updateUser":          true,
-	"updateUserRole":      true,
 	"deleteUserPermanent": true,
 	"getAuditLogs":        true,
 	"updateSettings":      true,
-	"resetUserPassword":   true,
 }
 
 func IsSuperAdminOnly(action string) bool {

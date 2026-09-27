@@ -116,7 +116,6 @@ func (e *AIToolExecutor) Execute(ctx context.Context, name string, args map[stri
 		}
 		return capItems(items, 100), nil
 
-
 	case "get_my_profile":
 		if memberID == "" {
 			return nil, errors.New("akun Anda belum terhubung ke data jamaah")
@@ -151,7 +150,6 @@ func (e *AIToolExecutor) Execute(ctx context.Context, name string, args map[stri
 
 	return nil, fmt.Errorf("tool tidak dikenal: %s", name)
 }
-
 
 func (e *AIToolExecutor) attendanceSummary(ctx context.Context, from, to, groupID string) (map[string]interface{}, error) {
 	meetings, err := e.meeting.GetMeetings(ctx, model.MeetingListFilter{From: from, To: to, GroupID: groupID})

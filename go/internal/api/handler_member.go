@@ -23,6 +23,10 @@ func parseMemberFilter(c *fiber.Ctx) model.MemberListFilter {
 func handleGetMembers(c *fiber.Ctx, svc *service.MemberService) error {
 	f := parseMemberFilter(c)
 	groupID := BodyString(c, "group_id")
+	/* Akun ber-kelompok dikunci ke kelompoknya (abaikan param klien). */
+	if g, isSuper := ActorOf(c); !isSuper && g != "" && g != UnassignedGroup {
+		groupID = g
+	}
 	items, err := svc.GetMembers(c.Context(), f, groupID)
 	if err != nil {
 		return Fail(c, "Gagal ambil members: "+err.Error())
@@ -33,6 +37,10 @@ func handleGetMembers(c *fiber.Ctx, svc *service.MemberService) error {
 func handleGetMembersPaged(c *fiber.Ctx, svc *service.MemberService) error {
 	f := parseMemberFilter(c)
 	groupID := BodyString(c, "group_id")
+	/* Akun ber-kelompok dikunci ke kelompoknya (abaikan param klien). */
+	if g, isSuper := ActorOf(c); !isSuper && g != "" && g != UnassignedGroup {
+		groupID = g
+	}
 	items, total, err := svc.GetMembersPaged(c.Context(), f, groupID)
 	if err != nil {
 		return Fail(c, "Gagal ambil members: "+err.Error())

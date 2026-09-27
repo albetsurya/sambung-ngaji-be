@@ -18,7 +18,7 @@ func NewMemberRepo(pool *pgxpool.Pool) *MemberRepo {
 }
 
 const memberSelectCols = `
-	member_id, nama_lengkap, nama_panggilan, jenis_kelamin,
+	member_id, group_id, nama_lengkap, nama_panggilan, jenis_kelamin,
 	tempat_lahir, tanggal_lahir, foto_url, no_wa,
 	alamat_rumah, desa, daerah, kelompok,
 	is_muballigh, is_kerja, is_nikah, tinggi_badan, berat_badan,
@@ -74,7 +74,7 @@ type rowScanner interface {
 func scanMember(s rowScanner) (*model.Member, error) {
 	var m model.Member
 	err := s.Scan(
-		&m.MemberID, &m.NamaLengkap, &m.NamaPanggilan, &m.JenisKelamin,
+		&m.MemberID, &m.GroupID, &m.NamaLengkap, &m.NamaPanggilan, &m.JenisKelamin,
 		&m.TempatLahir, &m.TanggalLahir, &m.FotoURL, &m.NoWA,
 		&m.AlamatRumah, &m.Desa, &m.Daerah, &m.Kelompok,
 		&m.IsMuballigh, &m.IsKerja, &m.IsNikah, &m.TinggiBadan, &m.BeratBadan,
@@ -101,7 +101,7 @@ func scanMembers(rows rowsScanner) ([]model.Member, error) {
 	for rows.Next() {
 		var m model.Member
 		err := rows.Scan(
-			&m.MemberID, &m.NamaLengkap, &m.NamaPanggilan, &m.JenisKelamin,
+			&m.MemberID, &m.GroupID, &m.NamaLengkap, &m.NamaPanggilan, &m.JenisKelamin,
 			&m.TempatLahir, &m.TanggalLahir, &m.FotoURL, &m.NoWA,
 			&m.AlamatRumah, &m.Desa, &m.Daerah, &m.Kelompok,
 			&m.IsMuballigh, &m.IsKerja, &m.IsNikah, &m.TinggiBadan, &m.BeratBadan,

@@ -119,7 +119,6 @@ func (s *PDFImportService) ParsePDF(ctx context.Context, rawText string) (*Parse
 	return &parsed, nil
 }
 
-
 func stripCodeBlock(s string) string {
 	s = strings.TrimSpace(s)
 	if strings.HasPrefix(s, "```") {

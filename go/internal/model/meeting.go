@@ -15,7 +15,6 @@ type Meeting struct {
 	Catatan        string
 	KategoriTarget []string
 	GenderTarget   *string
-	SendReminder   *bool
 	CreatedBy      *string
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
@@ -34,7 +33,6 @@ type MeetingDTO struct {
 	Catatan        string   `json:"catatan"`
 	KategoriTarget []string `json:"kategori_target"`
 	GenderTarget   string   `json:"gender_target"`
-	SendReminder   bool     `json:"send_reminder"`
 	CreatedBy      string   `json:"created_by"`
 	CreatedAt      string   `json:"created_at"`
 	UpdatedAt      string   `json:"updated_at"`

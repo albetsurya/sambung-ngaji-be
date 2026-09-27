@@ -37,7 +37,6 @@ func NewPendingService(
 	}
 }
 
-
 type CheckUsernameResult struct {
 	Available bool   `json:"available"`
 	Reason    string `json:"reason,omitempty"`
@@ -67,7 +66,6 @@ func (s *PendingService) CheckUsername(ctx context.Context, username string) (*C
 
 	return &CheckUsernameResult{Available: true}, nil
 }
-
 
 type SubmitRegistrationInput struct {
 	GroupID                string
@@ -244,7 +242,6 @@ func (s *PendingService) SubmitRegistration(ctx context.Context, in SubmitRegist
 	}, nil
 }
 
-
 func (s *PendingService) GetPendingMembers(ctx context.Context, groupID, status string) ([]model.PendingMemberDTO, error) {
 	rows, err := s.repo.FindAll(ctx, groupID, status)
 	if err != nil {
@@ -265,7 +262,6 @@ func (s *PendingService) GetPendingMemberDetail(ctx context.Context, id string) 
 	dto := toPendingDTO(*p)
 	return &dto, nil
 }
-
 
 type ApproveResult struct {
 	MemberID     string `json:"member_id"`
@@ -361,7 +357,6 @@ func (s *PendingService) Approve(ctx context.Context, submissionID, kelompok, re
 	}, nil
 }
 
-
 func (s *PendingService) Reject(ctx context.Context, submissionID, reviewerID, reason string) error {
 	if submissionID == "" {
 		return errors.New("submission_id wajib diisi")
@@ -383,7 +378,6 @@ func (s *PendingService) Reject(ctx context.Context, submissionID, reviewerID, r
 
 	return nil
 }
-
 
 func toPendingDTO(p model.PendingMember) model.PendingMemberDTO {
 	jk := ""

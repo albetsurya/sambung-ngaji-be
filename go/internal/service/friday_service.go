@@ -103,26 +103,18 @@ func toFridayDTO(f model.FridaySchedule) model.FridayScheduleDTO {
 		grpID = *f.GroupID
 	}
 	return model.FridayScheduleDTO{
-		FridayID:       f.FridayID,
-		GroupID:        grpID,
-		Tanggal:        f.Tanggal.Format("2006-01-02"),
-		Hari:           util.GetHariFromDate(&f.Tanggal),
-		KhatibImam:     f.KhatibImam,
-		Muadzin:        f.Muadzin,
-		Penasihat:      f.Penasihat,
-		PetugasParkir:  f.PetugasParkir,
-		PenataSandal:   f.PenataSandal,
-		Catatan:        f.Catatan,
-		CreatedBy:      f.CreatedBy,
-		CreatedAt:      f.CreatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
-		UpdatedAt:      f.UpdatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
-		ReminderSentAt: formatReminderSentAt(f.ReminderSentAt),
+		FridayID:      f.FridayID,
+		GroupID:       grpID,
+		Tanggal:       f.Tanggal.Format("2006-01-02"),
+		Hari:          util.GetHariFromDate(&f.Tanggal),
+		KhatibImam:    f.KhatibImam,
+		Muadzin:       f.Muadzin,
+		Penasihat:     f.Penasihat,
+		PetugasParkir: f.PetugasParkir,
+		PenataSandal:  f.PenataSandal,
+		Catatan:       f.Catatan,
+		CreatedBy:     f.CreatedBy,
+		CreatedAt:     f.CreatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
+		UpdatedAt:     f.UpdatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
 	}
-}
-
-func formatReminderSentAt(t *time.Time) string {
-	if t == nil {
-		return ""
-	}
-	return t.Format("2006-01-02T15:04:05.000Z07:00")
 }

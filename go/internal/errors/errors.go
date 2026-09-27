@@ -6,14 +6,14 @@ import (
 )
 
 var (
-	ErrNotFound = errors.New("resource not found")
+	ErrNotFound     = errors.New("resource not found")
 	ErrUnauthorized = errors.New("unauthorized")
-	ErrForbidden = errors.New("forbidden")
-	ErrConflict = errors.New("conflict")
-	ErrValidation = errors.New("validation error")
-	ErrInternal = errors.New("internal error")
-	ErrTimeout = errors.New("timeout")
-	ErrUnavailable = errors.New("service unavailable")
+	ErrForbidden    = errors.New("forbidden")
+	ErrConflict     = errors.New("conflict")
+	ErrValidation   = errors.New("validation error")
+	ErrInternal     = errors.New("internal error")
+	ErrTimeout      = errors.New("timeout")
+	ErrUnavailable  = errors.New("service unavailable")
 )
 
 func Wrap(err error, msg string) error {

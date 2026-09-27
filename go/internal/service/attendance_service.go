@@ -56,7 +56,13 @@ func (s *AttendanceService) GetAttendancePage(ctx context.Context, meetingID str
 	if err != nil {
 		return nil, errors.New("meeting tidak ditemukan")
 	}
-	members, err := s.memberSvc.GetAttendanceMembers(ctx, model.MemberListFilter{}, "")
+	/* Peserta wajib = jamaah yang kelompoknya sama dengan kelompok meeting.
+	   Meeting tanpa group (legacy) tetap menampilkan semua jamaah. */
+	groupID := ""
+	if meeting.GroupID != nil {
+		groupID = *meeting.GroupID
+	}
+	members, err := s.memberSvc.GetAttendanceMembers(ctx, model.MemberListFilter{}, groupID)
 	if err != nil {
 		return nil, err
 	}

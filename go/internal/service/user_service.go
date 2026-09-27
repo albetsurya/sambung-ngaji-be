@@ -244,7 +244,6 @@ func (s *UserService) GetMemberUserStatus(ctx context.Context, memberID string) 
 	}, nil
 }
 
-
 type ChangePasswordInput struct {
 	UserID           string
 	OldPassword      string
@@ -287,7 +286,6 @@ func (s *UserService) ChangeMyPassword(ctx context.Context, in ChangePasswordInp
 	}
 	return nil
 }
-
 
 type ChangeUsernameInput struct {
 	UserID      string
@@ -372,7 +370,6 @@ func (s *UserService) ResetPassword(ctx context.Context, userID, newPassword str
 	return nil
 }
 
-
 var validRoles = map[string]bool{
 	"SUPER_ADMIN": true,
 	"ADMIN":       true,
@@ -389,6 +386,10 @@ func toUserDTO(u model.User) model.UserDTO {
 	if u.MemberID != nil {
 		mid = *u.MemberID
 	}
+	gid := ""
+	if u.GroupID != nil {
+		gid = *u.GroupID
+	}
 	lla := ""
 	if u.LastLoginAt != nil {
 		lla = u.LastLoginAt.Format("2006-01-02T15:04:05.000Z07:00")
@@ -399,6 +400,7 @@ func toUserDTO(u model.User) model.UserDTO {
 		Nama:        u.Nama,
 		Role:        u.Role,
 		MemberID:    mid,
+		GroupID:     gid,
 		StatusAktif: u.StatusAktif,
 		CreatedAt:   u.CreatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
 		UpdatedAt:   u.UpdatedAt.Format("2006-01-02T15:04:05.000Z07:00"),

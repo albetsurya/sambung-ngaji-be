@@ -36,7 +36,6 @@ func NewGemini(apiKey string, models []string, timeout time.Duration) Provider {
 
 func (g *Gemini) Name() string { return "gemini" }
 
-
 type gemPart struct {
 	Text             string       `json:"text,omitempty"`
 	FunctionCall     *gemFuncCall `json:"functionCall,omitempty"`

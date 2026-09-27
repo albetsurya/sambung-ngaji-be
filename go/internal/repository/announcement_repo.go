@@ -16,7 +16,6 @@ func NewAnnouncementRepo(pool *pgxpool.Pool) *AnnouncementRepo {
 	return &AnnouncementRepo{pool: pool}
 }
 
-
 const templateSelectCols = `
 	template_id, group_id, nama_template, kode, isi_template, status_aktif, created_at, updated_at`
 
@@ -109,7 +108,6 @@ func (r *AnnouncementRepo) SoftDeleteTemplate(ctx context.Context, id string) er
 		`UPDATE announcement_templates SET status_aktif = false, updated_at = now() WHERE template_id = $1`, id)
 	return err
 }
-
 
 const announcementSelectCols = `
 	announcement_id, template_id, meeting_id, group_id, tanggal, hari,

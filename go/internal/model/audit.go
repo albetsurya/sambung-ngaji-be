@@ -27,6 +27,7 @@ type UserDTO struct {
 	Username    string `json:"username"`
 	Nama        string `json:"nama"`
 	Role        string `json:"role"`
+	GroupID     string `json:"group_id"`
 	MemberID    string `json:"member_id"`
 	StatusAktif bool   `json:"status_aktif"`
 	CreatedAt   string `json:"created_at"`

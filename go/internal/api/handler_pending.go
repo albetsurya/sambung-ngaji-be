@@ -53,6 +53,10 @@ func handleSubmitPublicRegistration(c *fiber.Ctx, svc *service.PendingService) e
 
 func handleGetPendingMembers(c *fiber.Ctx, svc *service.PendingService) error {
 	groupID := BodyString(c, "group_id")
+	/* Akun ber-kelompok dikunci ke kelompoknya (abaikan param klien). */
+	if g, isSuper := ActorOf(c); !isSuper && g != "" && g != UnassignedGroup {
+		groupID = g
+	}
 	status := BodyString(c, "status")
 	items, err := svc.GetPendingMembers(c.Context(), groupID, status)
 	if err != nil {

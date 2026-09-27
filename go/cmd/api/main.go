@@ -54,11 +54,11 @@ func main() {
 	providerOrder := []string{"gemini", "groq", "nvidia"}
 
 	app := fiber.New(fiber.Config{
-		AppName:      "Pengajian Backend",
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
-		IdleTimeout:  60 * time.Second,
-		BodyLimit:    2 * 1024 * 1024,
+		AppName:                 "Pengajian Backend",
+		ReadTimeout:             15 * time.Second,
+		WriteTimeout:            15 * time.Second,
+		IdleTimeout:             60 * time.Second,
+		BodyLimit:               2 * 1024 * 1024,
 		ProxyHeader:             fiber.HeaderXForwardedFor,
 		EnableTrustedProxyCheck: true,
 		TrustedProxies:          []string{"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"},
@@ -94,9 +94,9 @@ func main() {
 		corsOrigins = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,https://sambung-ngaji.vercel.app,https://sambung-ngaji-staging.vercel.app,https://sambung-ngaji-stag.vercel.app,https://sambung-ngaji-dev.vercel.app"
 	}
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: corsOrigins,
-		AllowMethods: "GET,POST,PUT,DELETE,OPTIONS",
-		AllowHeaders: "Content-Type,Authorization,ngrok-skip-browser-warning",
+		AllowOrigins:     corsOrigins,
+		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS",
+		AllowHeaders:     "Content-Type,Authorization,ngrok-skip-browser-warning",
 		AllowCredentials: true,
 		MaxAge:           3600,
 	}))

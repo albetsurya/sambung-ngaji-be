@@ -2,7 +2,6 @@ package model
 
 import "time"
 
-
 type ChatRequest struct {
 	Message  string        `json:"message"`
 	History  []ChatHistory `json:"history"`
@@ -20,7 +19,6 @@ type ChatResponse struct {
 	Model             string `json:"model,omitempty"`
 	RequestedProvider string `json:"requestedProvider,omitempty"`
 }
-
 
 type LLMMessage struct {
 	Role       string        `json:"role"`
@@ -50,7 +48,6 @@ type LLMToolDefFunc struct {
 	Description string                 `json:"description"`
 	Parameters  map[string]interface{} `json:"parameters"`
 }
-
 
 type AIUsageLog struct {
 	UsageID      string

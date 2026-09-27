@@ -367,7 +367,6 @@ func (s *AIService) GetUsageStats(ctx context.Context, user *model.User) (*model
 	}, nil
 }
 
-
 func buildSystemPrompt(user string) string {
 	today := time.Now().Format("Monday, 2 January 2006")
 	return "Kamu adalah asisten AI untuk aplikasi Sambung Ngaji yang mencakup data jamaah, kelompok, absensi, monitoring, dan pengumuman.\n" +

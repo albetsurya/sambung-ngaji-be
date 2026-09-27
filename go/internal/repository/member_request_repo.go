@@ -42,10 +42,20 @@ func (r *MemberRequestRepo) FindByID(ctx context.Context, requestID string) (*mo
 	return scanMemberRequest(row)
 }
 
-func (r *MemberRequestRepo) FindByStatus(ctx context.Context, status string) ([]model.MemberRequest, error) {
+func (r *MemberRequestRepo) FindByStatus(ctx context.Context, status, groupID string) ([]model.MemberRequest, error) {
+	/* Filter group via users.group_id (request milik user ber-kelompok).
+	   Kolom di-qualify karena user_id ada di kedua tabel. */
+	cols := memberRequestSelectCols
+	from := `FROM member_requests`
+	args := []interface{}{}
+	if groupID != "" {
+		cols = `member_requests.request_id, member_requests.user_id, member_requests.nama, member_requests.status, member_requests.member_id, member_requests.reason, member_requests.created_at, member_requests.reviewed_by, member_requests.reviewed_at`
+		from += ` JOIN users u ON u.user_id = member_requests.user_id AND u.group_id = $1`
+		args = append(args, groupID)
+	}
 	var rows rowsScanner
 	if status == "" {
-		rr, err := r.pool.Query(ctx, `SELECT `+memberRequestSelectCols+` FROM member_requests ORDER BY created_at DESC`)
+		rr, err := r.pool.Query(ctx, `SELECT `+cols+` `+from+` ORDER BY member_requests.created_at DESC`, args...)
 		if err != nil {
 			return nil, err
 		}
@@ -53,8 +63,8 @@ func (r *MemberRequestRepo) FindByStatus(ctx context.Context, status string) ([]
 		rows = rr
 	} else {
 		rr, err := r.pool.Query(ctx,
-			`SELECT `+memberRequestSelectCols+` FROM member_requests WHERE status = $1 ORDER BY created_at DESC`,
-			status)
+			`SELECT `+cols+` `+from+` WHERE member_requests.status = $`+itoa(len(args)+1)+` ORDER BY member_requests.created_at DESC`,
+			append(args, status)...)
 		if err != nil {
 			return nil, err
 		}

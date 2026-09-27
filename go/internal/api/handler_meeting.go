@@ -48,11 +48,15 @@ func handleCreateMeeting(c *fiber.Ctx, svc *service.MeetingService) error {
 	if u != nil {
 		createdBy = u.UserID
 	}
+	groupID, err := RequireGroupCreate(c)
+	if err != nil {
+		return err
+	}
 	in := service.CreateMeetingInput{
 		Tanggal:        BodyString(c, "tanggal"),
 		Jam:            BodyString(c, "jam"),
 		JamStart:       BodyString(c, "jam_start"),
-		GroupID:        BodyString(c, "group_id"),
+		GroupID:        groupID,
 		Acara:          BodyString(c, "acara"),
 		Materi:         BodyString(c, "materi"),
 		Status:         BodyString(c, "status"),
@@ -60,10 +64,6 @@ func handleCreateMeeting(c *fiber.Ctx, svc *service.MeetingService) error {
 		KategoriTarget: parseKategoriTarget(c),
 		GenderTarget:   BodyString(c, "gender_target"),
 		CreatedBy:      createdBy,
-	}
-	if _, ok := BodyOf(c)["send_reminder"]; ok {
-		sr := BodyBool(c, "send_reminder")
-		in.SendReminder = &sr
 	}
 	dto, err := svc.CreateMeeting(c.Context(), in)
 	if err != nil {
@@ -73,6 +73,9 @@ func handleCreateMeeting(c *fiber.Ctx, svc *service.MeetingService) error {
 }
 
 func handleUpdateMeeting(c *fiber.Ctx, svc *service.MeetingService) error {
+	if err := RequireMeetingAccess(c, svc, BodyString(c, "meeting_id")); err != nil {
+		return err
+	}
 	in := service.UpdateMeetingInput{
 		MeetingID: BodyString(c, "meeting_id"),
 		Tanggal:   BodyString(c, "tanggal"),
@@ -96,10 +99,6 @@ func handleUpdateMeeting(c *fiber.Ctx, svc *service.MeetingService) error {
 		kat := parseKategoriTarget(c)
 		in.KategoriTarget = &kat
 	}
-	if _, ok := BodyOf(c)["send_reminder"]; ok {
-		sr := BodyBool(c, "send_reminder")
-		in.SendReminder = &sr
-	}
 	dto, err := svc.UpdateMeeting(c.Context(), in)
 	if err != nil {
 		return Fail(c, err.Error())
@@ -109,6 +108,9 @@ func handleUpdateMeeting(c *fiber.Ctx, svc *service.MeetingService) error {
 
 func handleDeleteMeeting(c *fiber.Ctx, svc *service.MeetingService) error {
 	id := BodyString(c, "meeting_id")
+	if err := RequireMeetingAccess(c, svc, id); err != nil {
+		return err
+	}
 	res, err := svc.DeleteMeeting(c.Context(), id)
 	if err != nil {
 		return Fail(c, err.Error())
@@ -132,6 +134,9 @@ func handleDeleteMeetingsBulk(c *fiber.Ctx, svc *service.MeetingService) error {
 		return Fail(c, "meeting_ids tidak boleh kosong")
 	}
 
+	if err := RequireMeetingsAccess(c, svc, ids); err != nil {
+		return err
+	}
 	in := service.DeleteMeetingsBulkInput{MeetingIDs: ids}
 	res, err := svc.DeleteMeetingBulk(c.Context(), in)
 	if err != nil {

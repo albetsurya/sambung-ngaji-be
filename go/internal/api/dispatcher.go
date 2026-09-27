@@ -190,7 +190,7 @@ func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, providers map[string
 	fonnteSvc := service.NewFonnteService()
 
 	return &Services{
-		Auth:    authSvc,
+		Auth: authSvc,
 		Member: func() *service.MemberService {
 			s := service.NewMemberService(repository.NewMemberRepo(pool))
 			s.SetGroupRepo(repository.NewGroupRepo(pool))

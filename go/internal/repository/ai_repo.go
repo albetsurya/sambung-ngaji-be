@@ -17,7 +17,6 @@ func NewAIRepo(pool *pgxpool.Pool) *AIRepo {
 	return &AIRepo{pool: pool}
 }
 
-
 func (r *AIRepo) GetQuota(ctx context.Context, userID string, date time.Time) (int, error) {
 	var count int
 	err := r.pool.QueryRow(ctx, `
@@ -40,7 +39,6 @@ func (r *AIRepo) IncrementQuota(ctx context.Context, userID string, date time.Ti
 	`, userID, date.Format("2006-01-02"))
 	return err
 }
-
 
 func (r *AIRepo) InsertUsage(ctx context.Context, u *model.AIUsageLog) error {
 	_, err := r.pool.Exec(ctx, `

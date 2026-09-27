@@ -89,8 +89,8 @@ func (s *MemberRequestService) autoCreateMember(ctx context.Context, userID, nam
 	return memberID, nil
 }
 
-func (s *MemberRequestService) List(ctx context.Context, status string) ([]model.MemberRequestDTO, error) {
-	rows, err := s.requestRepo.FindByStatus(ctx, strings.ToUpper(strings.TrimSpace(status)))
+func (s *MemberRequestService) List(ctx context.Context, status, groupID string) ([]model.MemberRequestDTO, error) {
+	rows, err := s.requestRepo.FindByStatus(ctx, strings.ToUpper(strings.TrimSpace(status)), groupID)
 	if err != nil {
 		return nil, err
 	}

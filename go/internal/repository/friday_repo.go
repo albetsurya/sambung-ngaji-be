@@ -18,8 +18,7 @@ func NewFridayRepo(pool *pgxpool.Pool) *FridayRepo {
 }
 
 const fridaySelectCols = `friday_id, group_id, tanggal, khatib_imam, muadzin, penasihat,
-	petugas_parkir, penata_sandal, catatan, created_by, created_at, updated_at,
-	reminder_sent_at`
+	petugas_parkir, penata_sandal, catatan, created_by, created_at, updated_at`
 
 func (r *FridayRepo) FindByRange(ctx context.Context, groupID, from, to string) ([]model.FridaySchedule, error) {
 	q := `SELECT ` + fridaySelectCols + ` FROM friday_schedules
@@ -108,7 +107,7 @@ func scanFriday(row pgx.Row) (model.FridaySchedule, error) {
 	var f model.FridaySchedule
 	err := row.Scan(&f.FridayID, &f.GroupID, &f.Tanggal, &f.KhatibImam, &f.Muadzin,
 		&f.Penasihat, &f.PetugasParkir, &f.PenataSandal, &f.Catatan,
-		&f.CreatedBy, &f.CreatedAt, &f.UpdatedAt, &f.ReminderSentAt)
+		&f.CreatedBy, &f.CreatedAt, &f.UpdatedAt)
 	return f, err
 }
 
@@ -118,7 +117,7 @@ func scanFridays(rows rowsScanner) ([]model.FridaySchedule, error) {
 		var f model.FridaySchedule
 		if err := rows.Scan(&f.FridayID, &f.GroupID, &f.Tanggal, &f.KhatibImam, &f.Muadzin,
 			&f.Penasihat, &f.PetugasParkir, &f.PenataSandal, &f.Catatan,
-			&f.CreatedBy, &f.CreatedAt, &f.UpdatedAt, &f.ReminderSentAt); err != nil {
+			&f.CreatedBy, &f.CreatedAt, &f.UpdatedAt); err != nil {
 			return nil, err
 		}
 		out = append(out, f)

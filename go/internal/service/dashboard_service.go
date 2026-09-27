@@ -60,7 +60,6 @@ func (s *DashboardService) GetGeneral(ctx context.Context, groupID string) (*Gen
 		return nil, err
 	}
 
-
 	meetingIDs := make([]string, 0, len(meetings))
 	for _, m := range meetings {
 		meetingIDs = append(meetingIDs, m.MeetingID)
@@ -84,7 +83,6 @@ func (s *DashboardService) GetGeneral(ctx context.Context, groupID string) (*Gen
 		attGrouped[a.MemberID] = append(attGrouped[a.MemberID], a)
 	}
 
-
 	perKategori := map[string]int{
 		util.KatBalita: 0, util.KatCaberawit: 0, util.KatPraRemaja: 0,
 		util.KatRemaja: 0, util.KatPraNikah: 0, util.KatDewasa: 0, util.KatIstimewa: 0,
@@ -93,7 +91,6 @@ func (s *DashboardService) GetGeneral(ctx context.Context, groupID string) (*Gen
 		k := util.GetMemberCategory(m.TanggalLahir, m.JenjangPendidikan, m.IsNikah)
 		perKategori[k]++
 	}
-
 
 	today := time.Now().Format("2006-01-02")
 	var upcoming *model.Meeting
@@ -109,7 +106,6 @@ func (s *DashboardService) GetGeneral(ctx context.Context, groupID string) (*Gen
 		})
 		upcoming = &futureMeetings[0]
 	}
-
 
 	liburMeetingIDs := util.LiburMeetingIDs(meetings)
 
@@ -128,14 +124,12 @@ func (s *DashboardService) GetGeneral(ctx context.Context, groupID string) (*Gen
 		rate = (hadirCount * 100) / allCount
 	}
 
-
 	meetingDates := make(map[string]time.Time, len(meetings))
 	for _, m := range meetings {
 		meetingDates[m.MeetingID] = m.Tanggal
 	}
 
 	attention := s.buildAttentionList(members, attGrouped, meetingDates, liburMeetingIDs)
-
 
 	incomplete := 0
 	for _, m := range members {
@@ -250,7 +244,6 @@ func maxConsecutiveRun(window []model.Attendance, status string) int {
 	}
 	return maxRun
 }
-
 
 type MyDashboard struct {
 	Profile    map[string]interface{}   `json:"profile"`

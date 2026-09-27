@@ -21,6 +21,11 @@ func NewMeetingService(repo *repository.MeetingRepo) *MeetingService {
 	return &MeetingService{repo: repo}
 }
 
+/* Ambil satu meeting (untuk guard akses per-record). */
+func (s *MeetingService) GetMeeting(ctx context.Context, id string) (*model.Meeting, error) {
+	return s.repo.FindByID(ctx, id)
+}
+
 func (s *MeetingService) GetMeetings(ctx context.Context, f model.MeetingListFilter) ([]model.MeetingDTO, error) {
 	meetings, err := s.repo.FindAll(ctx, f)
 	if err != nil {
@@ -44,7 +49,6 @@ type CreateMeetingInput struct {
 	Catatan        string
 	KategoriTarget []string
 	GenderTarget   string
-	SendReminder   *bool
 	CreatedBy      string
 }
 
@@ -76,11 +80,6 @@ func (s *MeetingService) CreateMeeting(ctx context.Context, in CreateMeetingInpu
 		gt := in.GenderTarget
 		m.GenderTarget = &gt
 	}
-	sendReminder := true
-	if in.SendReminder != nil {
-		sendReminder = *in.SendReminder
-	}
-	m.SendReminder = &sendReminder
 	if in.GroupID != "" {
 		m.GroupID = &in.GroupID
 	}
@@ -115,7 +114,6 @@ type UpdateMeetingInput struct {
 	Catatan        string
 	KategoriTarget *[]string
 	GenderTarget   *string
-	SendReminder   *bool
 }
 
 func (s *MeetingService) UpdateMeeting(ctx context.Context, in UpdateMeetingInput) (*model.MeetingDTO, error) {
@@ -167,9 +165,6 @@ func (s *MeetingService) UpdateMeeting(ctx context.Context, in UpdateMeetingInpu
 		if val == "L" || val == "P" || val == "" {
 			patch.GenderTarget = &val
 		}
-	}
-	if in.SendReminder != nil {
-		patch.SendReminder = in.SendReminder
 	}
 	if err := s.repo.Update(ctx, in.MeetingID, patch); err != nil {
 		return nil, err
@@ -259,10 +254,6 @@ func toMeetingDTO(m model.Meeting) model.MeetingDTO {
 	if kat == nil {
 		kat = []string{}
 	}
-	sendReminder := true
-	if m.SendReminder != nil {
-		sendReminder = *m.SendReminder
-	}
 	return model.MeetingDTO{
 		MeetingID:      m.MeetingID,
 		Tanggal:        m.Tanggal.Format("2006-01-02"),
@@ -276,7 +267,6 @@ func toMeetingDTO(m model.Meeting) model.MeetingDTO {
 		Catatan:        m.Catatan,
 		KategoriTarget: kat,
 		GenderTarget:   gt,
-		SendReminder:   sendReminder,
 		CreatedBy:      cby,
 		CreatedAt:      m.CreatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
 		UpdatedAt:      m.UpdatedAt.Format("2006-01-02T15:04:05.000Z07:00"),

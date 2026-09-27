@@ -16,12 +16,17 @@ func handleCreateMember(c *fiber.Ctx, svc *service.MemberService) error {
 	}
 
 	in := service.CreateMemberInput{
-		NamaLengkap:            BodyString(c, "nama_lengkap"),
-		NamaPanggilan:          BodyString(c, "nama_panggilan"),
-		JenisKelamin:           BodyString(c, "jenis_kelamin"),
-		TempatLahir:            BodyString(c, "tempat_lahir"),
-		TanggalLahir:           BodyString(c, "tanggal_lahir"),
-		Kelompok:               func() string { if groupName != "" { return groupName }; return BodyString(c, "kelompok") }(),
+		NamaLengkap:   BodyString(c, "nama_lengkap"),
+		NamaPanggilan: BodyString(c, "nama_panggilan"),
+		JenisKelamin:  BodyString(c, "jenis_kelamin"),
+		TempatLahir:   BodyString(c, "tempat_lahir"),
+		TanggalLahir:  BodyString(c, "tanggal_lahir"),
+		Kelompok: func() string {
+			if groupName != "" {
+				return groupName
+			}
+			return BodyString(c, "kelompok")
+		}(),
 		Desa:                   BodyString(c, "desa"),
 		Daerah:                 BodyString(c, "daerah"),
 		AlamatRumah:            BodyString(c, "alamat_rumah"),

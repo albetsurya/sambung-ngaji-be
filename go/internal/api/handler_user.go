@@ -3,6 +3,7 @@ package api
 import (
 	"github.com/gofiber/fiber/v2"
 
+	"pengajian-backend/internal/model"
 	"pengajian-backend/internal/service"
 )
 
@@ -10,6 +11,16 @@ func handleGetUsers(c *fiber.Ctx, svc *service.UserService) error {
 	items, err := svc.GetUsers(c.Context())
 	if err != nil {
 		return Fail(c, "Gagal ambil users: "+err.Error())
+	}
+	/* Akun ber-kelompok hanya melihat user di kelompoknya sendiri. */
+	if groupID, isSuper := ActorOf(c); !isSuper && groupID != "" && groupID != UnassignedGroup {
+		filtered := make([]model.UserDTO, 0, len(items))
+		for _, u := range items {
+			if u.GroupID == groupID {
+				filtered = append(filtered, u)
+			}
+		}
+		items = filtered
 	}
 	return Ok(c, items)
 }

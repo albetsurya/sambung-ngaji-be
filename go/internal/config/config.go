@@ -10,23 +10,23 @@ import (
 )
 
 type Config struct {
-	AppEnv       string
-	AppPort      string
-	DatabaseURL  string
-	JWTSecret    string
-	JWTExpiryHrs int
+	AppEnv              string
+	AppPort             string
+	DatabaseURL         string
+	JWTSecret           string
+	JWTExpiryHrs        int
 	DBMaxConns          int
 	DBMinConns          int
 	DBMaxConnLifetime   string
 	DBMaxConnIdleTime   string
 	DBHealthCheckPeriod string
-	AIProvider   string
-	GeminiAPIKey string
-	GeminiModels []string
-	GroqAPIKey   string
-	GroqModels   []string
-	NvidiaAPIKey string
-	NvidiaModels []string
+	AIProvider          string
+	GeminiAPIKey        string
+	GeminiModels        []string
+	GroqAPIKey          string
+	GroqModels          []string
+	NvidiaAPIKey        string
+	NvidiaModels        []string
 
 	SupabaseURL        string
 	SupabaseServiceKey string
@@ -37,11 +37,11 @@ func Load() (*Config, error) {
 	_ = godotenv.Load()
 
 	cfg := &Config{
-		AppEnv:       getEnv("APP_ENV", "development"),
-		AppPort:      getEnv("PORT", getEnv("APP_PORT", "8080")),
-		DatabaseURL:  envTrim("DATABASE_URL"),
-		JWTSecret:    envTrim("JWT_SECRET"),
-		JWTExpiryHrs: getEnvInt("JWT_EXPIRY_HOURS", 12),
+		AppEnv:              getEnv("APP_ENV", "development"),
+		AppPort:             getEnv("PORT", getEnv("APP_PORT", "8080")),
+		DatabaseURL:         envTrim("DATABASE_URL"),
+		JWTSecret:           envTrim("JWT_SECRET"),
+		JWTExpiryHrs:        getEnvInt("JWT_EXPIRY_HOURS", 12),
 		DBMaxConns:          getEnvInt("DB_MAX_CONNS", 10),
 		DBMinConns:          getEnvInt("DB_MIN_CONNS", 1),
 		DBMaxConnLifetime:   getEnv("DB_MAX_CONN_LIFETIME", "1h"),

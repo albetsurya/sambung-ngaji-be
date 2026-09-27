@@ -4,6 +4,7 @@ import "time"
 
 type Member struct {
 	MemberID               string
+	GroupID                *string
 	NamaLengkap            string
 	NamaPanggilan          string
 	JenisKelamin           *string

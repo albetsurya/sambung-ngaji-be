@@ -20,7 +20,12 @@ func handleRequestBecomeMember(c *fiber.Ctx, svc *service.MemberRequestService) 
 
 func handleListMemberRequests(c *fiber.Ctx, svc *service.MemberRequestService) error {
 	status := BodyString(c, "status")
-	res, err := svc.List(c.Context(), status)
+	/* Akun ber-kelompok hanya melihat request user kelompoknya. */
+	groupID := ""
+	if g, isSuper := ActorOf(c); !isSuper && g != "" && g != UnassignedGroup {
+		groupID = g
+	}
+	res, err := svc.List(c.Context(), status, groupID)
 	if err != nil {
 		return Fail(c, err.Error())
 	}

@@ -18,12 +18,13 @@ func NewUserAdminRepo(pool *pgxpool.Pool) *UserAdminRepo {
 }
 
 const userAdminSelectCols = `
-	user_id, username, password_hash, nama, role, member_id,
-	status_aktif, created_at, updated_at, last_login_at`
+	u.user_id, u.username, u.password_hash, u.nama, u.role, u.member_id,
+	COALESCE(u.group_id, m.group_id, '') AS group_id,
+	u.status_aktif, u.created_at, u.updated_at, u.last_login_at`
 
 func (r *UserAdminRepo) FindAll(ctx context.Context) ([]model.User, error) {
-	rows, err := r.pool.Query(ctx,
-		`SELECT `+userAdminSelectCols+` FROM users ORDER BY username`)
+	q := `SELECT ` + userAdminSelectCols + ` FROM users u LEFT JOIN members m ON u.member_id = m.member_id ORDER BY u.username`
+	rows, err := r.pool.Query(ctx, q)
 	if err != nil {
 		return nil, err
 	}
@@ -32,11 +33,16 @@ func (r *UserAdminRepo) FindAll(ctx context.Context) ([]model.User, error) {
 	var out []model.User
 	for rows.Next() {
 		var u model.User
+		var groupID string
 		if err := rows.Scan(
 			&u.UserID, &u.Username, &u.PasswordHash, &u.Nama, &u.Role,
-			&u.MemberID, &u.StatusAktif, &u.CreatedAt, &u.UpdatedAt, &u.LastLoginAt,
+			&u.MemberID, &groupID, &u.StatusAktif, &u.CreatedAt, &u.UpdatedAt, &u.LastLoginAt,
 		); err != nil {
 			return nil, err
+		}
+		if groupID != "" {
+			g := groupID
+			u.GroupID = &g
 		}
 		out = append(out, u)
 	}
@@ -45,14 +51,18 @@ func (r *UserAdminRepo) FindAll(ctx context.Context) ([]model.User, error) {
 
 func (r *UserAdminRepo) FindByID(ctx context.Context, id string) (*model.User, error) {
 	var u model.User
-	err := r.pool.QueryRow(ctx,
-		`SELECT `+userAdminSelectCols+` FROM users WHERE user_id = $1`, id,
-	).Scan(
+	var groupID string
+	q := `SELECT ` + userAdminSelectCols + ` FROM users u LEFT JOIN members m ON u.member_id = m.member_id WHERE u.user_id = $1`
+	err := r.pool.QueryRow(ctx, q, id).Scan(
 		&u.UserID, &u.Username, &u.PasswordHash, &u.Nama, &u.Role,
-		&u.MemberID, &u.StatusAktif, &u.CreatedAt, &u.UpdatedAt, &u.LastLoginAt,
+		&u.MemberID, &groupID, &u.StatusAktif, &u.CreatedAt, &u.UpdatedAt, &u.LastLoginAt,
 	)
 	if err != nil {
 		return nil, err
+	}
+	if groupID != "" {
+		g := groupID
+		u.GroupID = &g
 	}
 	return &u, nil
 }
@@ -83,15 +93,18 @@ func (r *UserAdminRepo) CountActiveSuperAdminsExcept(ctx context.Context, except
 
 func (r *UserAdminRepo) FindActiveUserByMemberID(ctx context.Context, memberID string) (*model.User, error) {
 	var u model.User
-	err := r.pool.QueryRow(ctx,
-		`SELECT `+userAdminSelectCols+` FROM users WHERE member_id = $1 AND status_aktif = true LIMIT 1`,
-		memberID,
-	).Scan(
+	var groupID string
+	q := `SELECT ` + userAdminSelectCols + ` FROM users u LEFT JOIN members m ON u.member_id = m.member_id WHERE u.member_id = $1 AND u.status_aktif = true LIMIT 1`
+	err := r.pool.QueryRow(ctx, q, memberID).Scan(
 		&u.UserID, &u.Username, &u.PasswordHash, &u.Nama, &u.Role,
-		&u.MemberID, &u.StatusAktif, &u.CreatedAt, &u.UpdatedAt, &u.LastLoginAt,
+		&u.MemberID, &groupID, &u.StatusAktif, &u.CreatedAt, &u.UpdatedAt, &u.LastLoginAt,
 	)
 	if err != nil {
 		return nil, err
+	}
+	if groupID != "" {
+		g := groupID
+		u.GroupID = &g
 	}
 	return &u, nil
 }
