@@ -140,7 +140,7 @@ func (s *MemberService) applyFilters(in []model.Member, f model.MemberListFilter
 		if !f.IncludeInactive && !m.StatusAktif {
 			continue
 		}
-		if kelompok != "" && m.Kelompok != kelompok {
+		if kelompok != "" && m.Kelompok != kelompok && (m.GroupID == nil || *m.GroupID != kelompok) {
 			continue
 		}
 		if jk != "" && strOr(m.JenisKelamin, "") != jk {

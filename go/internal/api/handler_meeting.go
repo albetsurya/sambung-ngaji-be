@@ -8,10 +8,14 @@ import (
 )
 
 func handleGetMeetings(c *fiber.Ctx, svc *service.MeetingService) error {
+	groupID := BodyString(c, "group_id")
+	if g, isSuper := ActorOf(c); !isSuper && g != "" && g != UnassignedGroup {
+		groupID = g
+	}
 	f := model.MeetingListFilter{
 		From:    BodyString(c, "from"),
 		To:      BodyString(c, "to"),
-		GroupID: BodyString(c, "group_id"),
+		GroupID: groupID,
 	}
 	items, err := svc.GetMeetings(c.Context(), f)
 	if err != nil {

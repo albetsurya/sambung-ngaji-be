@@ -55,7 +55,7 @@ func (s *DashboardService) GetGeneral(ctx context.Context, groupID string) (*Gen
 		return nil, err
 	}
 
-	meetings, err := s.meetingRepo.FindAll(ctx, model.MeetingListFilter{})
+	meetings, err := s.meetingRepo.FindAll(ctx, model.MeetingListFilter{GroupID: groupID})
 	if err != nil {
 		return nil, err
 	}

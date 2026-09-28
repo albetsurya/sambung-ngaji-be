@@ -28,7 +28,11 @@ func handleSaveFridaySchedule(c *fiber.Ctx, svc *service.FridayService) error {
 }
 
 func handleGetFridaySchedules(c *fiber.Ctx, svc *service.FridayService) error {
-	res, err := svc.List(c.Context(), BodyString(c, "group_id"), BodyString(c, "from"), BodyString(c, "to"))
+	groupID := BodyString(c, "group_id")
+	if g, isSuper := ActorOf(c); !isSuper && g != "" && g != UnassignedGroup {
+		groupID = g
+	}
+	res, err := svc.List(c.Context(), groupID, BodyString(c, "from"), BodyString(c, "to"))
 	if err != nil {
 		return Fail(c, err.Error())
 	}

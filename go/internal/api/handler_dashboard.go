@@ -8,6 +8,9 @@ import (
 
 func handleGetDashboard(c *fiber.Ctx, svc *service.DashboardService) error {
 	groupID := BodyString(c, "group_id")
+	if g, isSuper := ActorOf(c); !isSuper && g != "" && g != UnassignedGroup {
+		groupID = g
+	}
 	d, err := svc.GetGeneral(c.Context(), groupID)
 	if err != nil {
 		return Fail(c, "Gagal ambil dashboard: "+err.Error())

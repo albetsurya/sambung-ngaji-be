@@ -168,7 +168,11 @@ func handleUpdateAnnouncement(c *fiber.Ctx, svc *service.AnnouncementService) er
 }
 
 func handleGetAnnouncements(c *fiber.Ctx, svc *service.AnnouncementService) error {
-	items, err := svc.GetAnnouncements(c.Context(), BodyString(c, "group_id"), BodyString(c, "status"))
+	groupID := BodyString(c, "group_id")
+	if g, isSuper := ActorOf(c); !isSuper && g != "" && g != UnassignedGroup {
+		groupID = g
+	}
+	items, err := svc.GetAnnouncements(c.Context(), groupID, BodyString(c, "status"))
 	if err != nil {
 		return Fail(c, err.Error())
 	}
