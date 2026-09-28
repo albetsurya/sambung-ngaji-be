@@ -557,6 +557,18 @@ func ListRegisteredActions() []string {
 func RegisterRESTAPI(app *fiber.App, svc *Services) {
 	v1 := app.Group("/api/v1", BodyParserMiddleware(), AuthMiddleware(svc.Auth), AuditMiddleware(svc.Audit))
 
+	// Auth & Profile
+	v1.Post("/auth/login", func(c *fiber.Ctx) error { return handleLogin(c, svc.Auth, svc.Audit) })
+	v1.Post("/auth/logout", func(c *fiber.Ctx) error { return handleLogout(c, svc.Auth) })
+	v1.Get("/auth/validate-session", func(c *fiber.Ctx) error { return handleValidateSession(c, svc.Auth) })
+	v1.Get("/auth/me", func(c *fiber.Ctx) error { return handleGetMyProfile(c, svc.Profile) })
+	v1.Put("/auth/me", func(c *fiber.Ctx) error { return handleUpdateMyProfile(c, svc.Profile) })
+	v1.Get("/auth/my-attendance", func(c *fiber.Ctx) error { return handleGetMyAttendance(c, svc.Profile) })
+	v1.Get("/auth/my-monitoring", func(c *fiber.Ctx) error { return handleGetMyMonitoring(c, svc.Profile) })
+	v1.Get("/auth/upcoming-meetings", func(c *fiber.Ctx) error { return handleGetUpcomingMeetings(c, svc.Profile) })
+	v1.Post("/auth/change-password", func(c *fiber.Ctx) error { return handleChangeMyPassword(c, svc.User) })
+	v1.Post("/auth/change-username", func(c *fiber.Ctx) error { return handleChangeMyUsername(c, svc.User) })
+
 	// Groups
 	v1.Get("/groups", func(c *fiber.Ctx) error { return handleGetGroups(c, svc.Group) })
 	v1.Post("/groups", func(c *fiber.Ctx) error { return handleSaveGroup(c, svc.Group) })
@@ -564,12 +576,63 @@ func RegisterRESTAPI(app *fiber.App, svc *Services) {
 	// Members
 	v1.Get("/members", func(c *fiber.Ctx) error { return handleGetMembers(c, svc.Member) })
 	v1.Get("/members/paged", func(c *fiber.Ctx) error { return handleGetMembersPaged(c, svc.Member) })
+	v1.Get("/members/pnkb", func(c *fiber.Ctx) error { return handleGetPNKBMembers(c, svc.Member) })
+	v1.Get("/members/pnkb-paged", func(c *fiber.Ctx) error { return handleGetPNKBMembersPaged(c, svc.Member) })
+	v1.Get("/members/attendance", func(c *fiber.Ctx) error { return handleGetAttendanceMembers(c, svc.Member) })
+	v1.Get("/members/export", func(c *fiber.Ctx) error { return handleGetMembersForExport(c, svc.Member) })
 	v1.Get("/members/detail", func(c *fiber.Ctx) error { return handleGetMemberDetail(c, svc.Member) })
 	v1.Post("/members", func(c *fiber.Ctx) error { return handleCreateMember(c, svc.Member) })
 	v1.Put("/members", func(c *fiber.Ctx) error { return handleUpdateMember(c, svc.Member) })
+	v1.Post("/members/deactivate", func(c *fiber.Ctx) error { return handleDeactivateMember(c, svc.Member) })
 	v1.Delete("/members", func(c *fiber.Ctx) error { return handleDeleteMember(c, svc.Member) })
 
-	// Pending
+	// Meetings & Bulk
+	v1.Get("/meetings", func(c *fiber.Ctx) error { return handleGetMeetings(c, svc.Meeting) })
+	v1.Post("/meetings", func(c *fiber.Ctx) error { return handleCreateMeeting(c, svc.Meeting) })
+	v1.Put("/meetings", func(c *fiber.Ctx) error { return handleUpdateMeeting(c, svc.Meeting) })
+	v1.Delete("/meetings", func(c *fiber.Ctx) error { return handleDeleteMeeting(c, svc.Meeting) })
+	v1.Delete("/meetings/bulk", func(c *fiber.Ctx) error { return handleDeleteMeetingsBulk(c, svc.Meeting) })
+	v1.Post("/meetings/bulk-preview", func(c *fiber.Ctx) error { return handlePreviewBulkMeetings(c, svc.BulkMeeting) })
+	v1.Post("/meetings/bulk-create", func(c *fiber.Ctx) error { return handleBulkCreateMeetings(c, svc.BulkMeeting) })
+	v1.Get("/meetings/bulk-templates", func(c *fiber.Ctx) error { return handleGetBulkMeetingTemplates(c, svc.BulkMeeting) })
+	v1.Post("/meetings/parse-pdf", func(c *fiber.Ctx) error { return handleParsePdfMeeting(c, svc.PDFImport) })
+
+	// Attendance
+	v1.Get("/attendance", func(c *fiber.Ctx) error { return handleGetAttendance(c, svc.Attendance) })
+	v1.Get("/attendance/page", func(c *fiber.Ctx) error { return handleGetAttendancePage(c, svc.Attendance) })
+	v1.Post("/attendance", func(c *fiber.Ctx) error { return handleSaveAttendance(c, svc.Attendance) })
+	v1.Post("/attendance/bulk", func(c *fiber.Ctx) error { return handleBulkSaveAttendance(c, svc.Attendance) })
+	v1.Delete("/attendance", func(c *fiber.Ctx) error { return handleDeleteAttendance(c, svc.Attendance) })
+	v1.Delete("/attendance/meeting", func(c *fiber.Ctx) error { return handleDeleteAttendanceByMeeting(c, svc.Attendance) })
+	v1.Delete("/attendance/member", func(c *fiber.Ctx) error { return handleDeleteAttendanceByMember(c, svc.Attendance) })
+
+	// Dashboard, Monitoring & Settings
+	v1.Get("/dashboard", func(c *fiber.Ctx) error { return handleGetDashboard(c, svc.Dashboard) })
+	v1.Get("/dashboard/my", func(c *fiber.Ctx) error { return handleGetMyDashboard(c, svc.Dashboard) })
+	v1.Get("/monitoring", func(c *fiber.Ctx) error { return handleGetMonitoring(c, svc.Monitoring) })
+	v1.Post("/monitoring", func(c *fiber.Ctx) error { return handleCreateMonitoring(c, svc.Monitoring) })
+	v1.Put("/monitoring", func(c *fiber.Ctx) error { return handleUpdateMonitoring(c, svc.Monitoring) })
+	v1.Get("/settings", func(c *fiber.Ctx) error { return handleGetSettings(c, svc.Settings) })
+	v1.Put("/settings", func(c *fiber.Ctx) error { return handleUpdateSettings(c, svc.Settings) })
+
+	// Announcements
+	v1.Get("/announcements", func(c *fiber.Ctx) error { return handleGetAnnouncements(c, svc.Announcement) })
+	v1.Post("/announcements", func(c *fiber.Ctx) error { return handleCreateAnnouncement(c, svc.Announcement) })
+	v1.Put("/announcements", func(c *fiber.Ctx) error { return handleUpdateAnnouncement(c, svc.Announcement) })
+	v1.Get("/announcements/templates", func(c *fiber.Ctx) error { return handleGetAnnouncementTemplates(c, svc.Announcement) })
+	v1.Get("/announcements/templates/all", func(c *fiber.Ctx) error { return handleGetAllAnnouncementTemplates(c, svc.Announcement) })
+	v1.Get("/announcements/templates/detail", func(c *fiber.Ctx) error { return handleGetAnnouncementTemplateDetail(c, svc.Announcement) })
+	v1.Post("/announcements/templates", func(c *fiber.Ctx) error { return handleCreateAnnouncementTemplate(c, svc.Announcement) })
+	v1.Put("/announcements/templates", func(c *fiber.Ctx) error { return handleUpdateAnnouncementTemplate(c, svc.Announcement) })
+	v1.Delete("/announcements/templates", func(c *fiber.Ctx) error { return handleDeleteAnnouncementTemplate(c, svc.Announcement) })
+	v1.Post("/announcements/templates/from-announcement", func(c *fiber.Ctx) error { return handleCreateTemplateFromAnnouncement(c, svc.Announcement) })
+	v1.Post("/announcements/generate", func(c *fiber.Ctx) error { return handleGenerateAnnouncement(c, svc.Announcement) })
+	v1.Post("/announcements/generate-weekly", func(c *fiber.Ctx) error { return handleGenerateWeeklyAnnouncements(c, svc.Announcement) })
+	v1.Get("/announcements/recipient-summary", func(c *fiber.Ctx) error { return handleGetAnnouncementRecipientSummary(c, svc.Announcement) })
+
+	// Public & Pending
+	v1.Get("/public/check-username", func(c *fiber.Ctx) error { return handleCheckUsernameAvailability(c, svc.Pending) })
+	v1.Post("/public/register", func(c *fiber.Ctx) error { return handleSubmitPublicRegistration(c, svc.Pending) })
 	v1.Get("/pending", func(c *fiber.Ctx) error { return handleGetPendingMembers(c, svc.Pending) })
 	v1.Get("/pending/detail", func(c *fiber.Ctx) error { return handleGetPendingMemberDetail(c, svc.Pending) })
 	v1.Post("/pending/approve", func(c *fiber.Ctx) error { return handleApprovePendingMember(c, svc.Pending) })
@@ -580,10 +643,37 @@ func RegisterRESTAPI(app *fiber.App, svc *Services) {
 	v1.Get("/users/detail", func(c *fiber.Ctx) error { return handleGetUserDetail(c, svc.User) })
 	v1.Post("/users", func(c *fiber.Ctx) error { return handleCreateUser(c, svc.User) })
 	v1.Put("/users", func(c *fiber.Ctx) error { return handleUpdateUser(c, svc.User) })
+	v1.Delete("/users", func(c *fiber.Ctx) error { return handleDeleteUserPermanent(c, svc.User) })
+	v1.Put("/users/role", func(c *fiber.Ctx) error { return handleUpdateUserRole(c, svc.User) })
+	v1.Get("/users/member-status", func(c *fiber.Ctx) error { return handleGetMemberUserStatus(c, svc.User) })
+	v1.Post("/users/reset-password", func(c *fiber.Ctx) error { return handleResetUserPassword(c, svc.User) })
 
-	// Meetings
-	v1.Get("/meetings", func(c *fiber.Ctx) error { return handleGetMeetings(c, svc.Meeting) })
-	v1.Post("/meetings", func(c *fiber.Ctx) error { return handleCreateMeeting(c, svc.Meeting) })
-	v1.Put("/meetings", func(c *fiber.Ctx) error { return handleUpdateMeeting(c, svc.Meeting) })
-	v1.Delete("/meetings", func(c *fiber.Ctx) error { return handleDeleteMeeting(c, svc.Meeting) })
+	// Moods
+	v1.Post("/moods", func(c *fiber.Ctx) error { return handleSaveMood(c, svc.Mood) })
+	v1.Get("/moods/my", func(c *fiber.Ctx) error { return handleGetMyMoods(c, svc.Mood) })
+	v1.Get("/moods/member", func(c *fiber.Ctx) error { return handleGetMemberMoods(c, svc.Mood) })
+
+	// Member Requests
+	v1.Post("/member-requests/become", func(c *fiber.Ctx) error { return handleRequestBecomeMember(c, svc.MemberReq) })
+	v1.Get("/member-requests", func(c *fiber.Ctx) error { return handleListMemberRequests(c, svc.MemberReq) })
+	v1.Post("/member-requests/approve", func(c *fiber.Ctx) error { return handleApproveMemberRequest(c, svc.MemberReq) })
+	v1.Post("/member-requests/reject", func(c *fiber.Ctx) error { return handleRejectMemberRequest(c, svc.MemberReq) })
+
+	// Audit & AI
+	v1.Get("/audit-logs", func(c *fiber.Ctx) error { return handleGetAuditLogs(c, svc.Audit) })
+	v1.Post("/ai/chat", func(c *fiber.Ctx) error { return handleAiChat(c, svc.AI) })
+	v1.Get("/ai/usage", func(c *fiber.Ctx) error { return handleGetAiUsageStats(c, svc.AI) })
+	v1.Get("/ai/provider", func(c *fiber.Ctx) error { return handleGetCurrentProvider(c, svc.AI) })
+	v1.Post("/ai/provider", func(c *fiber.Ctx) error { return handleSetAIProvider(c, svc.AI) })
+
+	// Photo
+	v1.Post("/photo", func(c *fiber.Ctx) error { return svc.Photo.Upload(c) })
+	v1.Delete("/photo", func(c *fiber.Ctx) error { return svc.Photo.Delete(c) })
+
+	// Friday
+	v1.Get("/friday", func(c *fiber.Ctx) error { return handleGetFridaySchedules(c, svc.Friday) })
+	v1.Post("/friday", func(c *fiber.Ctx) error { return handleSaveFridaySchedule(c, svc.Friday) })
+	v1.Delete("/friday", func(c *fiber.Ctx) error { return handleDeleteFridaySchedule(c, svc.Friday) })
+	v1.Get("/friday/reminder-status", func(c *fiber.Ctx) error { return handleGetFridayReminderStatus(c, svc.FridayReminder) })
+	v1.Post("/friday/mark-reminder-sent", func(c *fiber.Ctx) error { return handleMarkFridayReminderSent(c, svc.FridayReminder) })
 }
