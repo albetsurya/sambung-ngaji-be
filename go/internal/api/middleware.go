@@ -139,7 +139,8 @@ func BodyBool(c *fiber.Ctx, key string) bool {
 			return t == "true" || t == "1" || t == "TRUE"
 		}
 	}
-	return false
+	q := c.Query(key)
+	return q == "true" || q == "1" || q == "TRUE"
 }
 
 func BodyFloat(c *fiber.Ctx, key string) float64 {
@@ -151,9 +152,15 @@ func BodyFloat(c *fiber.Ctx, key string) float64 {
 			return float64(t)
 		case string:
 			var f float64
-			_, _ = fmtSscan(t, &f)
+			_, _ = fmt.Sscan(t, &f)
 			return f
 		}
+	}
+	q := c.Query(key)
+	if q != "" {
+		var f float64
+		_, _ = fmt.Sscan(q, &f)
+		return f
 	}
 	return 0
 }

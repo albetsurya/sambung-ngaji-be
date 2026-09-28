@@ -322,6 +322,8 @@ func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, providers map[string
 }
 
 func RegisterAPI(app *fiber.App, svc *Services) {
+	RegisterRESTAPI(app, svc)
+
 	app.Post("/api", BodyParserMiddleware(), AuthMiddleware(svc.Auth), AuditMiddleware(svc.Audit), func(c *fiber.Ctx) error {
 		action, _ := BodyOf(c)["action"].(string)
 		if action == "" {
@@ -550,4 +552,38 @@ func ListRegisteredActions() []string {
 	}
 	sort.Strings(out)
 	return out
+}
+
+func RegisterRESTAPI(app *fiber.App, svc *Services) {
+	v1 := app.Group("/api/v1", BodyParserMiddleware(), AuthMiddleware(svc.Auth), AuditMiddleware(svc.Audit))
+
+	// Groups
+	v1.Get("/groups", func(c *fiber.Ctx) error { return handleGetGroups(c, svc.Group) })
+	v1.Post("/groups", func(c *fiber.Ctx) error { return handleSaveGroup(c, svc.Group) })
+
+	// Members
+	v1.Get("/members", func(c *fiber.Ctx) error { return handleGetMembers(c, svc.Member) })
+	v1.Get("/members/paged", func(c *fiber.Ctx) error { return handleGetMembersPaged(c, svc.Member) })
+	v1.Get("/members/detail", func(c *fiber.Ctx) error { return handleGetMemberDetail(c, svc.Member) })
+	v1.Post("/members", func(c *fiber.Ctx) error { return handleCreateMember(c, svc.Member) })
+	v1.Put("/members", func(c *fiber.Ctx) error { return handleUpdateMember(c, svc.Member) })
+	v1.Delete("/members", func(c *fiber.Ctx) error { return handleDeleteMember(c, svc.Member) })
+
+	// Pending
+	v1.Get("/pending", func(c *fiber.Ctx) error { return handleGetPendingMembers(c, svc.Pending) })
+	v1.Get("/pending/detail", func(c *fiber.Ctx) error { return handleGetPendingMemberDetail(c, svc.Pending) })
+	v1.Post("/pending/approve", func(c *fiber.Ctx) error { return handleApprovePendingMember(c, svc.Pending) })
+	v1.Post("/pending/reject", func(c *fiber.Ctx) error { return handleRejectPendingMember(c, svc.Pending) })
+
+	// Users
+	v1.Get("/users", func(c *fiber.Ctx) error { return handleGetUsers(c, svc.User) })
+	v1.Get("/users/detail", func(c *fiber.Ctx) error { return handleGetUserDetail(c, svc.User) })
+	v1.Post("/users", func(c *fiber.Ctx) error { return handleCreateUser(c, svc.User) })
+	v1.Put("/users", func(c *fiber.Ctx) error { return handleUpdateUser(c, svc.User) })
+
+	// Meetings
+	v1.Get("/meetings", func(c *fiber.Ctx) error { return handleGetMeetings(c, svc.Meeting) })
+	v1.Post("/meetings", func(c *fiber.Ctx) error { return handleCreateMeeting(c, svc.Meeting) })
+	v1.Put("/meetings", func(c *fiber.Ctx) error { return handleUpdateMeeting(c, svc.Meeting) })
+	v1.Delete("/meetings", func(c *fiber.Ctx) error { return handleDeleteMeeting(c, svc.Meeting) })
 }
