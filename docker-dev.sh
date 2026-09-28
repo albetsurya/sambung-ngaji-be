@@ -12,7 +12,7 @@ case "${1:-}" in
     sleep 5
     docker compose ps
     echo ""
-    echo "✅ Backend:  http://localhost:8080"
+    echo "✅ Backend:  http://localhost:29001"
     echo "✅ Adminer:  http://localhost:8091"
     echo ""
     echo "Login Adminer:"

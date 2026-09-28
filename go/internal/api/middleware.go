@@ -123,11 +123,11 @@ func BodyOf(c *fiber.Ctx) map[string]interface{} {
 
 func BodyString(c *fiber.Ctx, key string) string {
 	if v, ok := BodyOf(c)[key]; ok {
-		if s, ok := v.(string); ok {
+		if s, ok := v.(string); ok && s != "" {
 			return s
 		}
 	}
-	return ""
+	return c.Query(key)
 }
 
 func BodyBool(c *fiber.Ctx, key string) bool {

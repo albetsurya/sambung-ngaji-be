@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: pengajian-postgres
+    container_name: sambung-ngaji-postgres
     restart: unless-stopped
     ports:
       - "5433:5432"
@@ -22,7 +22,7 @@ services:
     build:
       context: ./go
       dockerfile: Dockerfile.dev
-    container_name: pengajian-api
+    container_name: sambung-ngaji-api
     restart: unless-stopped
     network_mode: host
     volumes:
@@ -37,7 +37,7 @@ services:
 
   adminer:
     image: adminer:latest
-    container_name: pengajian-adminer
+    container_name: sambung-ngaji-adminer
     restart: unless-stopped
     ports:
       - "8091:8080"
