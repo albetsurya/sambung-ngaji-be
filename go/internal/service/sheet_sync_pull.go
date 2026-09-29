@@ -31,8 +31,9 @@ func (s *FinanceSyncService) pullCash(ctx context.Context, cli *sheets.Service, 
 	if err != nil {
 		return err
 	}
+	tombs, _ := s.repo.Tombstones(ctx, groupID, "cash")
 	for i, r := range rows {
-		if r["group_id"] != groupID || r["cash_id"] == "" {
+		if r["group_id"] != groupID || r["cash_id"] == "" || tombs[r["cash_id"]] {
 			continue
 		}
 		sheetRow := i + 2
@@ -75,8 +76,9 @@ func (s *FinanceSyncService) pullDueMembers(ctx context.Context, cli *sheets.Ser
 	if err != nil {
 		return err
 	}
+	tombs, _ := s.repo.Tombstones(ctx, groupID, "due_members")
 	for i, r := range rows {
-		if r["group_id"] != groupID || r["member_id"] == "" {
+		if r["group_id"] != groupID || r["member_id"] == "" || tombs[r["member_id"]] {
 			continue
 		}
 		sheetRow := i + 2
@@ -116,8 +118,9 @@ func (s *FinanceSyncService) pullDuePayments(ctx context.Context, cli *sheets.Se
 	if err != nil {
 		return err
 	}
+	tombs, _ := s.repo.Tombstones(ctx, groupID, "due_payments")
 	for i, r := range rows {
-		if r["group_id"] != groupID || r["payment_id"] == "" || r["member_id"] == "" {
+		if r["group_id"] != groupID || r["payment_id"] == "" || r["member_id"] == "" || tombs[r["payment_id"]] {
 			continue
 		}
 		sheetRow := i + 2
@@ -169,8 +172,9 @@ func (s *FinanceSyncService) pullZakat(ctx context.Context, cli *sheets.Service,
 	if err != nil {
 		return err
 	}
+	tombs, _ := s.repo.Tombstones(ctx, groupID, "zakat")
 	for i, r := range rows {
-		if r["group_id"] != groupID || r["zakat_id"] == "" {
+		if r["group_id"] != groupID || r["zakat_id"] == "" || tombs[r["zakat_id"]] {
 			continue
 		}
 		sheetRow := i + 2

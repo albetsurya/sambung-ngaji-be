@@ -305,6 +305,12 @@ func (r *FinanceRepo) ZakatStates(ctx context.Context, groupID string) (map[stri
 }
 
 func (r *FinanceRepo) MarkSynced(ctx context.Context, table, idCol, id, source string, sheetRow int) error {
+	if source == "app" {
+		_, err := r.pool.Exec(ctx,
+			`UPDATE `+table+` SET sync_source='app', sheet_row=$3
+			 WHERE `+idCol+`=$1 AND COALESCE(sync_source,'app') != 'sheet'`, id, sheetRow)
+		return err
+	}
 	_, err := r.pool.Exec(ctx,
 		`UPDATE `+table+` SET sync_source=$2, sheet_row=$3
 		 WHERE `+idCol+`=$1`, id, source, sheetRow)
@@ -355,4 +361,32 @@ func (r *FinanceRepo) DuePaymentIDs(ctx context.Context, groupID string) ([]stri
 
 func (r *FinanceRepo) ZakatIDs(ctx context.Context, groupID string) ([]string, error) {
 	return r.IDsOf(ctx, "zakat_records", "zakat_id", groupID)
+}
+
+func (r *FinanceRepo) Tombstone(ctx context.Context, groupID, entity, entityID string) error {
+	_, err := r.pool.Exec(ctx,
+		`INSERT INTO finance_sync_deleted (group_id, entity, entity_id, deleted_at)
+		 VALUES ($1, $2, $3, now())
+		 ON CONFLICT (group_id, entity, entity_id) DO UPDATE SET deleted_at = now()`,
+		groupID, entity, entityID)
+	return err
+}
+
+func (r *FinanceRepo) Tombstones(ctx context.Context, groupID, entity string) (map[string]bool, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT entity_id FROM finance_sync_deleted WHERE group_id = $1 AND entity = $2`,
+		groupID, entity)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string]bool{}
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		out[id] = true
+	}
+	return out, rows.Err()
 }

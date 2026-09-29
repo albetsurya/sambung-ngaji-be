@@ -130,6 +130,7 @@ func (s *FinanceService) CashSave(ctx context.Context, in CashSaveInput) (*model
 			return nil, err
 		}
 	}
+	_ = s.repo.MarkSynced(ctx, "cash_transactions", "cash_id", k.CashID, "app", 0)
 	sum, err := s.CashList(ctx, in.GroupID, k.CashType)
 	if err != nil {
 		return nil, err
@@ -150,6 +151,7 @@ func (s *FinanceService) CashDelete(ctx context.Context, groupID, kasID string) 
 	if err := s.repo.CashDelete(ctx, groupID, kasID); err != nil {
 		return err
 	}
+	_ = s.repo.Tombstone(ctx, groupID, "cash", kasID)
 	s.notify(groupID)
 	return nil
 }
@@ -318,6 +320,7 @@ func (s *FinanceService) DueMemberSave(ctx context.Context, groupID, memberID, n
 	if err := s.repo.DueMemberUpsert(ctx, m); err != nil {
 		return nil, err
 	}
+	_ = s.repo.MarkSynced(ctx, "due_members", "due_member_id", m.MemberID, "app", 0)
 	dto := toDueMemberDTO(*m)
 	s.notify(groupID)
 	return &dto, nil
@@ -327,6 +330,7 @@ func (s *FinanceService) DueMemberDelete(ctx context.Context, groupID, memberID 
 	if err := s.repo.DueMemberDelete(ctx, groupID, memberID); err != nil {
 		return err
 	}
+	_ = s.repo.Tombstone(ctx, groupID, "due_members", memberID)
 	s.notify(groupID)
 	return nil
 }
@@ -378,6 +382,7 @@ func (s *FinanceService) DuePaymentSave(ctx context.Context, in DuePaymentInput)
 	if err := s.repo.DuePaymentUpsert(ctx, p); err != nil {
 		return nil, err
 	}
+	_ = s.repo.MarkSynced(ctx, "due_payments", "payment_id", p.PaymentID, "app", 0)
 	dto := toDuePaymentDTO(*p)
 	s.notify(in.GroupID)
 	return &dto, nil
@@ -387,6 +392,7 @@ func (s *FinanceService) DuePaymentReverse(ctx context.Context, groupID, payment
 	if err := s.repo.DuePaymentReverse(ctx, groupID, paymentID); err != nil {
 		return err
 	}
+	_ = s.repo.MarkSynced(ctx, "due_payments", "payment_id", paymentID, "app", 0)
 	s.notify(groupID)
 	return nil
 }
@@ -503,6 +509,7 @@ func (s *FinanceService) ZakatSave(ctx context.Context, in ZakatSaveInput) (*mod
 	if err := s.repo.ZakatUpsert(ctx, z); err != nil {
 		return nil, err
 	}
+	_ = s.repo.MarkSynced(ctx, "zakat_records", "zakat_id", z.ZakatID, "app", 0)
 	dto := toZakatDTO(*z)
 	s.notify(in.GroupID)
 	return &dto, nil
@@ -518,6 +525,7 @@ func (s *FinanceService) ZakatSetStatus(ctx context.Context, groupID, zakatID, s
 	if err := s.repo.ZakatSetStatus(ctx, groupID, zakatID, st); err != nil {
 		return err
 	}
+	_ = s.repo.MarkSynced(ctx, "zakat_records", "zakat_id", zakatID, "app", 0)
 	s.notify(groupID)
 	return nil
 }
@@ -526,6 +534,7 @@ func (s *FinanceService) ZakatDelete(ctx context.Context, groupID, zakatID strin
 	if err := s.repo.ZakatDelete(ctx, groupID, zakatID); err != nil {
 		return err
 	}
+	_ = s.repo.Tombstone(ctx, groupID, "zakat", zakatID)
 	s.notify(groupID)
 	return nil
 }

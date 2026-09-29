@@ -112,9 +112,44 @@ func parseNum(v string) float64 {
 	return f
 }
 
-func (s *FinanceSyncService) readTab(ctx context.Context, cli *sheets.Service, tab string) ([]map[string]string, error) {
-	resp, err := cli.Spreadsheets.Values.Get(s.sheetID, tab).Context(ctx).Do()
+func (s *FinanceSyncService) ensureTabs(ctx context.Context, cli *sheets.Service) error {
+	meta, err := cli.Spreadsheets.Get(s.sheetID).Fields("sheets.properties.title").Context(ctx).Do()
 	if err != nil {
+		return err
+	}
+	have := map[string]bool{}
+	for _, sh := range meta.Sheets {
+		if sh.Properties != nil {
+			have[sh.Properties.Title] = true
+		}
+	}
+	for _, tab := range []string{sheetTabCash, sheetTabDueMembers, sheetTabDuePayments, sheetTabZakat} {
+		if have[tab] {
+			continue
+		}
+		_, err = cli.Spreadsheets.BatchUpdate(s.sheetID, &sheets.BatchUpdateSpreadsheetRequest{
+			Requests: []*sheets.Request{{
+				AddSheet: &sheets.AddSheetRequest{
+					Properties: &sheets.SheetProperties{Title: tab},
+				},
+			}},
+		}).Context(ctx).Do()
+		if err != nil && strings.Contains(err.Error(), "already exists") {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *FinanceSyncService) readTab(ctx context.Context, cli *sheets.Service, tab string) ([]map[string]string, error) {
+	resp, err := cli.Spreadsheets.Values.Get(s.sheetID, tab+"!A:ZZ").Context(ctx).Do()
+	if err != nil {
+		if strings.Contains(err.Error(), "Unable to parse range") {
+			return nil, nil
+		}
 		return nil, err
 	}
 	var values [][]interface{}
@@ -132,7 +167,10 @@ func (s *FinanceSyncService) writeTab(ctx context.Context, cli *sheets.Service, 
 	}
 	data = append(data, hdr)
 	data = append(data, rows...)
-	_, err := cli.Spreadsheets.Values.Update(s.sheetID, tab, &sheets.ValueRange{Values: data}).
+	if _, err := cli.Spreadsheets.Values.Clear(s.sheetID, tab+"!A:ZZ", &sheets.ClearValuesRequest{}).Context(ctx).Do(); err != nil {
+		return err
+	}
+	_, err := cli.Spreadsheets.Values.Update(s.sheetID, tab+"!A1", &sheets.ValueRange{Values: data}).
 		ValueInputOption("RAW").Context(ctx).Do()
 	return err
 }
@@ -145,6 +183,9 @@ func (s *FinanceSyncService) recordError(ctx context.Context, groupID, entity, e
 func (s *FinanceSyncService) SyncGroup(ctx context.Context, groupID string) error {
 	cli, err := s.client(ctx)
 	if err != nil {
+		return err
+	}
+	if err := s.ensureTabs(ctx, cli); err != nil {
 		return err
 	}
 	if err := s.pullCash(ctx, cli, groupID); err != nil {
