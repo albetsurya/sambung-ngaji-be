@@ -123,6 +123,22 @@ var RegisteredActions = map[string]bool{
 	"markFridayReminderSent":  true,
 	"saveFridaySchedule":      true,
 	"deleteFridaySchedule":    true,
+
+	"getFinanceKas":                 true,
+	"saveFinanceKas":                true,
+	"deleteFinanceKas":              true,
+	"duplicateFinanceKas":           true,
+	"carryForwardFinanceKas":        true,
+	"getFinanceShodaqoh":            true,
+	"saveFinanceShodaqohMember":     true,
+	"deleteFinanceShodaqohMember":   true,
+	"saveFinanceShodaqohPayment":    true,
+	"reverseFinanceShodaqohPayment": true,
+	"getFinanceShodaqohNominals":    true,
+	"getFinanceZakat":               true,
+	"saveFinanceZakat":              true,
+	"updateFinanceZakatStatus":      true,
+	"deleteFinanceZakat":            true,
 }
 
 type Services struct {
@@ -149,6 +165,7 @@ type Services struct {
 	Reminder       *service.ReminderService
 	Friday         *service.FridayService
 	FridayReminder *service.FridayReminderService
+	Finance        *service.FinanceService
 }
 
 func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, providers map[string]ai.Provider, providerOrder []string, storage *service.StorageService) *Services {
@@ -312,6 +329,9 @@ func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, providers map[string
 		),
 		Friday: service.NewFridayService(
 			repository.NewFridayRepo(pool),
+		),
+		Finance: service.NewFinanceService(
+			repository.NewFinanceRepo(pool),
 		),
 		FridayReminder: service.NewFridayReminderService(
 			repository.NewFridayRepo(pool),
@@ -536,6 +556,37 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 		case "markFridayReminderSent":
 			return handleMarkFridayReminderSent(c, svc.FridayReminder)
 
+		case "getFinanceKas":
+			return handleFinanceKasList(c, svc.Finance)
+		case "saveFinanceKas":
+			return handleFinanceKasSave(c, svc.Finance)
+		case "deleteFinanceKas":
+			return handleFinanceKasDelete(c, svc.Finance)
+		case "duplicateFinanceKas":
+			return handleFinanceKasDuplicate(c, svc.Finance)
+		case "carryForwardFinanceKas":
+			return handleFinanceKasCarryForward(c, svc.Finance)
+		case "getFinanceShodaqoh":
+			return handleFinanceShodaqohData(c, svc.Finance)
+		case "saveFinanceShodaqohMember":
+			return handleFinanceShodaqohMemberSave(c, svc.Finance)
+		case "deleteFinanceShodaqohMember":
+			return handleFinanceShodaqohMemberDelete(c, svc.Finance)
+		case "saveFinanceShodaqohPayment":
+			return handleFinanceShodaqohPaymentSave(c, svc.Finance)
+		case "reverseFinanceShodaqohPayment":
+			return handleFinanceShodaqohPaymentReverse(c, svc.Finance)
+		case "getFinanceShodaqohNominals":
+			return handleFinanceShodaqohLastNominals(c, svc.Finance)
+		case "getFinanceZakat":
+			return handleFinanceZakatList(c, svc.Finance)
+		case "saveFinanceZakat":
+			return handleFinanceZakatSave(c, svc.Finance)
+		case "updateFinanceZakatStatus":
+			return handleFinanceZakatStatus(c, svc.Finance)
+		case "deleteFinanceZakat":
+			return handleFinanceZakatDelete(c, svc.Finance)
+
 		}
 
 		if !RegisteredActions[action] {
@@ -669,6 +720,26 @@ func RegisterRESTAPI(app *fiber.App, svc *Services) {
 	// Photo
 	v1.Post("/photo", func(c *fiber.Ctx) error { return svc.Photo.Upload(c) })
 	v1.Delete("/photo", func(c *fiber.Ctx) error { return svc.Photo.Delete(c) })
+
+	// Finance (SabilKas, per-group, auth wajib + scoping kelompok)
+	fin := func(action string, h fiber.Handler) []fiber.Handler {
+		return []fiber.Handler{FinanceAuthMiddleware(svc.Auth, action), h}
+	}
+	v1.Get("/finance/kas", fin("getFinanceKas", func(c *fiber.Ctx) error { return handleFinanceKasList(c, svc.Finance) })...)
+	v1.Post("/finance/kas", fin("saveFinanceKas", func(c *fiber.Ctx) error { return handleFinanceKasSave(c, svc.Finance) })...)
+	v1.Delete("/finance/kas", fin("deleteFinanceKas", func(c *fiber.Ctx) error { return handleFinanceKasDelete(c, svc.Finance) })...)
+	v1.Post("/finance/kas/duplicate", fin("duplicateFinanceKas", func(c *fiber.Ctx) error { return handleFinanceKasDuplicate(c, svc.Finance) })...)
+	v1.Post("/finance/kas/carry-forward", fin("carryForwardFinanceKas", func(c *fiber.Ctx) error { return handleFinanceKasCarryForward(c, svc.Finance) })...)
+	v1.Get("/finance/shodaqoh", fin("getFinanceShodaqoh", func(c *fiber.Ctx) error { return handleFinanceShodaqohData(c, svc.Finance) })...)
+	v1.Post("/finance/shodaqoh/members", fin("saveFinanceShodaqohMember", func(c *fiber.Ctx) error { return handleFinanceShodaqohMemberSave(c, svc.Finance) })...)
+	v1.Delete("/finance/shodaqoh/members", fin("deleteFinanceShodaqohMember", func(c *fiber.Ctx) error { return handleFinanceShodaqohMemberDelete(c, svc.Finance) })...)
+	v1.Post("/finance/shodaqoh/payments", fin("saveFinanceShodaqohPayment", func(c *fiber.Ctx) error { return handleFinanceShodaqohPaymentSave(c, svc.Finance) })...)
+	v1.Post("/finance/shodaqoh/payments/reverse", fin("reverseFinanceShodaqohPayment", func(c *fiber.Ctx) error { return handleFinanceShodaqohPaymentReverse(c, svc.Finance) })...)
+	v1.Get("/finance/shodaqoh/nominals", fin("getFinanceShodaqohNominals", func(c *fiber.Ctx) error { return handleFinanceShodaqohLastNominals(c, svc.Finance) })...)
+	v1.Get("/finance/zakat", fin("getFinanceZakat", func(c *fiber.Ctx) error { return handleFinanceZakatList(c, svc.Finance) })...)
+	v1.Post("/finance/zakat", fin("saveFinanceZakat", func(c *fiber.Ctx) error { return handleFinanceZakatSave(c, svc.Finance) })...)
+	v1.Put("/finance/zakat/status", fin("updateFinanceZakatStatus", func(c *fiber.Ctx) error { return handleFinanceZakatStatus(c, svc.Finance) })...)
+	v1.Delete("/finance/zakat", fin("deleteFinanceZakat", func(c *fiber.Ctx) error { return handleFinanceZakatDelete(c, svc.Finance) })...)
 
 	// Friday
 	v1.Get("/friday", func(c *fiber.Ctx) error { return handleGetFridaySchedules(c, svc.Friday) })
