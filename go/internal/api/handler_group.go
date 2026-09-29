@@ -46,3 +46,11 @@ func handleSaveGroup(c *fiber.Ctx, svc *service.GroupService) error {
 	}
 	return Ok(c, dto)
 }
+
+func handleGetPublicGroups(c *fiber.Ctx, svc *service.GroupService) error {
+	items, err := svc.GetGroups(c.Context(), false)
+	if err != nil {
+		return Fail(c, "Gagal ambil kelompok: "+err.Error())
+	}
+	return Ok(c, items)
+}

@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
+	"sort"
 	"strings"
 	"time"
 
@@ -299,12 +301,18 @@ func toDuePaymentDTO(p model.DuePayment) model.DuePaymentDTO {
 	if p.GroupID != nil {
 		gid = *p.GroupID
 	}
+	months := make([]string, 0, len(p.Carryovers))
+	items := make([]model.DuePaymentCarryoverDTO, 0, len(p.Carryovers))
+	for _, c := range p.Carryovers {
+		months = append(months, c.Month)
+		items = append(items, model.DuePaymentCarryoverDTO{Month: c.Month, Amount: c.Amount})
+	}
 	return model.DuePaymentDTO{
 		PaymentID: p.PaymentID, GroupID: gid, MemberID: p.MemberID,
 		PaymentDate: p.PaymentDate.Format("2006-01-02"), TotalAmount: p.TotalAmount,
-		CarryoverIR: p.CarryoverIR, CarryoverMonths: p.CarryoverMonths,
-		CarryoverBreakdown: p.CarryoverBreakdown, ConnectingFund: p.ConnectingFund,
-		CommunityDues: p.CommunityDues, OutreachFund: p.OutreachFund,
+		CarryoverIR: p.CarryoverIR, CarryoverMonths: months, CarryoverItems: items,
+		ConnectingFund: p.ConnectingFund,
+		CommunityDues:  p.CommunityDues, OutreachFund: p.OutreachFund,
 		ThousandFund: p.ThousandFund, FuneralFund: p.FuneralFund,
 		UkhroMT: p.UkhroMT, Notes: p.Notes, Status: p.Status,
 		UpdatedAt: p.UpdatedAt.Format(time.RFC3339),
@@ -331,12 +339,26 @@ func (s *FinanceService) DuesData(ctx context.Context, groupID, month string) (*
 	pDTO := make([]model.DuePaymentDTO, 0, len(payments))
 	var received float64
 	paid := map[string]bool{}
+	ids := make([]string, 0, len(payments))
+	for _, p := range payments {
+		ids = append(ids, p.PaymentID)
+	}
+	carryMap, err := s.repo.CarryoversByPayment(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
 	for _, p := range payments {
 		if p.Status == "REVERSED" {
 			continue
 		}
-		received += p.TotalAmount
-		paid[p.MemberID] = true
+		// INACTIVE = riwayat nonaktif dari sheet (mis. batal/koreksi):
+		// tetap ditampilkan sebagai arsip, tapi tidak dihitung
+		// sebagai penerimaan maupun pelunasan.
+		if p.Status != "INACTIVE" {
+			received += p.TotalAmount
+			paid[p.MemberID] = true
+		}
+		p.Carryovers = carryMap[p.PaymentID]
 		pDTO = append(pDTO, toDuePaymentDTO(p))
 	}
 	active := 0
@@ -387,33 +409,100 @@ func (s *FinanceService) DueMemberDelete(ctx context.Context, groupID, memberID 
 	return nil
 }
 
+type DuePaymentCarryoverInput struct {
+	Month  string
+	Amount float64
+}
+
 type DuePaymentInput struct {
-	PaymentID          string
-	GroupID            string
-	MemberID           string
-	PaymentDate        string
-	CarryoverIR        float64
-	CarryoverMonths    string
-	CarryoverBreakdown string
-	ConnectingFund     float64
-	CommunityDues      float64
-	OutreachFund       float64
-	ThousandFund       float64
-	FuneralFund        float64
-	UkhroMT            float64
-	Notes              string
-	CreatedBy          string
+	PaymentID   string
+	GroupID     string
+	MemberID    string
+	PaymentDate string
+	// Cara baru (disarankan): rincian per bulan. carryover_ir dihitung = SUM.
+	CarryoverItems []DuePaymentCarryoverInput
+	// Cara lama (kompatibel): teks bulan + nominal total → dibagi rata.
+	// Diabaikan bila CarryoverItems diisi.
+	CarryoverMonths string
+	CarryoverIR     float64
+	ConnectingFund  float64
+	CommunityDues   float64
+	OutreachFund    float64
+	ThousandFund    float64
+	FuneralFund     float64
+	UkhroMT         float64
+	Notes           string
+	CreatedBy       string
+}
+
+// normalizeCarryovers mengubah input (baru/lama/sheet) menjadi rincian
+// per bulan yang tervalidasi + total susulan. Aturan:
+//   - items: bulan harus YYYY-MM, unik, amount >= 0.
+//   - legacy (months teks + ir): token diparse fleksibel, nominal dibagi
+//     rata (sisa ke bulan terakhir). Token tak dikenal → error agar
+//     pemanggil tahu, bukan hilang diam-diam.
+func normalizeCarryovers(items []DuePaymentCarryoverInput, legacyMonths string, legacyIR float64) ([]model.DuePaymentCarryover, float64, error) {
+	if len(items) > 0 {
+		seen := map[string]bool{}
+		out := make([]model.DuePaymentCarryover, 0, len(items))
+		var sum float64
+		for _, it := range items {
+			m, err := util.ParseSheetMonth(it.Month)
+			if err != nil {
+				return nil, 0, errors.New("bulan susulan tidak valid: " + it.Month)
+			}
+			if seen[m] {
+				return nil, 0, errors.New("bulan susulan duplikat: " + m)
+			}
+			seen[m] = true
+			if it.Amount < 0 {
+				return nil, 0, errors.New("nominal susulan tidak boleh negatif")
+			}
+			sum += it.Amount
+			out = append(out, model.DuePaymentCarryover{
+				CarryoverID: util.NewID("CRY"), Month: m, Amount: it.Amount,
+			})
+		}
+		sort.Slice(out, func(i, j int) bool { return out[i].Month < out[j].Month })
+		return out, sum, nil
+	}
+	months, unknowns := util.SplitSheetMonths(legacyMonths)
+	if len(unknowns) > 0 {
+		return nil, 0, errors.New("bulan susulan tidak dikenal: " + strings.Join(unknowns, ", "))
+	}
+	if len(months) == 0 || legacyIR <= 0 {
+		return nil, 0, nil
+	}
+	// Bagi rata (sisa pembulatan ke bulan terakhir) agar SUM = carryover_ir.
+	per := math.Floor(legacyIR/float64(len(months))*100) / 100
+	out := make([]model.DuePaymentCarryover, 0, len(months))
+	var acc float64
+	for i, m := range months {
+		amt := per
+		if i == len(months)-1 {
+			amt = legacyIR - acc
+		}
+		acc += amt
+		out = append(out, model.DuePaymentCarryover{
+			CarryoverID: util.NewID("CRY"), Month: m, Amount: amt,
+		})
+	}
+	return out, legacyIR, nil
 }
 
 func (s *FinanceService) DuePaymentSave(ctx context.Context, in DuePaymentInput) (*model.DuePaymentDTO, error) {
 	if in.MemberID == "" {
 		return nil, errors.New("member_id wajib diisi")
 	}
-	tgl, err := time.Parse("2006-01-02", in.PaymentDate)
+	tgl, err := util.ParseSheetDate(in.PaymentDate)
 	if err != nil {
 		return nil, errors.New("payment_date tidak valid (YYYY-MM-DD)")
 	}
-	total := in.CarryoverIR + in.ConnectingFund + in.CommunityDues +
+	carryovers, carryIR, err := normalizeCarryovers(in.CarryoverItems, in.CarryoverMonths, in.CarryoverIR)
+	if err != nil {
+		return nil, err
+	}
+	total := carryIR + in.ConnectingFund + in.CommunityDues +
 		in.OutreachFund + in.ThousandFund + in.FuneralFund + in.UkhroMT
 	if total <= 0 {
 		return nil, errors.New("total pembayaran harus lebih besar dari 0")
@@ -424,14 +513,20 @@ func (s *FinanceService) DuePaymentSave(ctx context.Context, in DuePaymentInput)
 	gid := in.GroupID
 	p := &model.DuePayment{
 		PaymentID: in.PaymentID, GroupID: &gid, MemberID: in.MemberID,
-		PaymentDate: tgl, TotalAmount: total, CarryoverIR: in.CarryoverIR,
-		CarryoverMonths: in.CarryoverMonths, CarryoverBreakdown: in.CarryoverBreakdown,
+		PaymentDate: tgl, TotalAmount: total, CarryoverIR: carryIR,
+		Carryovers:     carryovers,
 		ConnectingFund: in.ConnectingFund, CommunityDues: in.CommunityDues,
 		OutreachFund: in.OutreachFund, ThousandFund: in.ThousandFund,
 		FuneralFund: in.FuneralFund, UkhroMT: in.UkhroMT,
 		Notes: in.Notes, Status: "ACTIVE", CreatedBy: in.CreatedBy,
 	}
 	if err := s.repo.DuePaymentUpsert(ctx, p); err != nil {
+		return nil, err
+	}
+	for i := range p.Carryovers {
+		p.Carryovers[i].PaymentID = p.PaymentID
+	}
+	if err := s.repo.ReplaceCarryovers(ctx, p.PaymentID, p.Carryovers); err != nil {
 		return nil, err
 	}
 	_ = s.repo.MarkSynced(ctx, "due_payments", "payment_id", p.PaymentID, "app", 0)
@@ -468,6 +563,11 @@ func (s *FinanceService) DueLastNominals(ctx context.Context, groupID, memberID 
 	if latest == nil {
 		return nil, errors.New("belum ada pembayaran anggota ini")
 	}
+	carryMap, err := s.repo.CarryoversByPayment(ctx, []string{latest.PaymentID})
+	if err != nil {
+		return nil, err
+	}
+	latest.Carryovers = carryMap[latest.PaymentID]
 	dto := toDuePaymentDTO(*latest)
 	return &dto, nil
 }

@@ -127,17 +127,65 @@ func (r *FinanceRepo) DueMemberDelete(ctx context.Context, groupID, memberID str
 }
 
 const duePaymentCols = `payment_id, group_id, member_id, payment_date, total_amount,
-	carryover_ir, carryover_months, carryover_breakdown, connecting_fund, community_dues,
+	carryover_ir, connecting_fund, community_dues,
 	outreach_fund, thousand_fund, funeral_fund, ukhro_mt, notes, status, created_by,
 	created_at, updated_at`
 
 func scanDuePayment(row pgx.Row) (model.DuePayment, error) {
 	var p model.DuePayment
 	err := row.Scan(&p.PaymentID, &p.GroupID, &p.MemberID, &p.PaymentDate, &p.TotalAmount,
-		&p.CarryoverIR, &p.CarryoverMonths, &p.CarryoverBreakdown, &p.ConnectingFund,
+		&p.CarryoverIR, &p.ConnectingFund,
 		&p.CommunityDues, &p.OutreachFund, &p.ThousandFund, &p.FuneralFund, &p.UkhroMT,
 		&p.Notes, &p.Status, &p.CreatedBy, &p.CreatedAt, &p.UpdatedAt)
 	return p, err
+}
+
+// CarryoversByPayment mengambil rincian susulan untuk banyak payment sekaligus.
+func (r *FinanceRepo) CarryoversByPayment(ctx context.Context, paymentIDs []string) (map[string][]model.DuePaymentCarryover, error) {
+	out := map[string][]model.DuePaymentCarryover{}
+	if len(paymentIDs) == 0 {
+		return out, nil
+	}
+	rows, err := r.pool.Query(ctx,
+		`SELECT carryover_id, payment_id, month, amount, created_at
+		 FROM due_payment_carryovers WHERE payment_id = ANY($1) ORDER BY month ASC`, paymentIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var c model.DuePaymentCarryover
+		if err := rows.Scan(&c.CarryoverID, &c.PaymentID, &c.Month, &c.Amount, &c.CreatedAt); err != nil {
+			return nil, err
+		}
+		out[c.PaymentID] = append(out[c.PaymentID], c)
+	}
+	return out, rows.Err()
+}
+
+// ReplaceCarryovers menimpa seluruh rincian susulan satu payment (delete + insert).
+func (r *FinanceRepo) ReplaceCarryovers(ctx context.Context, paymentID string, items []model.DuePaymentCarryover) error {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	if _, err := tx.Exec(ctx, `DELETE FROM due_payment_carryovers WHERE payment_id = $1`, paymentID); err != nil {
+		return err
+	}
+	for _, it := range items {
+		if it.CarryoverID == "" {
+			it.CarryoverID = util.NewID("CRY")
+		}
+		if _, err := tx.Exec(ctx,
+			`INSERT INTO due_payment_carryovers (carryover_id, payment_id, month, amount)
+			 VALUES ($1, $2, $3, $4)
+			 ON CONFLICT (payment_id, month) DO UPDATE SET amount = EXCLUDED.amount`,
+			it.CarryoverID, paymentID, it.Month, it.Amount); err != nil {
+			return err
+		}
+	}
+	return tx.Commit(ctx)
 }
 
 func (r *FinanceRepo) DuePayments(ctx context.Context, groupID, month string) ([]model.DuePayment, error) {
@@ -168,18 +216,16 @@ func (r *FinanceRepo) DuePaymentUpsert(ctx context.Context, p *model.DuePayment)
 	_, err := r.pool.Exec(ctx,
 		`INSERT INTO due_payments
 		   (payment_id, group_id, member_id, payment_date, total_amount, carryover_ir,
-		    carryover_months, carryover_breakdown, connecting_fund, community_dues,
+		    connecting_fund, community_dues,
 		    outreach_fund, thousand_fund, funeral_fund, ukhro_mt, notes, status,
 		    created_by, created_at, updated_at)
-		 VALUES ($1,$2,$3,$4::date,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,
-		         COALESCE(NULLIF($16,''),'ACTIVE'),$17,now(),now())
+		 VALUES ($1,$2,$3,$4::date,$5,$6,$7,$8,$9,$10,$11,$12,$13,
+		         COALESCE(NULLIF($14,''),'ACTIVE'),$15,now(),now())
 		 ON CONFLICT (payment_id) DO UPDATE SET
 		   member_id = EXCLUDED.member_id,
 		   payment_date = EXCLUDED.payment_date,
 		   total_amount = EXCLUDED.total_amount,
 		   carryover_ir = EXCLUDED.carryover_ir,
-		   carryover_months = EXCLUDED.carryover_months,
-		   carryover_breakdown = EXCLUDED.carryover_breakdown,
 		   connecting_fund = EXCLUDED.connecting_fund,
 		   community_dues = EXCLUDED.community_dues,
 		   outreach_fund = EXCLUDED.outreach_fund,
@@ -189,7 +235,7 @@ func (r *FinanceRepo) DuePaymentUpsert(ctx context.Context, p *model.DuePayment)
 		   notes = EXCLUDED.notes,
 		   updated_at = now()`,
 		p.PaymentID, p.GroupID, p.MemberID, p.PaymentDate.Format("2006-01-02"),
-		p.TotalAmount, p.CarryoverIR, p.CarryoverMonths, p.CarryoverBreakdown,
+		p.TotalAmount, p.CarryoverIR,
 		p.ConnectingFund, p.CommunityDues, p.OutreachFund, p.ThousandFund,
 		p.FuneralFund, p.UkhroMT, p.Notes, p.Status, p.CreatedBy)
 	return err

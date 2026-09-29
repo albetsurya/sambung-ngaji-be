@@ -91,12 +91,9 @@ func (s *FinanceSyncService) ImportFromGAS(ctx context.Context, groupID string) 
 			if !ok {
 				continue
 			}
-			tgl, err := time.Parse(time.RFC3339, str(m, "tanggal", "transaction_date"))
+			tgl, err := util.ParseSheetDate(str(m, "tanggal", "transaction_date"))
 			if err != nil {
-				tgl, err = time.Parse("2006-01-02", str(m, "tanggal", "transaction_date")[:10])
-				if err != nil {
-					continue
-				}
+				continue
 			}
 			k := &model.CashTransaction{
 				CashID: util.NewID("KAS"), GroupID: &gid, CashType: normCashType(kt),
@@ -155,33 +152,48 @@ func (s *FinanceSyncService) ImportFromGAS(ctx context.Context, groupID string) 
 				if id == "" || mid == "" {
 					continue
 				}
-				tgl, err := time.Parse(time.RFC3339, str(m, "payment_date", "tanggal"))
+				tgl, err := util.ParseSheetDate(str(m, "payment_date", "tanggal"))
 				if err != nil {
-					tgl, err = time.Parse("2006-01-02", str(m, "payment_date", "tanggal")[:10])
-					if err != nil {
-						continue
-					}
+					continue
 				}
 				status := strings.ToUpper(str(m, "status"))
 				if status == "" {
 					status = "ACTIVE"
 				}
+				months, unknowns := util.SplitSheetMonths(str(m, "carryover_months", "susulan_bulan"))
+				if len(unknowns) > 0 {
+					s.recordError(ctx, groupID, "due_payments", id, "gas-import", "bulan susulan tidak dikenal: "+strings.Join(unknowns, ", "))
+					continue
+				}
+				sheetIR := num(m, "carryover_ir", "susulan_ir")
+				carryItems, carryIR, notes := buildSheetCarryovers(months, sheetIR,
+					str(m, "carryover_breakdown", "susulan_rincian"), str(m, "notes", "keterangan"))
+				total := carryIR + num(m, "connecting_fund", "uang_sambung", "uang") +
+					num(m, "community_dues", "jimpitan") + num(m, "outreach_fund", "siar_siar") +
+					num(m, "thousand_fund", "seribuan") + num(m, "funeral_fund", "kafan") +
+					num(m, "ukhro_mt")
+				if total == 0 {
+					total = num(m, "total_amount", "total")
+				}
 				p := &model.DuePayment{
 					PaymentID: id, GroupID: &gid, MemberID: mid, PaymentDate: tgl,
-					TotalAmount:        num(m, "total_amount", "total"),
-					CarryoverIR:        num(m, "carryover_ir", "susulan_ir"),
-					CarryoverMonths:    str(m, "carryover_months", "susulan_bulan"),
-					CarryoverBreakdown: str(m, "carryover_breakdown", "susulan_rincian"),
-					ConnectingFund:     num(m, "connecting_fund", "uang_sambung", "uang"),
-					CommunityDues:      num(m, "community_dues", "jimpitan"),
-					OutreachFund:       num(m, "outreach_fund", "siar_siar"),
-					ThousandFund:       num(m, "thousand_fund", "seribuan"),
-					FuneralFund:        num(m, "funeral_fund", "kafan"),
-					UkhroMT:            num(m, "ukhro_mt"),
-					Notes:              str(m, "notes", "keterangan"), Status: status,
+					TotalAmount:    total,
+					CarryoverIR:    carryIR,
+					Carryovers:     carryItems,
+					ConnectingFund: num(m, "connecting_fund", "uang_sambung", "uang"),
+					CommunityDues:  num(m, "community_dues", "jimpitan"),
+					OutreachFund:   num(m, "outreach_fund", "siar_siar"),
+					ThousandFund:   num(m, "thousand_fund", "seribuan"),
+					FuneralFund:    num(m, "funeral_fund", "kafan"),
+					UkhroMT:        num(m, "ukhro_mt"),
+					Notes:          notes, Status: status,
 				}
 				if err := s.repo.DuePaymentUpsert(ctx, p); err != nil {
 					s.recordError(ctx, groupID, "due_payments", id, "gas-import", err.Error())
+					continue
+				}
+				if err := s.repo.ReplaceCarryovers(ctx, id, carryItems); err != nil {
+					s.recordError(ctx, groupID, "due_payments", id, "gas-import", "gagal simpan rincian susulan: "+err.Error())
 					continue
 				}
 				mark("due_payments", "payment_id", id)
@@ -211,7 +223,7 @@ func (s *FinanceSyncService) ImportFromGAS(ctx context.Context, groupID string) 
 				}
 				var tgl *time.Time
 				if ds := str(m, "transaction_date"); ds != "" {
-					if t, err := time.Parse(time.RFC3339, ds); err == nil {
+					if t, err := util.ParseSheetDate(ds); err == nil {
 						tgl = &t
 					}
 				}

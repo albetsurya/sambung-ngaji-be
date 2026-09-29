@@ -8,14 +8,17 @@ import (
 
 func handleCreateMember(c *fiber.Ctx, svc *service.MemberService) error {
 	claims := ClaimsOf(c)
+	groupID := BodyString(c, "group_id")
 	groupName := ""
 	if claims != nil && claims.Role != "SUPER_ADMIN" && claims.GroupID != nil && *claims.GroupID != "" {
+		groupID = *claims.GroupID
 		if grp, err := svc.GroupRepo().FindByID(c.Context(), *claims.GroupID); err == nil && grp != nil {
 			groupName = grp.GroupName
 		}
 	}
 
 	in := service.CreateMemberInput{
+		GroupID:       groupID,
 		NamaLengkap:   BodyString(c, "nama_lengkap"),
 		NamaPanggilan: BodyString(c, "nama_panggilan"),
 		JenisKelamin:  BodyString(c, "jenis_kelamin"),
@@ -62,6 +65,7 @@ func handleUpdateMember(c *fiber.Ctx, svc *service.MemberService) error {
 	if claims != nil && claims.Role != "SUPER_ADMIN" && claims.GroupID != nil && *claims.GroupID != "" {
 		if grp, err := svc.GroupRepo().FindByID(c.Context(), *claims.GroupID); err == nil && grp != nil {
 			body["kelompok"] = grp.GroupName
+			body["group_id"] = grp.GroupID
 		}
 	}
 
@@ -84,6 +88,7 @@ func handleUpdateMember(c *fiber.Ctx, svc *service.MemberService) error {
 	in.TempatLahir = pickStr("tempat_lahir")
 	in.TanggalLahir = pickStr("tanggal_lahir")
 	in.Kelompok = pickStr("kelompok")
+	in.GroupID = pickStr("group_id")
 	in.Desa = pickStr("desa")
 	in.Daerah = pickStr("daerah")
 	in.AlamatRumah = pickStr("alamat_rumah")

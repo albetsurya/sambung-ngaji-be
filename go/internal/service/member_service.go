@@ -103,8 +103,13 @@ func (s *MemberService) GetAttendanceMembers(ctx context.Context, f model.Member
 	filtered := s.applyFilters(all, f)
 	out := make([]model.AttendanceMemberDTO, 0, len(filtered))
 	for _, m := range filtered {
+		gid := ""
+		if m.GroupID != nil {
+			gid = *m.GroupID
+		}
 		out = append(out, model.AttendanceMemberDTO{
 			MemberID:     m.MemberID,
+			GroupID:      gid,
 			NamaLengkap:  m.NamaLengkap,
 			Kelompok:     m.Kelompok,
 			Kategori:     s.kategori(m),
@@ -168,12 +173,18 @@ func (s *MemberService) kategori(m model.Member) string {
 }
 
 func (s *MemberService) toListDTO(m model.Member, hasUser bool) model.MemberListDTO {
+	gid := ""
+	if m.GroupID != nil {
+		gid = *m.GroupID
+	}
 	return model.MemberListDTO{
 		MemberID:      m.MemberID,
+		GroupID:       gid,
 		NamaLengkap:   m.NamaLengkap,
 		NamaPanggilan: m.NamaPanggilan,
 		JenisKelamin:  strOr(m.JenisKelamin, ""),
 		Kelompok:      m.Kelompok,
+		GroupName:     m.Kelompok,
 		Kategori:      s.kategori(m),
 		FotoURL:       m.FotoURL,
 		HasUser:       hasUser,
@@ -181,8 +192,13 @@ func (s *MemberService) toListDTO(m model.Member, hasUser bool) model.MemberList
 }
 
 func (s *MemberService) toDetailDTO(m *model.Member) model.MemberDetailDTO {
+	gid := ""
+	if m.GroupID != nil {
+		gid = *m.GroupID
+	}
 	return model.MemberDetailDTO{
 		MemberID:               m.MemberID,
+		GroupID:                gid,
 		NamaLengkap:            m.NamaLengkap,
 		NamaPanggilan:          m.NamaPanggilan,
 		JenisKelamin:           strOr(m.JenisKelamin, ""),
@@ -194,6 +210,7 @@ func (s *MemberService) toDetailDTO(m *model.Member) model.MemberDetailDTO {
 		Desa:                   m.Desa,
 		Daerah:                 m.Daerah,
 		Kelompok:               m.Kelompok,
+		GroupName:              m.Kelompok,
 		IsMuballigh:            m.IsMuballigh,
 		IsKerja:                m.IsKerja,
 		IsNikah:                m.IsNikah,

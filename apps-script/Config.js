@@ -17,6 +17,7 @@ var SHEETS = {
       "nama",
       "role",
       "member_id",
+      "group_id",
       "status_aktif",
       "created_at",
       "updated_at",
@@ -38,6 +39,7 @@ var SHEETS = {
       "desa",
       "daerah",
       "kelompok",
+      "group_id",
       "is_muballigh",
       "is_kerja",
       "is_nikah",
@@ -189,6 +191,7 @@ var SHEETS = {
     name: "pending_members",
     headers: [
       "submission_id",
+      "group_id",
       "nama_lengkap",
       "nama_panggilan",
       "jenis_kelamin",
@@ -311,6 +314,8 @@ var FIELD_VISIBILITY = {
     "jenis_kelamin",
     "foto_url",
     "kelompok",
+    "group_id",
+    "group_name",
     "status_aktif",
   ],
   INTERNAL: [
@@ -403,6 +408,8 @@ var MEMBER_LIST_FIELDS = [
   "nama_panggilan",
   "jenis_kelamin",
   "kelompok",
+  "group_id",
+  "group_name",
   "kategori",
   "foto_url",
 ];
@@ -411,6 +418,7 @@ var ATTENDANCE_MEMBER_FIELDS = [
   "member_id",
   "nama_lengkap",
   "kelompok",
+  "group_id",
   "kategori",
   "jenis_kelamin",
 ];
@@ -428,6 +436,8 @@ var MEMBER_DETAIL_FIELDS = [
   "desa",
   "daerah",
   "kelompok",
+  "group_id",
+  "group_name",
   "is_muballigh",
   "is_kerja",
   "is_nikah",

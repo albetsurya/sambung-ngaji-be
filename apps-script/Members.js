@@ -50,6 +50,16 @@ function enrichMember_(member) {
   out.kategori = getMemberCategory(member);
   out.usia = getMemberAge(member.tanggal_lahir);
   out.jenis_kelamin = _normalizeJenisKelamin_(member.jenis_kelamin);
+  // Standard: group_id FK tunggal, kelompok/group_name turunan untuk kompatibilitas.
+  var grp = resolveGroup_(member.group_id || member.kelompok);
+  if (grp) {
+    out.group_id = grp.group_id;
+    out.group_name = grp.group_name;
+    out.kelompok = grp.group_name;
+  } else {
+    out.group_id = member.group_id || "";
+    out.group_name = member.kelompok || "";
+  }
 
   /* ✅ FIX: normalize tanggal fields (Google Sheets auto-convert ke Date object,
      lalu JSON.stringify serialize ke ISO UTC → geser 1 hari). */
@@ -88,7 +98,7 @@ function filterMemberFieldsByRole_(member, role) {
       "alamat_rumah",
     ]);
   } else if (role === "TIM_ABSENSI") {
-    allowed = allowed.concat(["kelompok"]);
+    allowed = allowed.concat(["kelompok", "group_id", "group_name"]);
   }
   var out = {};
   allowed.forEach(function (f) {
@@ -97,10 +107,29 @@ function filterMemberFieldsByRole_(member, role) {
   return out;
 }
 
+function resolveGroup_(input) {
+  if (!input) return null;
+  var s = String(input).trim();
+  if (!s) return null;
+  var repo = new SheetRepository_("groups");
+  var g = repo.findById("group_id", s) || repo.findById("group_code", s) || repo.findById("group_name", s);
+  if (g) return g;
+  var all = repo.getAll();
+  for (var i = 0; i < all.length; i++) {
+    if (String(all[i].group_name || "").toLowerCase() === s.toLowerCase()) return all[i];
+  }
+  return null;
+}
+
 function _applyBaseFilters_(list, params) {
   var out = [];
   var includeInactive = String(params.includeInactive) === "true";
-  var kelompok = params.kelompok ? String(params.kelompok) : "";
+  var groupId = params.group_id ? String(params.group_id) : "";
+  var kelompokParam = params.kelompok ? String(params.kelompok) : "";
+  if (!groupId && kelompokParam) {
+    var rg = resolveGroup_(kelompokParam);
+    groupId = rg ? rg.group_id : kelompokParam;
+  }
   var jenisKelamin = params.jenis_kelamin ? String(params.jenis_kelamin) : "";
   var desa = params.desa ? String(params.desa) : "";
   var search = params.search ? String(params.search).toLowerCase() : "";
@@ -108,7 +137,7 @@ function _applyBaseFilters_(list, params) {
   for (var i = 0; i < list.length; i++) {
     var m = list[i];
     if (!includeInactive && !toBool_(m.status_aktif)) continue;
-    if (kelompok && m.kelompok !== kelompok) continue;
+    if (groupId && m.group_id !== groupId && m.kelompok !== groupId) continue;
     if (jenisKelamin && m.jenis_kelamin !== jenisKelamin) continue;
     if (desa && m.desa !== desa) continue;
     if (search) {
@@ -272,6 +301,8 @@ function createMember_(ctx, params) {
   var membersRepo = new SheetRepository_("members");
   var now = nowIso_();
   var memberId = generateMemberId();
+  var grp = resolveGroup_(params.group_id || params.kelompok);
+  if (!grp) return fail_("Kelompok wajib dipilih (group_id tidak valid)");
   var member = {
     member_id: memberId,
     nama_lengkap: params.nama_lengkap || "",
@@ -282,7 +313,8 @@ function createMember_(ctx, params) {
       "",
     tempat_lahir: params.tempat_lahir || "",
     tanggal_lahir: params.tanggal_lahir || "",
-    kelompok: params.kelompok || "",
+    kelompok: grp.group_name,
+    group_id: grp.group_id,
     desa: params.desa || "",
     daerah: params.daerah || "",
     alamat_rumah: params.alamat_rumah || "",
@@ -319,7 +351,7 @@ var MEMBER_EDITABLE_FIELDS = [
   "jenis_kelamin",
   "tempat_lahir",
   "tanggal_lahir",
-  "kelompok",
+  "group_id",
   "desa",
   "daerah",
   "alamat_rumah",
@@ -356,11 +388,19 @@ function updateMember_(ctx, params) {
         patch[f] = normalizePhoneNumber(params[f]);
       } else if (f === "jenis_kelamin" && params[f]) {
         patch[f] = _normalizeJenisKelamin_(params[f]) || params[f];
+      } else if (f === "group_id") {
+        return; // ditangani di bawah via resolve
       } else {
         patch[f] = params[f];
       }
     }
   });
+  if (params.hasOwnProperty("group_id") || params.hasOwnProperty("kelompok")) {
+    var g2 = resolveGroup_(params.group_id || params.kelompok);
+    if (!g2) return fail_("Kelompok tidak dikenal");
+    patch.group_id = g2.group_id;
+    patch.kelompok = g2.group_name;
+  }
   var updated = membersRepo.updateById("member_id", memberId, patch);
   writeAuditLog_(ctx.user.user_id, "UPDATE_MEMBER", "MEMBER", memberId);
   invalidateDashboardCache_();

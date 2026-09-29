@@ -59,46 +59,63 @@ type DueMemberDTO struct {
 	UpdatedAt     string  `json:"updated_at"`
 }
 
+// DuePaymentCarryover = rincian susulan IR per bulan (1 baris = 1 bulan).
+// Menggantikan kolom multi-nilai carryover_months + teks bebas
+// carryover_breakdown (dihapus di migrasi 000024). Aturan:
+//   - month selalu "YYYY-MM", amount >= 0, unik per payment.
+//   - DuePayment.CarryoverIR adalah CACHE = SUM(amount), dihitung server.
+type DuePaymentCarryover struct {
+	CarryoverID string
+	PaymentID   string
+	Month       string
+	Amount      float64
+	CreatedAt   time.Time
+}
+
+type DuePaymentCarryoverDTO struct {
+	Month  string  `json:"month"`
+	Amount float64 `json:"amount"`
+}
+
 type DuePayment struct {
-	PaymentID          string
-	GroupID            *string
-	MemberID           string
-	PaymentDate        time.Time
-	TotalAmount        float64
-	CarryoverIR        float64
-	CarryoverMonths    string
-	CarryoverBreakdown string
-	ConnectingFund     float64
-	CommunityDues      float64
-	OutreachFund       float64
-	ThousandFund       float64
-	FuneralFund        float64
-	UkhroMT            float64
-	Notes              string
-	Status             string
-	CreatedBy          string
-	CreatedAt          time.Time
-	UpdatedAt          time.Time
+	PaymentID      string
+	GroupID        *string
+	MemberID       string
+	PaymentDate    time.Time
+	TotalAmount    float64
+	CarryoverIR    float64
+	Carryovers     []DuePaymentCarryover
+	ConnectingFund float64
+	CommunityDues  float64
+	OutreachFund   float64
+	ThousandFund   float64
+	FuneralFund    float64
+	UkhroMT        float64
+	Notes          string
+	Status         string
+	CreatedBy      string
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 }
 
 type DuePaymentDTO struct {
-	PaymentID          string  `json:"payment_id"`
-	GroupID            string  `json:"group_id"`
-	MemberID           string  `json:"member_id"`
-	PaymentDate        string  `json:"payment_date"`
-	TotalAmount        float64 `json:"total_amount"`
-	CarryoverIR        float64 `json:"carryover_ir"`
-	CarryoverMonths    string  `json:"carryover_months"`
-	CarryoverBreakdown string  `json:"carryover_breakdown"`
-	ConnectingFund     float64 `json:"connecting_fund"`
-	CommunityDues      float64 `json:"community_dues"`
-	OutreachFund       float64 `json:"outreach_fund"`
-	ThousandFund       float64 `json:"thousand_fund"`
-	FuneralFund        float64 `json:"funeral_fund"`
-	UkhroMT            float64 `json:"ukhro_mt"`
-	Notes              string  `json:"notes"`
-	Status             string  `json:"status"`
-	UpdatedAt          string  `json:"updated_at"`
+	PaymentID       string                   `json:"payment_id"`
+	GroupID         string                   `json:"group_id"`
+	MemberID        string                   `json:"member_id"`
+	PaymentDate     string                   `json:"payment_date"`
+	TotalAmount     float64                  `json:"total_amount"`
+	CarryoverIR     float64                  `json:"carryover_ir"`
+	CarryoverMonths []string                 `json:"carryover_months"`
+	CarryoverItems  []DuePaymentCarryoverDTO `json:"carryover_items"`
+	ConnectingFund  float64                  `json:"connecting_fund"`
+	CommunityDues   float64                  `json:"community_dues"`
+	OutreachFund    float64                  `json:"outreach_fund"`
+	ThousandFund    float64                  `json:"thousand_fund"`
+	FuneralFund     float64                  `json:"funeral_fund"`
+	UkhroMT         float64                  `json:"ukhro_mt"`
+	Notes           string                   `json:"notes"`
+	Status          string                   `json:"status"`
+	UpdatedAt       string                   `json:"updated_at"`
 }
 
 type DuesDashboardDTO struct {

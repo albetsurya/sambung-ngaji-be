@@ -37,13 +37,14 @@ type NewUserInput struct {
 	Nama         string
 	Role         string
 	MemberID     string
+	GroupID      *string
 }
 
 func (r *UserRepo) Insert(ctx context.Context, in NewUserInput) error {
 	_, err := r.pool.Exec(ctx, `
 		INSERT INTO users
-		(user_id, username, password_hash, nama, role, member_id, status_aktif, created_at, updated_at)
-		VALUES ($1,$2,$3,$4,$5,$6,true,now(),now())
-	`, in.UserID, in.Username, in.PasswordHash, in.Nama, in.Role, in.MemberID)
+		(user_id, username, password_hash, nama, role, member_id, group_id, status_aktif, created_at, updated_at)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,true,now(),now())
+	`, in.UserID, in.Username, in.PasswordHash, in.Nama, in.Role, in.MemberID, in.GroupID)
 	return err
 }

@@ -31,10 +31,17 @@ if [ -n "$DATABASE_URL" ]; then
     DB_HOSTPORT=$(printf '%s' "$DATABASE_URL" | sed -E 's#.*@([^/?]+).*#\1#')
     echo "--- preflight: konek ke ${DB_HOSTPORT} ---"
 
-    # Fix: Jika versi 000013 tersisa di remote DB (karena rename ke 013),
-    # kita mark sebagai reverted agar CLI tidak komplain file lokal hilang.
-    echo "--- supabase migration repair (cleanup 000013) ---"
-    supabase migration repair --db-url "$DATABASE_URL" --status reverted 000013 --yes 2>/dev/null || true
+    # Fix: versi-versi hantu di history remote (file lokal tidak ada):
+    # - 000013 tersisa karena rename ke 013,
+    # - 021 (+022) tercatat dari file yang tidak pernah masuk repo.
+    # Mark sebagai reverted agar CLI tidak komplain file lokal hilang.
+    # Efek SQL-nya TIDAK di-undo (repair hanya menyentuh tabel history);
+    # efek yang diinginkan dibawa ulang oleh 023/024 (idempotent).
+    # Versi yang tidak ada di remote -> repair gagal -> diabaikan (|| true).
+    echo "--- supabase migration repair (cleanup history hantu) ---"
+    for ghost in 000013 021 022; do
+        supabase migration repair --db-url "$DATABASE_URL" --status reverted "$ghost" --yes 2>/dev/null || true
+    done
 
     # Helper: jalankan supabase push sambil mask password (://user:pass@ -> ://***@).
     # POSIX sh (tanpa PIPESTATUS / pipefail): tangkap output dulu, lalu mask.

@@ -38,10 +38,12 @@ type Member struct {
 
 type MemberListDTO struct {
 	MemberID      string `json:"member_id"`
+	GroupID       string `json:"group_id"`
 	NamaLengkap   string `json:"nama_lengkap"`
 	NamaPanggilan string `json:"nama_panggilan"`
 	JenisKelamin  string `json:"jenis_kelamin"`
 	Kelompok      string `json:"kelompok"`
+	GroupName     string `json:"group_name"`
 	Kategori      string `json:"kategori"`
 	FotoURL       string `json:"foto_url"`
 	HasUser       bool   `json:"has_user"`
@@ -49,6 +51,7 @@ type MemberListDTO struct {
 
 type AttendanceMemberDTO struct {
 	MemberID     string `json:"member_id"`
+	GroupID      string `json:"group_id"`
 	NamaLengkap  string `json:"nama_lengkap"`
 	Kelompok     string `json:"kelompok"`
 	Kategori     string `json:"kategori"`
@@ -57,6 +60,7 @@ type AttendanceMemberDTO struct {
 
 type MemberDetailDTO struct {
 	MemberID               string `json:"member_id"`
+	GroupID                string `json:"group_id"`
 	NamaLengkap            string `json:"nama_lengkap"`
 	NamaPanggilan          string `json:"nama_panggilan"`
 	JenisKelamin           string `json:"jenis_kelamin"`
@@ -68,6 +72,7 @@ type MemberDetailDTO struct {
 	Desa                   string `json:"desa"`
 	Daerah                 string `json:"daerah"`
 	Kelompok               string `json:"kelompok"`
+	GroupName              string `json:"group_name"`
 	IsMuballigh            bool   `json:"is_muballigh"`
 	IsKerja                bool   `json:"is_kerja"`
 	IsNikah                bool   `json:"is_nikah"`

@@ -2,12 +2,14 @@ package service
 
 import (
 	"context"
+	"math"
 	"strings"
 	"time"
 
 	"google.golang.org/api/sheets/v4"
 
 	"pengajian-backend/internal/model"
+	"pengajian-backend/internal/util"
 )
 
 func newerThan(sheetTS string, dbTS string) bool {
@@ -41,7 +43,7 @@ func (s *FinanceSyncService) pullCash(ctx context.Context, cli *sheets.Service, 
 		if exists && !newerThan(r["updated_at"], dbTS) {
 			continue
 		}
-		tgl, err := time.Parse("2006-01-02", r["tanggal"])
+		tgl, err := util.ParseSheetDate(r["tanggal"])
 		if err != nil {
 			s.recordError(ctx, groupID, "cash", r["cash_id"], "sheet->db", "tanggal tidak valid: "+r["tanggal"])
 			continue
@@ -128,12 +130,22 @@ func (s *FinanceSyncService) pullDuePayments(ctx context.Context, cli *sheets.Se
 		if exists && !newerThan(r["updated_at"], dbTS) {
 			continue
 		}
-		tgl, err := time.Parse("2006-01-02", r["payment_date"])
+		tgl, err := util.ParseSheetDate(r["payment_date"])
 		if err != nil {
 			s.recordError(ctx, groupID, "due_payments", r["payment_id"], "sheet->db", "payment_date tidak valid: "+r["payment_date"])
 			continue
 		}
-		total := parseNum(r["carryover_ir"]) + parseNum(r["connecting_fund"]) +
+		// Susulan: teks bulan sheet → rincian per bulan (bagi rata dari carryover_ir).
+		// carryover_ir sheet TIDAK dipercaya mentah: total selalu dihitung ulang
+		// dari rincian agar SUM(anak) = carryover_ir (aturan 000024).
+		months, unknowns := util.SplitSheetMonths(r["carryover_months"])
+		if len(unknowns) > 0 {
+			s.recordError(ctx, groupID, "due_payments", r["payment_id"], "sheet->db", "bulan susulan tidak dikenal: "+strings.Join(unknowns, ", "))
+			continue
+		}
+		sheetIR := parseNum(r["carryover_ir"])
+		carryItems, carryIR, notes := buildSheetCarryovers(months, sheetIR, r["carryover_breakdown"], r["notes"])
+		total := carryIR + parseNum(r["connecting_fund"]) +
 			parseNum(r["community_dues"]) + parseNum(r["outreach_fund"]) +
 			parseNum(r["thousand_fund"]) + parseNum(r["funeral_fund"]) + parseNum(r["ukhro_mt"])
 		status := strings.ToUpper(strings.TrimSpace(r["status"]))
@@ -144,18 +156,22 @@ func (s *FinanceSyncService) pullDuePayments(ctx context.Context, cli *sheets.Se
 		p := &model.DuePayment{
 			PaymentID: r["payment_id"], GroupID: &gid, MemberID: r["member_id"],
 			PaymentDate: tgl, TotalAmount: total,
-			CarryoverIR:     parseNum(r["carryover_ir"]),
-			CarryoverMonths: r["carryover_months"], CarryoverBreakdown: r["carryover_breakdown"],
+			CarryoverIR:    carryIR,
+			Carryovers:     carryItems,
 			ConnectingFund: parseNum(r["connecting_fund"]),
 			CommunityDues:  parseNum(r["community_dues"]),
 			OutreachFund:   parseNum(r["outreach_fund"]),
 			ThousandFund:   parseNum(r["thousand_fund"]),
 			FuneralFund:    parseNum(r["funeral_fund"]),
 			UkhroMT:        parseNum(r["ukhro_mt"]),
-			Notes:          r["notes"], Status: status,
+			Notes:          notes, Status: status,
 		}
 		if err := s.repo.DuePaymentUpsert(ctx, p); err != nil {
 			s.recordError(ctx, groupID, "due_payments", r["payment_id"], "sheet->db", err.Error())
+			continue
+		}
+		if err := s.repo.ReplaceCarryovers(ctx, p.PaymentID, carryItems); err != nil {
+			s.recordError(ctx, groupID, "due_payments", r["payment_id"], "sheet->db", "gagal simpan rincian susulan: "+err.Error())
 			continue
 		}
 		_ = s.repo.MarkSynced(ctx, "due_payments", "payment_id", r["payment_id"], "sheet", sheetRow)
@@ -192,7 +208,7 @@ func (s *FinanceSyncService) pullZakat(ctx context.Context, cli *sheets.Service,
 		}
 		var tgl *time.Time
 		if strings.TrimSpace(r["transaction_date"]) != "" {
-			if t, err := time.Parse("2006-01-02", strings.TrimSpace(r["transaction_date"])); err == nil {
+			if t, err := util.ParseSheetDate(strings.TrimSpace(r["transaction_date"])); err == nil {
 				tgl = &t
 			}
 		}
@@ -255,9 +271,13 @@ func (s *FinanceSyncService) pushAll(ctx context.Context, cli *sheets.Service, g
 	}
 	paymentRows := make([][]interface{}, 0, len(dues.Payments))
 	for _, p := range dues.Payments {
+		months := make([]string, 0, len(p.CarryoverItems))
+		for _, it := range p.CarryoverItems {
+			months = append(months, it.Month)
+		}
 		paymentRows = append(paymentRows, []interface{}{
 			p.PaymentID, groupID, p.MemberID, p.PaymentDate, p.TotalAmount,
-			p.CarryoverIR, p.CarryoverMonths, p.CarryoverBreakdown,
+			p.CarryoverIR, strings.Join(months, ", "),
 			p.ConnectingFund, p.CommunityDues, p.OutreachFund, p.ThousandFund,
 			p.FuneralFund, p.UkhroMT, p.Notes, p.Status, now,
 		})
@@ -299,6 +319,37 @@ func (s *FinanceSyncService) markPushed(ctx context.Context, groupID string) err
 		}
 	}
 	return nil
+}
+
+// buildSheetCarryovers mengubah kolom sheet (carryover_ir + teks bulan +
+// sisa kolom breakdown lama) menjadi rincian per bulan + total + notes.
+// Aturan: nominal dibagi rata ke tiap bulan (sisa ke bulan terakhir) agar
+// SUM = carryover_ir. Isi breakdown lama yang masih ada disambung ke notes
+// supaya tidak hilang.
+func buildSheetCarryovers(months []string, sheetIR float64, breakdown, notes string) ([]model.DuePaymentCarryover, float64, string) {
+	notes = strings.TrimSpace(notes)
+	if b := strings.TrimSpace(breakdown); b != "" {
+		if notes == "" {
+			notes = "[Susulan lama] " + b
+		} else {
+			notes = notes + " | [Susulan lama] " + b
+		}
+	}
+	if len(months) == 0 || sheetIR <= 0 {
+		return nil, 0, notes
+	}
+	per := math.Floor(sheetIR/float64(len(months))*100) / 100
+	out := make([]model.DuePaymentCarryover, 0, len(months))
+	var acc float64
+	for i, m := range months {
+		amt := per
+		if i == len(months)-1 {
+			amt = sheetIR - acc
+		}
+		acc += amt
+		out = append(out, model.DuePaymentCarryover{CarryoverID: util.NewID("CRY"), Month: m, Amount: amt})
+	}
+	return out, sheetIR, notes
 }
 
 func atoi(v string, def int) int {

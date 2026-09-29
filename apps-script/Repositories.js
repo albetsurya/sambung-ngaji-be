@@ -29,6 +29,19 @@ SheetRepository_.prototype._sheet = function () {
   return sheet;
 };
 
+// Kolom yang bermakna TANGGAL KALENDER (bukan instant): harus diserial
+// sebagai yyyy-MM-dd zona Asia/Jakarta. Kalau dibiarkan sebagai Date,
+// JSON.stringify memanggil toISOString() (UTC) sehingga sheet 1 Agu
+// 00:00 WIB menjadi "31 Jul 17:00 UTC" → selisih 1 hari di DB/aplikasi.
+var DATE_ONLY_COLUMNS_ = {
+  tanggal: true,
+  tanggal_lahir: true,
+  tanggal_masuk: true,
+  tanggal_keluar: true,
+  transaction_date: true,
+  payment_date: true,
+};
+
 SheetRepository_.prototype._rowsToObjects = function (values) {
   var headers = this.def.headers;
   var out = [];
@@ -37,7 +50,11 @@ SheetRepository_.prototype._rowsToObjects = function (values) {
     if (row.join("") === "") continue;
     var obj = {};
     for (var c = 0; c < headers.length; c++) {
-      obj[headers[c]] = row[c];
+      var v = row[c];
+      if (v instanceof Date && DATE_ONLY_COLUMNS_[headers[c]]) {
+        v = Utilities.formatDate(v, "Asia/Jakarta", "yyyy-MM-dd");
+      }
+      obj[headers[c]] = v;
     }
     obj._row = i + 1;
     out.push(obj);

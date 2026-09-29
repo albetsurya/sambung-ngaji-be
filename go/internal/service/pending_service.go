@@ -23,6 +23,7 @@ type PendingService struct {
 	repo       *repository.PendingRepo
 	userRepo   *repository.UserRepo
 	memberRepo *repository.MemberRepo
+	groupRepo  *repository.GroupRepo
 }
 
 func NewPendingService(
@@ -36,6 +37,8 @@ func NewPendingService(
 		memberRepo: memberRepo,
 	}
 }
+
+func (s *PendingService) SetGroupRepo(gr *repository.GroupRepo) { s.groupRepo = gr }
 
 type CheckUsernameResult struct {
 	Available bool   `json:"available"`
@@ -271,6 +274,10 @@ type ApproveResult struct {
 }
 
 func (s *PendingService) Approve(ctx context.Context, submissionID, kelompok, reviewerID string) (*ApproveResult, error) {
+	return s.ApproveWithGroup(ctx, submissionID, "", kelompok, reviewerID)
+}
+
+func (s *PendingService) ApproveWithGroup(ctx context.Context, submissionID, groupID, kelompok, reviewerID string) (*ApproveResult, error) {
 	if submissionID == "" {
 		return nil, errors.New("submission_id wajib diisi")
 	}
@@ -304,8 +311,38 @@ func (s *PendingService) Approve(ctx context.Context, submissionID, kelompok, re
 	p.Daerah = util.TitleCaseID(p.Daerah)
 
 	memberID := util.NewID("MBR")
+	// Standard: group_id adalah FK tunggal. Resolve dari param group_id,
+	// fallback ke param kelompok (nama), fallback terakhir ke p.GroupID saat daftar.
+	resolvedGroupID := strings.TrimSpace(groupID)
+	resolvedKelompok := strings.TrimSpace(kelompok)
+	if resolvedGroupID == "" && p.GroupID != nil {
+		resolvedGroupID = strings.TrimSpace(*p.GroupID)
+	}
+	var groupIDPtr *string
+	if resolvedGroupID != "" && s.groupRepo != nil {
+		if g, err := s.groupRepo.FindByID(ctx, resolvedGroupID); err == nil && g != nil {
+			groupIDPtr = &g.GroupID
+			resolvedGroupID = g.GroupID
+			resolvedKelompok = g.GroupName
+		} else {
+			return nil, errors.New("kelompok tidak dikenal")
+		}
+	} else if resolvedKelompok != "" && s.groupRepo != nil {
+		if g, err := s.groupRepo.FindByName(ctx, resolvedKelompok); err == nil && g != nil {
+			groupIDPtr = &g.GroupID
+			resolvedGroupID = g.GroupID
+			resolvedKelompok = g.GroupName
+		} else {
+			return nil, errors.New("kelompok tidak dikenal: " + resolvedKelompok)
+		}
+	} else if resolvedGroupID != "" {
+		groupIDPtr = &resolvedGroupID
+	} else if resolvedKelompok == "" {
+		return nil, errors.New("kelompok wajib dipilih saat approve")
+	}
 	memberIn := repository.NewMemberInput{
 		MemberID:               memberID,
+		GroupID:                groupIDPtr,
 		NamaLengkap:            p.NamaLengkap,
 		NamaPanggilan:          p.NamaPanggilan,
 		JenisKelamin:           p.JenisKelamin,
@@ -316,7 +353,7 @@ func (s *PendingService) Approve(ctx context.Context, submissionID, kelompok, re
 		AlamatRumah:            p.AlamatRumah,
 		Desa:                   p.Desa,
 		Daerah:                 p.Daerah,
-		Kelompok:               kelompok,
+		Kelompok:               resolvedKelompok,
 		IsMuballigh:            false,
 		IsKerja:                false,
 		IsNikah:                p.IsNikah,
@@ -341,6 +378,7 @@ func (s *PendingService) Approve(ctx context.Context, submissionID, kelompok, re
 		Nama:         p.NamaLengkap,
 		Role:         "MEMBER",
 		MemberID:     memberID,
+		GroupID:      groupIDPtr,
 	}); err != nil {
 		return nil, err
 	}

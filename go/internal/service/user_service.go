@@ -73,7 +73,8 @@ func (s *UserService) CreateUser(ctx context.Context, in CreateUserInput) (*mode
 		return nil, errors.New("member_id wajib diisi. Setiap user harus terhubung ke jamaah.")
 	}
 
-	if _, err := s.memberRepo.FindByID(ctx, in.MemberID); err != nil {
+	member, err := s.memberRepo.FindByID(ctx, in.MemberID)
+	if err != nil {
 		return nil, errors.New("jamaah dengan member_id tersebut tidak ditemukan")
 	}
 
@@ -111,6 +112,7 @@ func (s *UserService) CreateUser(ctx context.Context, in CreateUserInput) (*mode
 		Nama:         nama,
 		Role:         in.Role,
 		MemberID:     in.MemberID,
+		GroupID:      member.GroupID,
 	}); err != nil {
 		return nil, err
 	}
