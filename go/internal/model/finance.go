@@ -2,10 +2,10 @@ package model
 
 import "time"
 
-type KasTransaction struct {
-	KasID       string
+type CashTransaction struct {
+	CashID      string
 	GroupID     *string
-	KasType     string
+	CashType    string
 	Tanggal     time.Time
 	AccountName string
 	Description string
@@ -16,11 +16,11 @@ type KasTransaction struct {
 	UpdatedAt   time.Time
 }
 
-type KasTransactionDTO struct {
+type CashTransactionDTO struct {
 	No              int     `json:"no"`
-	KasID           string  `json:"kas_id"`
+	CashID          string  `json:"cash_id"`
 	GroupID         string  `json:"group_id"`
-	KasType         string  `json:"kas_type"`
+	CashType        string  `json:"cash_type"`
 	TransactionDate string  `json:"transaction_date"`
 	AccountName     string  `json:"account_name"`
 	Description     string  `json:"description"`
@@ -28,18 +28,19 @@ type KasTransactionDTO struct {
 	Credit          float64 `json:"credit"`
 	Balance         float64 `json:"balance"`
 	CreatedBy       string  `json:"created_by"`
+	UpdatedAt       string  `json:"updated_at"`
 }
 
-type KasSummaryDTO struct {
-	KasType        string              `json:"kas_type"`
-	Transactions   []KasTransactionDTO `json:"transactions"`
-	InitialBalance float64             `json:"initial_balance"`
-	TotalDebit     float64             `json:"total_debit"`
-	TotalCredit    float64             `json:"total_credit"`
-	EndingBalance  float64             `json:"ending_balance"`
+type CashSummaryDTO struct {
+	CashType       string               `json:"cash_type"`
+	Transactions   []CashTransactionDTO `json:"transactions"`
+	InitialBalance float64              `json:"initial_balance"`
+	TotalDebit     float64              `json:"total_debit"`
+	TotalCredit    float64              `json:"total_credit"`
+	EndingBalance  float64              `json:"ending_balance"`
 }
 
-type ShodaqohMember struct {
+type DueMember struct {
 	MemberID      string
 	GroupID       *string
 	MemberName    string
@@ -49,15 +50,16 @@ type ShodaqohMember struct {
 	UpdatedAt     time.Time
 }
 
-type ShodaqohMemberDTO struct {
+type DueMemberDTO struct {
 	MemberID      string  `json:"member_id"`
 	GroupID       string  `json:"group_id"`
 	MemberName    string  `json:"member_name"`
 	MonthlyTarget float64 `json:"monthly_target"`
 	Status        string  `json:"status"`
+	UpdatedAt     string  `json:"updated_at"`
 }
 
-type ShodaqohPayment struct {
+type DuePayment struct {
 	PaymentID          string
 	GroupID            *string
 	MemberID           string
@@ -79,7 +81,7 @@ type ShodaqohPayment struct {
 	UpdatedAt          time.Time
 }
 
-type ShodaqohPaymentDTO struct {
+type DuePaymentDTO struct {
 	PaymentID          string  `json:"payment_id"`
 	GroupID            string  `json:"group_id"`
 	MemberID           string  `json:"member_id"`
@@ -96,9 +98,10 @@ type ShodaqohPaymentDTO struct {
 	UkhroMT            float64 `json:"ukhro_mt"`
 	Notes              string  `json:"notes"`
 	Status             string  `json:"status"`
+	UpdatedAt          string  `json:"updated_at"`
 }
 
-type ShodaqohDashboardDTO struct {
+type DuesDashboardDTO struct {
 	Target      float64 `json:"target"`
 	Received    float64 `json:"received"`
 	PaidCount   int     `json:"paidCount"`
@@ -106,11 +109,11 @@ type ShodaqohDashboardDTO struct {
 	MemberCount int     `json:"memberCount"`
 }
 
-type ShodaqohDataDTO struct {
-	SelectedMonth string               `json:"selected_month"`
-	Members       []ShodaqohMemberDTO  `json:"members"`
-	Payments      []ShodaqohPaymentDTO `json:"payments"`
-	Dashboard     ShodaqohDashboardDTO `json:"dashboard"`
+type DuesDataDTO struct {
+	SelectedMonth string           `json:"selected_month"`
+	Members       []DueMemberDTO   `json:"members"`
+	Payments      []DuePaymentDTO  `json:"payments"`
+	Dashboard     DuesDashboardDTO `json:"dashboard"`
 }
 
 type ZakatRecord struct {
@@ -141,4 +144,5 @@ type ZakatRecordDTO struct {
 	TransactionDate string        `json:"transaction_date"`
 	MuzakkiList     []interface{} `json:"muzakki_list"`
 	MustahikList    []interface{} `json:"mustahik_list"`
+	UpdatedAt       string        `json:"updated_at"`
 }

@@ -14,29 +14,39 @@ import (
 
 type FinanceService struct {
 	repo *repository.FinanceRepo
+	// AfterWrite fires after each successful write (e.g. async sheet push).
+	AfterWrite func(groupID string)
+}
+
+func (s *FinanceService) notify(groupID string) {
+	if s.AfterWrite != nil && groupID != "" {
+		go s.AfterWrite(groupID)
+	}
 }
 
 func NewFinanceService(repo *repository.FinanceRepo) *FinanceService {
 	return &FinanceService{repo: repo}
 }
 
-func normKasType(s string) string {
-	if strings.ToLower(s) == "kas_amil" {
-		return "kas_amil"
+func normCashType(s string) string {
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	case "amil", "kas_amil":
+		return "amil"
+	default:
+		return "main"
 	}
-	return "main"
 }
 
-func toKasDTO(no int, k model.KasTransaction, balance float64) model.KasTransactionDTO {
+func toCashDTO(no int, k model.CashTransaction, balance float64) model.CashTransactionDTO {
 	gid := ""
 	if k.GroupID != nil {
 		gid = *k.GroupID
 	}
-	return model.KasTransactionDTO{
+	return model.CashTransactionDTO{
 		No:              no,
-		KasID:           k.KasID,
+		CashID:          k.CashID,
 		GroupID:         gid,
-		KasType:         k.KasType,
+		CashType:        k.CashType,
 		TransactionDate: k.Tanggal.Format("2006-01-02"),
 		AccountName:     k.AccountName,
 		Description:     k.Description,
@@ -44,25 +54,26 @@ func toKasDTO(no int, k model.KasTransaction, balance float64) model.KasTransact
 		Credit:          k.Credit,
 		Balance:         balance,
 		CreatedBy:       k.CreatedBy,
+		UpdatedAt:       k.UpdatedAt.Format(time.RFC3339),
 	}
 }
 
-func (s *FinanceService) KasList(ctx context.Context, groupID, kasType string) (*model.KasSummaryDTO, error) {
-	kasType = normKasType(kasType)
-	rows, err := s.repo.KasList(ctx, groupID, kasType)
+func (s *FinanceService) CashList(ctx context.Context, groupID, cashType string) (*model.CashSummaryDTO, error) {
+	cashType = normCashType(cashType)
+	rows, err := s.repo.CashList(ctx, groupID, cashType)
 	if err != nil {
 		return nil, err
 	}
-	items := make([]model.KasTransactionDTO, 0, len(rows))
+	items := make([]model.CashTransactionDTO, 0, len(rows))
 	var totalDebit, totalCredit, balance float64
 	for i, k := range rows {
 		totalDebit += k.Debit
 		totalCredit += k.Credit
 		balance += k.Debit - k.Credit
-		items = append(items, toKasDTO(i+1, k, balance))
+		items = append(items, toCashDTO(i+1, k, balance))
 	}
-	return &model.KasSummaryDTO{
-		KasType:        kasType,
+	return &model.CashSummaryDTO{
+		CashType:       cashType,
 		Transactions:   items,
 		InitialBalance: 0,
 		TotalDebit:     totalDebit,
@@ -71,10 +82,10 @@ func (s *FinanceService) KasList(ctx context.Context, groupID, kasType string) (
 	}, nil
 }
 
-type KasSaveInput struct {
-	KasID       string
+type CashSaveInput struct {
+	CashID      string
 	GroupID     string
-	KasType     string
+	CashType    string
 	Tanggal     string
 	AccountName string
 	Description string
@@ -83,7 +94,7 @@ type KasSaveInput struct {
 	CreatedBy   string
 }
 
-func (s *FinanceService) KasSave(ctx context.Context, in KasSaveInput) (*model.KasTransactionDTO, error) {
+func (s *FinanceService) CashSave(ctx context.Context, in CashSaveInput) (*model.CashTransactionDTO, error) {
 	if in.GroupID == "" {
 		return nil, errors.New("group_id wajib diisi")
 	}
@@ -98,10 +109,10 @@ func (s *FinanceService) KasSave(ctx context.Context, in KasSaveInput) (*model.K
 		return nil, errors.New("nominal tidak boleh negatif")
 	}
 	gid := in.GroupID
-	k := &model.KasTransaction{
-		KasID:       in.KasID,
+	k := &model.CashTransaction{
+		CashID:      in.CashID,
 		GroupID:     &gid,
-		KasType:     normKasType(in.KasType),
+		CashType:    normCashType(in.CashType),
 		Tanggal:     tgl,
 		AccountName: in.AccountName,
 		Description: in.Description,
@@ -109,47 +120,52 @@ func (s *FinanceService) KasSave(ctx context.Context, in KasSaveInput) (*model.K
 		Credit:      in.Credit,
 		CreatedBy:   in.CreatedBy,
 	}
-	if k.KasID == "" {
-		k.KasID = util.NewID("KAS")
-		if err := s.repo.KasInsert(ctx, k); err != nil {
+	if k.CashID == "" {
+		k.CashID = util.NewID("KAS")
+		if err := s.repo.CashInsert(ctx, k); err != nil {
 			return nil, err
 		}
 	} else {
-		if err := s.repo.KasUpdate(ctx, k); err != nil {
+		if err := s.repo.CashUpdate(ctx, k); err != nil {
 			return nil, err
 		}
 	}
-	sum, err := s.KasList(ctx, in.GroupID, k.KasType)
+	sum, err := s.CashList(ctx, in.GroupID, k.CashType)
 	if err != nil {
 		return nil, err
 	}
 	for _, it := range sum.Transactions {
-		if it.KasID == k.KasID {
+		if it.CashID == k.CashID {
+			s.notify(in.GroupID)
 			return &it, nil
 		}
 	}
-	return &model.KasTransactionDTO{KasID: k.KasID, GroupID: in.GroupID}, nil
+	return &model.CashTransactionDTO{CashID: k.CashID, GroupID: in.GroupID}, nil
 }
 
-func (s *FinanceService) KasDelete(ctx context.Context, groupID, kasID string) error {
+func (s *FinanceService) CashDelete(ctx context.Context, groupID, kasID string) error {
 	if kasID == "" {
-		return errors.New("kas_id wajib diisi")
+		return errors.New("cash_id wajib diisi")
 	}
-	return s.repo.KasDelete(ctx, groupID, kasID)
+	if err := s.repo.CashDelete(ctx, groupID, kasID); err != nil {
+		return err
+	}
+	s.notify(groupID)
+	return nil
 }
 
-func (s *FinanceService) KasDuplicate(ctx context.Context, groupID, kasType, kasID, createdBy string) (*model.KasTransactionDTO, error) {
-	rows, err := s.repo.KasList(ctx, groupID, normKasType(kasType))
+func (s *FinanceService) CashDuplicate(ctx context.Context, groupID, cashType, kasID, createdBy string) (*model.CashTransactionDTO, error) {
+	rows, err := s.repo.CashList(ctx, groupID, normCashType(cashType))
 	if err != nil {
 		return nil, err
 	}
 	for _, k := range rows {
-		if k.KasID == kasID {
+		if k.CashID == kasID {
 			gid := groupID
-			cp := &model.KasTransaction{
-				KasID:       util.NewID("KAS"),
+			cp := &model.CashTransaction{
+				CashID:      util.NewID("KAS"),
 				GroupID:     &gid,
-				KasType:     k.KasType,
+				CashType:    k.CashType,
 				Tanggal:     k.Tanggal,
 				AccountName: k.AccountName,
 				Description: k.Description,
@@ -157,11 +173,11 @@ func (s *FinanceService) KasDuplicate(ctx context.Context, groupID, kasType, kas
 				Credit:      k.Credit,
 				CreatedBy:   createdBy,
 			}
-			if err := s.repo.KasInsert(ctx, cp); err != nil {
+			if err := s.repo.CashInsert(ctx, cp); err != nil {
 				return nil, err
 			}
-			return s.KasSave(ctx, KasSaveInput{
-				KasID: cp.KasID, GroupID: groupID, KasType: cp.KasType,
+			return s.CashSave(ctx, CashSaveInput{
+				CashID: cp.CashID, GroupID: groupID, CashType: cp.CashType,
 				Tanggal:     cp.Tanggal.Format("2006-01-02"),
 				AccountName: cp.AccountName, Description: cp.Description,
 				Debit: cp.Debit, Credit: cp.Credit, CreatedBy: createdBy,
@@ -171,12 +187,12 @@ func (s *FinanceService) KasDuplicate(ctx context.Context, groupID, kasType, kas
 	return nil, errors.New("transaksi tidak ditemukan")
 }
 
-func (s *FinanceService) KasCarryForward(ctx context.Context, groupID, kasType, monthKey, createdBy string) (*model.KasTransactionDTO, error) {
-	kasType = normKasType(kasType)
+func (s *FinanceService) CashCarryForward(ctx context.Context, groupID, cashType, monthKey, createdBy string) (*model.CashTransactionDTO, error) {
+	cashType = normCashType(cashType)
 	if len(monthKey) != 7 {
 		return nil, errors.New("monthKey tidak valid (YYYY-MM)")
 	}
-	rows, err := s.repo.KasList(ctx, groupID, kasType)
+	rows, err := s.repo.CashList(ctx, groupID, cashType)
 	if err != nil {
 		return nil, err
 	}
@@ -190,10 +206,10 @@ func (s *FinanceService) KasCarryForward(ctx context.Context, groupID, kasType, 
 	}
 	next = next.AddDate(0, 1, 0)
 	gid := groupID
-	k := &model.KasTransaction{
-		KasID:       util.NewID("KAS"),
+	k := &model.CashTransaction{
+		CashID:      util.NewID("KAS"),
 		GroupID:     &gid,
-		KasType:     kasType,
+		CashType:    cashType,
 		Tanggal:     time.Date(next.Year(), next.Month(), 1, 0, 0, 0, 0, time.UTC),
 		AccountName: "SALDO AWAL",
 		Description: "Saldo awal pindahan " + monthKey,
@@ -201,34 +217,35 @@ func (s *FinanceService) KasCarryForward(ctx context.Context, groupID, kasType, 
 		Credit:      0,
 		CreatedBy:   createdBy,
 	}
-	if err := s.repo.KasInsert(ctx, k); err != nil {
+	if err := s.repo.CashInsert(ctx, k); err != nil {
 		return nil, err
 	}
-	return s.KasSave(ctx, KasSaveInput{
-		KasID: k.KasID, GroupID: groupID, KasType: kasType,
+	return s.CashSave(ctx, CashSaveInput{
+		CashID: k.CashID, GroupID: groupID, CashType: cashType,
 		Tanggal:     k.Tanggal.Format("2006-01-02"),
 		AccountName: k.AccountName, Description: k.Description,
 		Debit: k.Debit, CreatedBy: createdBy,
 	})
 }
 
-func toShodaqohMemberDTO(m model.ShodaqohMember) model.ShodaqohMemberDTO {
+func toDueMemberDTO(m model.DueMember) model.DueMemberDTO {
 	gid := ""
 	if m.GroupID != nil {
 		gid = *m.GroupID
 	}
-	return model.ShodaqohMemberDTO{
+	return model.DueMemberDTO{
 		MemberID: m.MemberID, GroupID: gid, MemberName: m.MemberName,
 		MonthlyTarget: m.MonthlyTarget, Status: m.Status,
+		UpdatedAt: m.UpdatedAt.Format(time.RFC3339),
 	}
 }
 
-func toShodaqohPaymentDTO(p model.ShodaqohPayment) model.ShodaqohPaymentDTO {
+func toDuePaymentDTO(p model.DuePayment) model.DuePaymentDTO {
 	gid := ""
 	if p.GroupID != nil {
 		gid = *p.GroupID
 	}
-	return model.ShodaqohPaymentDTO{
+	return model.DuePaymentDTO{
 		PaymentID: p.PaymentID, GroupID: gid, MemberID: p.MemberID,
 		PaymentDate: p.PaymentDate.Format("2006-01-02"), TotalAmount: p.TotalAmount,
 		CarryoverIR: p.CarryoverIR, CarryoverMonths: p.CarryoverMonths,
@@ -236,27 +253,28 @@ func toShodaqohPaymentDTO(p model.ShodaqohPayment) model.ShodaqohPaymentDTO {
 		CommunityDues: p.CommunityDues, OutreachFund: p.OutreachFund,
 		ThousandFund: p.ThousandFund, FuneralFund: p.FuneralFund,
 		UkhroMT: p.UkhroMT, Notes: p.Notes, Status: p.Status,
+		UpdatedAt: p.UpdatedAt.Format(time.RFC3339),
 	}
 }
 
-func (s *FinanceService) ShodaqohData(ctx context.Context, groupID, month string) (*model.ShodaqohDataDTO, error) {
-	members, err := s.repo.ShodaqohMembers(ctx, groupID)
+func (s *FinanceService) DuesData(ctx context.Context, groupID, month string) (*model.DuesDataDTO, error) {
+	members, err := s.repo.DueMembers(ctx, groupID)
 	if err != nil {
 		return nil, err
 	}
-	payments, err := s.repo.ShodaqohPayments(ctx, groupID, month)
+	payments, err := s.repo.DuePayments(ctx, groupID, month)
 	if err != nil {
 		return nil, err
 	}
-	mDTO := make([]model.ShodaqohMemberDTO, 0, len(members))
+	mDTO := make([]model.DueMemberDTO, 0, len(members))
 	var target float64
 	for _, m := range members {
 		if m.Status == "ACTIVE" {
 			target += m.MonthlyTarget
 		}
-		mDTO = append(mDTO, toShodaqohMemberDTO(m))
+		mDTO = append(mDTO, toDueMemberDTO(m))
 	}
-	pDTO := make([]model.ShodaqohPaymentDTO, 0, len(payments))
+	pDTO := make([]model.DuePaymentDTO, 0, len(payments))
 	var received float64
 	paid := map[string]bool{}
 	for _, p := range payments {
@@ -265,7 +283,7 @@ func (s *FinanceService) ShodaqohData(ctx context.Context, groupID, month string
 		}
 		received += p.TotalAmount
 		paid[p.MemberID] = true
-		pDTO = append(pDTO, toShodaqohPaymentDTO(p))
+		pDTO = append(pDTO, toDuePaymentDTO(p))
 	}
 	active := 0
 	for _, m := range members {
@@ -273,11 +291,11 @@ func (s *FinanceService) ShodaqohData(ctx context.Context, groupID, month string
 			active++
 		}
 	}
-	return &model.ShodaqohDataDTO{
+	return &model.DuesDataDTO{
 		SelectedMonth: month,
 		Members:       mDTO,
 		Payments:      pDTO,
-		Dashboard: model.ShodaqohDashboardDTO{
+		Dashboard: model.DuesDashboardDTO{
 			Target: target, Received: received,
 			PaidCount: len(paid), UnpaidCount: active - len(paid),
 			MemberCount: len(members),
@@ -285,7 +303,7 @@ func (s *FinanceService) ShodaqohData(ctx context.Context, groupID, month string
 	}, nil
 }
 
-func (s *FinanceService) ShodaqohMemberSave(ctx context.Context, groupID, memberID, name string, target float64) (*model.ShodaqohMemberDTO, error) {
+func (s *FinanceService) DueMemberSave(ctx context.Context, groupID, memberID, name string, target float64) (*model.DueMemberDTO, error) {
 	if name == "" {
 		return nil, errors.New("nama anggota wajib diisi")
 	}
@@ -293,22 +311,27 @@ func (s *FinanceService) ShodaqohMemberSave(ctx context.Context, groupID, member
 		memberID = util.NewID("SHM")
 	}
 	gid := groupID
-	m := &model.ShodaqohMember{
+	m := &model.DueMember{
 		MemberID: memberID, GroupID: &gid,
 		MemberName: name, MonthlyTarget: target, Status: "ACTIVE",
 	}
-	if err := s.repo.ShodaqohMemberUpsert(ctx, m); err != nil {
+	if err := s.repo.DueMemberUpsert(ctx, m); err != nil {
 		return nil, err
 	}
-	dto := toShodaqohMemberDTO(*m)
+	dto := toDueMemberDTO(*m)
+	s.notify(groupID)
 	return &dto, nil
 }
 
-func (s *FinanceService) ShodaqohMemberDelete(ctx context.Context, groupID, memberID string) error {
-	return s.repo.ShodaqohMemberDelete(ctx, groupID, memberID)
+func (s *FinanceService) DueMemberDelete(ctx context.Context, groupID, memberID string) error {
+	if err := s.repo.DueMemberDelete(ctx, groupID, memberID); err != nil {
+		return err
+	}
+	s.notify(groupID)
+	return nil
 }
 
-type ShodaqohPaymentInput struct {
+type DuePaymentInput struct {
 	PaymentID          string
 	GroupID            string
 	MemberID           string
@@ -326,7 +349,7 @@ type ShodaqohPaymentInput struct {
 	CreatedBy          string
 }
 
-func (s *FinanceService) ShodaqohPaymentSave(ctx context.Context, in ShodaqohPaymentInput) (*model.ShodaqohPaymentDTO, error) {
+func (s *FinanceService) DuePaymentSave(ctx context.Context, in DuePaymentInput) (*model.DuePaymentDTO, error) {
 	if in.MemberID == "" {
 		return nil, errors.New("member_id wajib diisi")
 	}
@@ -343,7 +366,7 @@ func (s *FinanceService) ShodaqohPaymentSave(ctx context.Context, in ShodaqohPay
 		in.PaymentID = util.NewID("SHP")
 	}
 	gid := in.GroupID
-	p := &model.ShodaqohPayment{
+	p := &model.DuePayment{
 		PaymentID: in.PaymentID, GroupID: &gid, MemberID: in.MemberID,
 		PaymentDate: tgl, TotalAmount: total, CarryoverIR: in.CarryoverIR,
 		CarryoverMonths: in.CarryoverMonths, CarryoverBreakdown: in.CarryoverBreakdown,
@@ -352,23 +375,28 @@ func (s *FinanceService) ShodaqohPaymentSave(ctx context.Context, in ShodaqohPay
 		FuneralFund: in.FuneralFund, UkhroMT: in.UkhroMT,
 		Notes: in.Notes, Status: "ACTIVE", CreatedBy: in.CreatedBy,
 	}
-	if err := s.repo.ShodaqohPaymentUpsert(ctx, p); err != nil {
+	if err := s.repo.DuePaymentUpsert(ctx, p); err != nil {
 		return nil, err
 	}
-	dto := toShodaqohPaymentDTO(*p)
+	dto := toDuePaymentDTO(*p)
+	s.notify(in.GroupID)
 	return &dto, nil
 }
 
-func (s *FinanceService) ShodaqohPaymentReverse(ctx context.Context, groupID, paymentID string) error {
-	return s.repo.ShodaqohPaymentReverse(ctx, groupID, paymentID)
+func (s *FinanceService) DuePaymentReverse(ctx context.Context, groupID, paymentID string) error {
+	if err := s.repo.DuePaymentReverse(ctx, groupID, paymentID); err != nil {
+		return err
+	}
+	s.notify(groupID)
+	return nil
 }
 
-func (s *FinanceService) ShodaqohLastNominals(ctx context.Context, groupID, memberID string) (*model.ShodaqohPaymentDTO, error) {
-	payments, err := s.repo.ShodaqohPayments(ctx, groupID, "")
+func (s *FinanceService) DueLastNominals(ctx context.Context, groupID, memberID string) (*model.DuePaymentDTO, error) {
+	payments, err := s.repo.DuePayments(ctx, groupID, "")
 	if err != nil {
 		return nil, err
 	}
-	var latest *model.ShodaqohPayment
+	var latest *model.DuePayment
 	for i := range payments {
 		p := payments[i]
 		if p.MemberID != memberID || p.Status == "REVERSED" {
@@ -382,7 +410,7 @@ func (s *FinanceService) ShodaqohLastNominals(ctx context.Context, groupID, memb
 	if latest == nil {
 		return nil, errors.New("belum ada pembayaran anggota ini")
 	}
-	dto := toShodaqohPaymentDTO(*latest)
+	dto := toDuePaymentDTO(*latest)
 	return &dto, nil
 }
 
@@ -413,6 +441,7 @@ func toZakatDTO(z model.ZakatRecord) model.ZakatRecordDTO {
 		TotalRiceKg: z.TotalRiceKg, TotalMoneyRp: z.TotalMoneyRp,
 		Status: z.Status, TransactionDate: tgl,
 		MuzakkiList: muzaki, MustahikList: mustahik,
+		UpdatedAt: z.UpdatedAt.Format(time.RFC3339),
 	}
 }
 
@@ -475,6 +504,7 @@ func (s *FinanceService) ZakatSave(ctx context.Context, in ZakatSaveInput) (*mod
 		return nil, err
 	}
 	dto := toZakatDTO(*z)
+	s.notify(in.GroupID)
 	return &dto, nil
 }
 
@@ -485,9 +515,17 @@ func (s *FinanceService) ZakatSetStatus(ctx context.Context, groupID, zakatID, s
 	default:
 		return errors.New("status zakat tidak valid")
 	}
-	return s.repo.ZakatSetStatus(ctx, groupID, zakatID, st)
+	if err := s.repo.ZakatSetStatus(ctx, groupID, zakatID, st); err != nil {
+		return err
+	}
+	s.notify(groupID)
+	return nil
 }
 
 func (s *FinanceService) ZakatDelete(ctx context.Context, groupID, zakatID string) error {
-	return s.repo.ZakatDelete(ctx, groupID, zakatID)
+	if err := s.repo.ZakatDelete(ctx, groupID, zakatID); err != nil {
+		return err
+	}
+	s.notify(groupID)
+	return nil
 }

@@ -129,6 +129,8 @@ func main() {
 	go func() {
 		ticker := time.NewTicker(1 * time.Hour)
 		defer ticker.Stop()
+		syncTicker := time.NewTicker(10 * time.Minute)
+		defer syncTicker.Stop()
 
 		if err := services.Reminder.RunOnce(shutdownCtx); err != nil {
 			log.Error().Err(err).Msg("reminder startup error")
@@ -147,6 +149,10 @@ func main() {
 				}
 				if err := services.FridayReminder.RunOnce(shutdownCtx); err != nil {
 					log.Error().Err(err).Msg("friday reminder tick error")
+				}
+			case <-syncTicker.C:
+				if err := services.FinanceSync.SyncAllGroups(shutdownCtx); err != nil {
+					log.Error().Err(err).Msg("finance sheet sync tick error")
 				}
 			}
 		}

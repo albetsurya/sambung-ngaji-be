@@ -29,27 +29,27 @@ func financeUser(c *fiber.Ctx) string {
 	return ""
 }
 
-func handleFinanceKasList(c *fiber.Ctx, svc *service.FinanceService) error {
+func handleCashLedger(c *fiber.Ctx, svc *service.FinanceService) error {
 	groupID, ok := financeGroup(c)
 	if !ok {
 		return nil
 	}
-	res, err := svc.KasList(c.Context(), groupID, BodyString(c, "kas_type"))
+	res, err := svc.CashList(c.Context(), groupID, BodyString(c, "cash_type"))
 	if err != nil {
 		return Fail(c, err.Error())
 	}
 	return Ok(c, res)
 }
 
-func handleFinanceKasSave(c *fiber.Ctx, svc *service.FinanceService) error {
+func handleCashSave(c *fiber.Ctx, svc *service.FinanceService) error {
 	groupID, ok := financeGroup(c)
 	if !ok {
 		return nil
 	}
-	res, err := svc.KasSave(c.Context(), service.KasSaveInput{
-		KasID:       BodyString(c, "kas_id"),
+	res, err := svc.CashSave(c.Context(), service.CashSaveInput{
+		CashID:      BodyString(c, "cash_id"),
 		GroupID:     groupID,
-		KasType:     BodyString(c, "kas_type"),
+		CashType:    BodyString(c, "cash_type"),
 		Tanggal:     BodyString(c, "tanggal"),
 		AccountName: BodyString(c, "account_name"),
 		Description: BodyString(c, "description"),
@@ -63,59 +63,59 @@ func handleFinanceKasSave(c *fiber.Ctx, svc *service.FinanceService) error {
 	return Ok(c, res)
 }
 
-func handleFinanceKasDelete(c *fiber.Ctx, svc *service.FinanceService) error {
+func handleCashDelete(c *fiber.Ctx, svc *service.FinanceService) error {
 	groupID, ok := financeGroup(c)
 	if !ok {
 		return nil
 	}
-	if err := svc.KasDelete(c.Context(), groupID, BodyString(c, "kas_id")); err != nil {
+	if err := svc.CashDelete(c.Context(), groupID, BodyString(c, "cash_id")); err != nil {
 		return Fail(c, err.Error())
 	}
 	return Ok(c, fiber.Map{"deleted": true})
 }
 
-func handleFinanceKasDuplicate(c *fiber.Ctx, svc *service.FinanceService) error {
+func handleCashDuplicate(c *fiber.Ctx, svc *service.FinanceService) error {
 	groupID, ok := financeGroup(c)
 	if !ok {
 		return nil
 	}
-	res, err := svc.KasDuplicate(c.Context(), groupID, BodyString(c, "kas_type"), BodyString(c, "kas_id"), financeUser(c))
+	res, err := svc.CashDuplicate(c.Context(), groupID, BodyString(c, "cash_type"), BodyString(c, "cash_id"), financeUser(c))
 	if err != nil {
 		return Fail(c, err.Error())
 	}
 	return Ok(c, res)
 }
 
-func handleFinanceKasCarryForward(c *fiber.Ctx, svc *service.FinanceService) error {
+func handleCashCarryForward(c *fiber.Ctx, svc *service.FinanceService) error {
 	groupID, ok := financeGroup(c)
 	if !ok {
 		return nil
 	}
-	res, err := svc.KasCarryForward(c.Context(), groupID, BodyString(c, "kas_type"), BodyString(c, "month"), financeUser(c))
+	res, err := svc.CashCarryForward(c.Context(), groupID, BodyString(c, "cash_type"), BodyString(c, "month"), financeUser(c))
 	if err != nil {
 		return Fail(c, err.Error())
 	}
 	return Ok(c, res)
 }
 
-func handleFinanceShodaqohData(c *fiber.Ctx, svc *service.FinanceService) error {
+func handleDuesData(c *fiber.Ctx, svc *service.FinanceService) error {
 	groupID, ok := financeGroup(c)
 	if !ok {
 		return nil
 	}
-	res, err := svc.ShodaqohData(c.Context(), groupID, BodyString(c, "month"))
+	res, err := svc.DuesData(c.Context(), groupID, BodyString(c, "month"))
 	if err != nil {
 		return Fail(c, err.Error())
 	}
 	return Ok(c, res)
 }
 
-func handleFinanceShodaqohMemberSave(c *fiber.Ctx, svc *service.FinanceService) error {
+func handleDueMemberSave(c *fiber.Ctx, svc *service.FinanceService) error {
 	groupID, ok := financeGroup(c)
 	if !ok {
 		return nil
 	}
-	res, err := svc.ShodaqohMemberSave(c.Context(), groupID,
+	res, err := svc.DueMemberSave(c.Context(), groupID,
 		BodyString(c, "member_id"), BodyString(c, "member_name"), BodyFloat(c, "monthly_target"))
 	if err != nil {
 		return Fail(c, err.Error())
@@ -123,23 +123,23 @@ func handleFinanceShodaqohMemberSave(c *fiber.Ctx, svc *service.FinanceService) 
 	return Ok(c, res)
 }
 
-func handleFinanceShodaqohMemberDelete(c *fiber.Ctx, svc *service.FinanceService) error {
+func handleDueMemberDelete(c *fiber.Ctx, svc *service.FinanceService) error {
 	groupID, ok := financeGroup(c)
 	if !ok {
 		return nil
 	}
-	if err := svc.ShodaqohMemberDelete(c.Context(), groupID, BodyString(c, "member_id")); err != nil {
+	if err := svc.DueMemberDelete(c.Context(), groupID, BodyString(c, "member_id")); err != nil {
 		return Fail(c, err.Error())
 	}
 	return Ok(c, fiber.Map{"deleted": true})
 }
 
-func handleFinanceShodaqohPaymentSave(c *fiber.Ctx, svc *service.FinanceService) error {
+func handleDuePaymentSave(c *fiber.Ctx, svc *service.FinanceService) error {
 	groupID, ok := financeGroup(c)
 	if !ok {
 		return nil
 	}
-	res, err := svc.ShodaqohPaymentSave(c.Context(), service.ShodaqohPaymentInput{
+	res, err := svc.DuePaymentSave(c.Context(), service.DuePaymentInput{
 		PaymentID:          BodyString(c, "payment_id"),
 		GroupID:            groupID,
 		MemberID:           BodyString(c, "member_id"),
@@ -162,30 +162,30 @@ func handleFinanceShodaqohPaymentSave(c *fiber.Ctx, svc *service.FinanceService)
 	return Ok(c, res)
 }
 
-func handleFinanceShodaqohPaymentReverse(c *fiber.Ctx, svc *service.FinanceService) error {
+func handleDuePaymentReverse(c *fiber.Ctx, svc *service.FinanceService) error {
 	groupID, ok := financeGroup(c)
 	if !ok {
 		return nil
 	}
-	if err := svc.ShodaqohPaymentReverse(c.Context(), groupID, BodyString(c, "payment_id")); err != nil {
+	if err := svc.DuePaymentReverse(c.Context(), groupID, BodyString(c, "payment_id")); err != nil {
 		return Fail(c, err.Error())
 	}
 	return Ok(c, fiber.Map{"reversed": true})
 }
 
-func handleFinanceShodaqohLastNominals(c *fiber.Ctx, svc *service.FinanceService) error {
+func handleDueLastNominals(c *fiber.Ctx, svc *service.FinanceService) error {
 	groupID, ok := financeGroup(c)
 	if !ok {
 		return nil
 	}
-	res, err := svc.ShodaqohLastNominals(c.Context(), groupID, BodyString(c, "member_id"))
+	res, err := svc.DueLastNominals(c.Context(), groupID, BodyString(c, "member_id"))
 	if err != nil {
 		return Fail(c, err.Error())
 	}
 	return Ok(c, res)
 }
 
-func handleFinanceZakatList(c *fiber.Ctx, svc *service.FinanceService) error {
+func handleZakatList(c *fiber.Ctx, svc *service.FinanceService) error {
 	groupID, ok := financeGroup(c)
 	if !ok {
 		return nil
@@ -197,7 +197,7 @@ func handleFinanceZakatList(c *fiber.Ctx, svc *service.FinanceService) error {
 	return Ok(c, res)
 }
 
-func handleFinanceZakatSave(c *fiber.Ctx, svc *service.FinanceService) error {
+func handleZakatSave(c *fiber.Ctx, svc *service.FinanceService) error {
 	groupID, ok := financeGroup(c)
 	if !ok {
 		return nil
@@ -220,7 +220,7 @@ func handleFinanceZakatSave(c *fiber.Ctx, svc *service.FinanceService) error {
 	return Ok(c, res)
 }
 
-func handleFinanceZakatStatus(c *fiber.Ctx, svc *service.FinanceService) error {
+func handleZakatStatus(c *fiber.Ctx, svc *service.FinanceService) error {
 	groupID, ok := financeGroup(c)
 	if !ok {
 		return nil
@@ -231,7 +231,7 @@ func handleFinanceZakatStatus(c *fiber.Ctx, svc *service.FinanceService) error {
 	return Ok(c, fiber.Map{"updated": true})
 }
 
-func handleFinanceZakatDelete(c *fiber.Ctx, svc *service.FinanceService) error {
+func handleZakatDelete(c *fiber.Ctx, svc *service.FinanceService) error {
 	groupID, ok := financeGroup(c)
 	if !ok {
 		return nil
@@ -240,4 +240,30 @@ func handleFinanceZakatDelete(c *fiber.Ctx, svc *service.FinanceService) error {
 		return Fail(c, err.Error())
 	}
 	return Ok(c, fiber.Map{"deleted": true})
+}
+
+func handleFinanceSync(c *fiber.Ctx, svc *service.FinanceSyncService) error {
+	groupID := BodyString(c, "group_id")
+	if groupID != "" {
+		if err := svc.SyncGroup(c.Context(), groupID); err != nil {
+			return Fail(c, err.Error())
+		}
+		return Ok(c, fiber.Map{"synced_group": groupID})
+	}
+	if err := svc.SyncAllGroups(c.Context()); err != nil {
+		return Fail(c, err.Error())
+	}
+	return Ok(c, fiber.Map{"synced": "all"})
+}
+
+func handleFinanceImport(c *fiber.Ctx, svc *service.FinanceSyncService) error {
+	groupID := BodyString(c, "group_id")
+	if groupID == "" {
+		return Fail(c, "group_id wajib diisi untuk import")
+	}
+	res, err := svc.ImportFromGAS(c.Context(), groupID)
+	if err != nil {
+		return Fail(c, err.Error())
+	}
+	return Ok(c, res)
 }
