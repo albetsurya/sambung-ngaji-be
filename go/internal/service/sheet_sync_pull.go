@@ -252,7 +252,7 @@ func (s *FinanceSyncService) pushAll(ctx context.Context, cli *sheets.Service, g
 			it.Description, it.Debit, it.Credit, it.CreatedBy, now,
 		})
 	}
-	if err := s.writeTab(ctx, cli, sheetTabCash, sheetCashHeaders, cashRows); err != nil {
+	if err := s.mergeWriteTab(ctx, cli, sheetTabCash, sheetCashHeaders, groupID, cashRows); err != nil {
 		return err
 	}
 
@@ -266,7 +266,7 @@ func (s *FinanceSyncService) pushAll(ctx context.Context, cli *sheets.Service, g
 			m.MemberID, groupID, m.MemberName, m.MonthlyTarget, m.Status, now,
 		})
 	}
-	if err := s.writeTab(ctx, cli, sheetTabDueMembers, sheetDueMemberHeaders, memberRows); err != nil {
+	if err := s.mergeWriteTab(ctx, cli, sheetTabDueMembers, sheetDueMemberHeaders, groupID, memberRows); err != nil {
 		return err
 	}
 	paymentRows := make([][]interface{}, 0, len(dues.Payments))
@@ -282,7 +282,7 @@ func (s *FinanceSyncService) pushAll(ctx context.Context, cli *sheets.Service, g
 			p.FuneralFund, p.UkhroMT, p.Notes, p.Status, now,
 		})
 	}
-	if err := s.writeTab(ctx, cli, sheetTabDuePayments, sheetDuePaymentHeaders, paymentRows); err != nil {
+	if err := s.mergeWriteTab(ctx, cli, sheetTabDuePayments, sheetDuePaymentHeaders, groupID, paymentRows); err != nil {
 		return err
 	}
 
@@ -297,7 +297,7 @@ func (s *FinanceSyncService) pushAll(ctx context.Context, cli *sheets.Service, g
 			z.TotalRiceKg, z.TotalMoneyRp, z.Status, z.TransactionDate, now,
 		})
 	}
-	if err := s.writeTab(ctx, cli, sheetTabZakat, sheetZakatHeaders, zakatRows); err != nil {
+	if err := s.mergeWriteTab(ctx, cli, sheetTabZakat, sheetZakatHeaders, groupID, zakatRows); err != nil {
 		return err
 	}
 	return s.markPushed(ctx, groupID)

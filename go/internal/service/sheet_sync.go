@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"google.golang.org/api/option"
@@ -34,6 +35,10 @@ type FinanceSyncService struct {
 	svc       *FinanceService
 	sheetID   string
 	credsJSON string
+	// mu menyerikan seluruh operasi sync: mencegah dua SyncGroup/PullGroup
+	// berjalan bersamaan (ketuk tombol berkali-kali + auto-sync AfterWrite),
+	// yang bisa membuat tulis-baca tab saling timpa.
+	mu sync.Mutex
 }
 
 func NewFinanceSyncService(repo *repository.FinanceRepo, groups *repository.GroupRepo, svc *FinanceService) *FinanceSyncService {
@@ -191,6 +196,30 @@ func (s *FinanceSyncService) writeTab(ctx context.Context, cli *sheets.Service, 
 	return err
 }
 
+// mergeWriteTab menulis ulang tab dengan strategi merge per-grup: baris
+// milik grup lain dipertahankan apa adanya, baris grup ini diganti total
+// dari DB. Tanpa ini, SyncGroup satu grup akan MENGHAPUS baris mirror
+// grup lain (writeTab me-clear seluruh tab).
+func (s *FinanceSyncService) mergeWriteTab(ctx context.Context, cli *sheets.Service, tab string, headers []string, groupID string, freshRows [][]interface{}) error {
+	existing, err := s.readTab(ctx, cli, tab)
+	if err != nil {
+		return err
+	}
+	merged := make([][]interface{}, 0, len(existing)+len(freshRows))
+	for _, m := range existing {
+		if strings.TrimSpace(m["group_id"]) == groupID {
+			continue
+		}
+		row := make([]interface{}, len(headers))
+		for i, h := range headers {
+			row[i] = m[h]
+		}
+		merged = append(merged, row)
+	}
+	merged = append(merged, freshRows...)
+	return s.writeTab(ctx, cli, tab, headers, merged)
+}
+
 func (s *FinanceSyncService) recordError(ctx context.Context, groupID, entity, entityID, direction, msg string) {
 	_ = s.repo.SyncError(ctx, groupID, entity, entityID, direction, msg)
 }
@@ -199,6 +228,8 @@ func (s *FinanceSyncService) recordError(ctx context.Context, groupID, entity, e
 // Dipakai operator untuk re-sync aman: verifikasi dulu, push belakangan.
 // Urutan: tab legacy bendahara dulu (sumber utama), lalu tab app.
 func (s *FinanceSyncService) PullGroup(ctx context.Context, groupID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	cli, err := s.client(ctx)
 	if err != nil {
 		return err
@@ -232,6 +263,8 @@ func (s *FinanceSyncService) PullGroup(ctx context.Context, groupID string) erro
 
 // SyncGroup merges one group both ways, then rewrites the four tabs from DB state.
 func (s *FinanceSyncService) SyncGroup(ctx context.Context, groupID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	cli, err := s.client(ctx)
 	if err != nil {
 		return err
