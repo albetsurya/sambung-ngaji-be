@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -58,6 +59,23 @@ func toCashDTO(no int, k model.CashTransaction, balance float64) model.CashTrans
 	}
 }
 
+func isOpeningBalance(account string) bool {
+	return strings.TrimSpace(strings.ToUpper(account)) == "SALDO AWAL"
+}
+
+func indonesianMonthLabel(monthKey string) string {
+	names := []string{"", "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+		"Juli", "Agustus", "September", "Oktober", "November", "Desember"}
+	if len(monthKey) != 7 {
+		return monthKey
+	}
+	var y, m int
+	if _, err := fmt.Sscanf(monthKey, "%d-%d", &y, &m); err != nil || m < 1 || m > 12 {
+		return monthKey
+	}
+	return fmt.Sprintf("%s %d", names[m], y)
+}
+
 func (s *FinanceService) CashList(ctx context.Context, groupID, cashType string) (*model.CashSummaryDTO, error) {
 	cashType = normCashType(cashType)
 	rows, err := s.repo.CashList(ctx, groupID, cashType)
@@ -66,19 +84,33 @@ func (s *FinanceService) CashList(ctx context.Context, groupID, cashType string)
 	}
 	items := make([]model.CashTransactionDTO, 0, len(rows))
 	var totalDebit, totalCredit, balance float64
+	initial := 0.0
+	initialSet := false
 	for i, k := range rows {
-		totalDebit += k.Debit
-		totalCredit += k.Credit
-		balance += k.Debit - k.Credit
+		if isOpeningBalance(k.AccountName) {
+			balance = k.Debit - k.Credit
+			if !initialSet {
+				initial = balance
+				initialSet = true
+			}
+		} else {
+			totalDebit += k.Debit
+			totalCredit += k.Credit
+			balance += k.Debit - k.Credit
+		}
 		items = append(items, toCashDTO(i+1, k, balance))
+	}
+	ending := balance
+	if len(rows) == 0 {
+		ending = initial
 	}
 	return &model.CashSummaryDTO{
 		CashType:       cashType,
 		Transactions:   items,
-		InitialBalance: 0,
+		InitialBalance: initial,
 		TotalDebit:     totalDebit,
 		TotalCredit:    totalCredit,
-		EndingBalance:  balance,
+		EndingBalance:  ending,
 	}, nil
 }
 
@@ -192,21 +224,41 @@ func (s *FinanceService) CashDuplicate(ctx context.Context, groupID, cashType, k
 func (s *FinanceService) CashCarryForward(ctx context.Context, groupID, cashType, monthKey, createdBy string) (*model.CashTransactionDTO, error) {
 	cashType = normCashType(cashType)
 	if len(monthKey) != 7 {
-		return nil, errors.New("monthKey tidak valid (YYYY-MM)")
+		return nil, errors.New("Bulan tidak valid. Gunakan format YYYY-MM.")
+	}
+	next, err := time.Parse("2006-01", monthKey)
+	if err != nil || next.Month() < 1 || next.Month() > 12 {
+		return nil, errors.New("Bulan tidak valid. Gunakan format YYYY-MM.")
 	}
 	rows, err := s.repo.CashList(ctx, groupID, cashType)
 	if err != nil {
 		return nil, err
 	}
 	var balance float64
+	monthEnding := 0.0
+	foundMonth := false
 	for _, k := range rows {
-		balance += k.Debit - k.Credit
+		if isOpeningBalance(k.AccountName) {
+			balance = k.Debit - k.Credit
+		} else {
+			balance += k.Debit - k.Credit
+		}
+		if k.Tanggal.Format("2006-01") == monthKey {
+			monthEnding = balance
+			foundMonth = true
+		}
 	}
-	next, err := time.Parse("2006-01", monthKey)
-	if err != nil {
-		return nil, errors.New("monthKey tidak valid (YYYY-MM)")
+	if !foundMonth {
+		return nil, errors.New("Tidak ditemukan transaksi pada bulan " + monthKey + ".")
 	}
+	ending := monthEnding
 	next = next.AddDate(0, 1, 0)
+	nextKey := next.Format("2006-01")
+	for _, k := range rows {
+		if isOpeningBalance(k.AccountName) && k.Tanggal.Format("2006-01") == nextKey {
+			return nil, errors.New("SALDO AWAL untuk " + nextKey + " sudah ada.")
+		}
+	}
 	gid := groupID
 	k := &model.CashTransaction{
 		CashID:      util.NewID("KAS"),
@@ -214,8 +266,8 @@ func (s *FinanceService) CashCarryForward(ctx context.Context, groupID, cashType
 		CashType:    cashType,
 		Tanggal:     time.Date(next.Year(), next.Month(), 1, 0, 0, 0, 0, time.UTC),
 		AccountName: "SALDO AWAL",
-		Description: "Saldo awal pindahan " + monthKey,
-		Debit:       balance,
+		Description: "Saldo awal dari " + indonesianMonthLabel(monthKey),
+		Debit:       ending,
 		Credit:      0,
 		CreatedBy:   createdBy,
 	}
