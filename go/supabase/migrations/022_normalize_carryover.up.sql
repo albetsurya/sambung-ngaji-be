@@ -30,7 +30,9 @@ CREATE INDEX IF NOT EXISTS idx_carryovers_payment ON due_payment_carryovers(paym
 
 -- Backfill: pecah carryover_months (koma/semicolon) jadi baris anak,
 -- bagi carryover_ir rata (sisa ke bulan terakhir). Idempotent: hanya
--- untuk payment yang belum punya anak.
+-- untuk payment yang belum punya anak. Dilewati total bila kolom lama
+-- sudah tidak ada (migrasi pernah jalan) agar aman di-rerun oleh
+-- `supabase db push` saat deploy.
 DO $$
 DECLARE
   r          RECORD;
@@ -43,9 +45,17 @@ DECLARE
   i          INT;
   yr         TEXT;
   mon        TEXT;
+  has_legacy BOOLEAN;
   name2num   JSONB := '{"jan":"01","januari":"01","january":"01","feb":"02","februari":"02","february":"02","mar":"03","maret":"03","march":"03","apr":"04","april":"04","mei":"05","may":"05","jun":"06","juni":"06","june":"06","jul":"07","juli":"07","july":"07","agu":"08","agustus":"08","aug":"08","august":"08","sep":"09","september":"09","sept":"09","okt":"10","oktober":"10","oct":"10","october":"10","nov":"11","november":"11","des":"12","desember":"12","dec":"12","december":"12"}';
   parts      TEXT[];
 BEGIN
+  SELECT EXISTS (SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'due_payments' AND column_name = 'carryover_months')
+    INTO has_legacy;
+  IF NOT has_legacy THEN
+    RAISE NOTICE '000022: kolom lama sudah hilang, lewati backfill';
+    RETURN;
+  END IF;
   FOR r IN SELECT payment_id, payment_date, carryover_ir, carryover_months, carryover_breakdown, notes
            FROM due_payments
   LOOP
