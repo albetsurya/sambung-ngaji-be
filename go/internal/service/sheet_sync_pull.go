@@ -137,7 +137,7 @@ func (s *FinanceSyncService) pullDuePayments(ctx context.Context, cli *sheets.Se
 		}
 		// Susulan: teks bulan sheet → rincian per bulan (bagi rata dari carryover_ir).
 		// carryover_ir sheet TIDAK dipercaya mentah: total selalu dihitung ulang
-		// dari rincian agar SUM(anak) = carryover_ir (aturan 000022).
+		// dari rincian agar SUM(anak) = carryover_ir (aturan 000024).
 		months, unknowns := util.SplitSheetMonths(r["carryover_months"])
 		if len(unknowns) > 0 {
 			s.recordError(ctx, groupID, "due_payments", r["payment_id"], "sheet->db", "bulan susulan tidak dikenal: "+strings.Join(unknowns, ", "))

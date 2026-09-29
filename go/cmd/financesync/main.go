@@ -108,8 +108,8 @@ func main() {
 		}
 	case "migrate":
 		files := []string{
-			"db/migrations/000021_backfill_group_id.up.sql",
-			"db/migrations/000022_normalize_carryover.up.sql",
+			"db/migrations/000023_backfill_group_id.up.sql",
+			"db/migrations/000024_normalize_carryover.up.sql",
 		}
 		for _, f := range files {
 			sql, err := os.ReadFile(filepath.Join(".", f))

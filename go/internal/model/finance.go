@@ -61,7 +61,7 @@ type DueMemberDTO struct {
 
 // DuePaymentCarryover = rincian susulan IR per bulan (1 baris = 1 bulan).
 // Menggantikan kolom multi-nilai carryover_months + teks bebas
-// carryover_breakdown (dihapus di migrasi 000022). Aturan:
+// carryover_breakdown (dihapus di migrasi 000024). Aturan:
 //   - month selalu "YYYY-MM", amount >= 0, unik per payment.
 //   - DuePayment.CarryoverIR adalah CACHE = SUM(amount), dihitung server.
 type DuePaymentCarryover struct {
