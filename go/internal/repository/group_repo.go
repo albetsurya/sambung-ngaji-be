@@ -60,3 +60,17 @@ func (r *GroupRepo) FindByID(ctx context.Context, id string) (*model.Group, erro
 	}
 	return &g, nil
 }
+
+func (r *GroupRepo) FindByName(ctx context.Context, name string) (*model.Group, error) {
+	var g model.Group
+	err := r.pool.QueryRow(ctx,
+		`SELECT `+groupSelectCols+` FROM groups WHERE LOWER(TRIM(group_name)) = LOWER(TRIM($1)) ORDER BY status_aktif DESC LIMIT 1`, name,
+	).Scan(
+		&g.GroupID, &g.GroupCode, &g.GroupName, &g.Pembina, &g.Penandatangan,
+		&g.Jadwal, &g.StatusAktif, &g.CreatedAt, &g.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &g, nil
+}
