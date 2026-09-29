@@ -54,6 +54,7 @@ function createUser_(ctx, params) {
     nama: params.nama || params.username,
     role: params.role,
     member_id: params.member_id || "",
+    group_id: member.group_id || "",
     status_aktif: true,
     created_at: now,
     updated_at: now,

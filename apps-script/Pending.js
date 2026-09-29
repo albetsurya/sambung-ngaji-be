@@ -340,6 +340,9 @@ function approvePendingMember_(ctx, params) {
   var now = nowIso_();
   var memberId = generateMemberId();
 
+  var grp = resolveGroup_(params.group_id || params.kelompok || pending.group_id);
+  if (!grp) return fail_("Kelompok wajib dipilih (group_id tidak valid)");
+
   var memberRow = {
     member_id: memberId,
     nama_lengkap: pending.nama_lengkap,
@@ -352,7 +355,8 @@ function approvePendingMember_(ctx, params) {
     alamat_rumah: pending.alamat_rumah || "",
     desa: pending.desa || "",
     daerah: pending.daerah || "",
-    kelompok: params.kelompok || "",
+    kelompok: grp.group_name,
+    group_id: grp.group_id,
     is_muballigh: false,
     is_kerja: false,
     is_nikah: toBool_(pending.is_nikah),
@@ -382,6 +386,7 @@ function approvePendingMember_(ctx, params) {
     nama: pending.nama_lengkap,
     role: ROLES.MEMBER,
     member_id: memberId,
+    group_id: grp.group_id,
     status_aktif: true,
     created_at: now,
     updated_at: now,

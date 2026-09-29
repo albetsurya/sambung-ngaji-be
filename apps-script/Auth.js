@@ -189,14 +189,22 @@ function logout_(ctx) {
 }
 
 function publicUser_(user) {
-  return {
+  var out = {
     user_id: user.user_id,
     username: user.username,
     nama: user.nama,
     role: user.role,
     member_id: user.member_id || "",
+    group_id: user.group_id || "",
     jenis_kelamin: user.jenis_kelamin || "",
   };
+  if (!out.group_id && out.member_id) {
+    try {
+      var m = new SheetRepository_("members").findById("member_id", out.member_id);
+      if (m) out.group_id = m.group_id || "";
+    } catch (e) {}
+  }
+  return out;
 }
 
 function validateSession_(token) {

@@ -80,8 +80,9 @@ func handleApprovePendingMember(c *fiber.Ctx, svc *service.PendingService) error
 	if u != nil {
 		reviewerID = u.UserID
 	}
-	res, err := svc.Approve(c.Context(),
+	res, err := svc.ApproveWithGroup(c.Context(),
 		BodyString(c, "submission_id"),
+		BodyString(c, "group_id"),
 		BodyString(c, "kelompok"),
 		reviewerID,
 	)

@@ -262,11 +262,15 @@ func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, providers map[string
 			repository.NewGroupRepo(pool),
 			repository.NewMemberRepo(pool),
 		),
-		Pending: service.NewPendingService(
-			repository.NewPendingRepo(pool),
-			repository.NewUserRepo(pool),
-			repository.NewMemberRepo(pool),
-		),
+		Pending: func() *service.PendingService {
+			s := service.NewPendingService(
+				repository.NewPendingRepo(pool),
+				repository.NewUserRepo(pool),
+				repository.NewMemberRepo(pool),
+			)
+			s.SetGroupRepo(repository.NewGroupRepo(pool))
+			return s
+		}(),
 		Audit: service.NewAuditService(
 			repository.NewAuditRepo(pool),
 			repository.NewUserAdminRepo(pool),
@@ -705,6 +709,7 @@ func RegisterRESTAPI(app *fiber.App, svc *Services) {
 	v1.Get("/announcements/recipient-summary", func(c *fiber.Ctx) error { return handleGetAnnouncementRecipientSummary(c, svc.Announcement) })
 
 	// Public & Pending
+	v1.Get("/public/groups", func(c *fiber.Ctx) error { return handleGetPublicGroups(c, svc.Group) })
 	v1.Get("/public/check-username", func(c *fiber.Ctx) error { return handleCheckUsernameAvailability(c, svc.Pending) })
 	v1.Post("/public/register", func(c *fiber.Ctx) error { return handleSubmitPublicRegistration(c, svc.Pending) })
 	v1.Get("/pending", func(c *fiber.Ctx) error { return handleGetPendingMembers(c, svc.Pending) })

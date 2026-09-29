@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -12,6 +11,7 @@ import (
 	"google.golang.org/api/sheets/v4"
 
 	"pengajian-backend/internal/repository"
+	"pengajian-backend/internal/util"
 )
 
 const (
@@ -24,7 +24,7 @@ const (
 var (
 	sheetCashHeaders       = []string{"cash_id", "group_id", "cash_type", "tanggal", "account_name", "description", "debit", "credit", "created_by", "updated_at"}
 	sheetDueMemberHeaders  = []string{"member_id", "group_id", "member_name", "monthly_target", "status", "updated_at"}
-	sheetDuePaymentHeaders = []string{"payment_id", "group_id", "member_id", "payment_date", "total_amount", "carryover_ir", "carryover_months", "carryover_breakdown", "connecting_fund", "community_dues", "outreach_fund", "thousand_fund", "funeral_fund", "ukhro_mt", "notes", "status", "updated_at"}
+	sheetDuePaymentHeaders = []string{"payment_id", "group_id", "member_id", "payment_date", "total_amount", "carryover_ir", "carryover_months", "connecting_fund", "community_dues", "outreach_fund", "thousand_fund", "funeral_fund", "ukhro_mt", "notes", "status", "updated_at"}
 	sheetZakatHeaders      = []string{"zakat_id", "group_id", "zakat_type", "muzakki_name", "soul_count", "total_rice_kg", "total_money_rp", "status", "transaction_date", "updated_at"}
 )
 
@@ -98,8 +98,26 @@ func firstCol(m map[string]string) string {
 }
 
 func parseSheetTime(v string) time.Time {
-	for _, layout := range []string{time.RFC3339, "2006-01-02T15:04:05Z07:00", "2006-01-02 15:04:05", "2006-01-02"} {
-		if t, err := time.Parse(layout, v); err == nil {
+	// Kolom tanggal sheet (DATE) harus dibaca sebagai kalender WIB,
+	// bukan instant UTC — kalau tidak, 1 Agu 00:00 WIB (31 Jul 17:00 UTC)
+	// mundur 1 hari. Lihat util.ParseSheetDate.
+	if t, err := util.ParseSheetDate(v); err == nil {
+		return t
+	}
+	// Kolom DATETIME sheet (updated_at/created_at): "21/08/2026 18:54:48"
+	// (DD/MM/YYYY, zona WIB) atau sisa format JS Date.toString().
+	s := strings.TrimSpace(v)
+	if i := strings.Index(s, " ("); i != -1 {
+		s = s[:i]
+	}
+	for _, layout := range []string{
+		"02/01/2006 15:04:05",
+		"02/01/2006",
+		"Mon Jan 02 2006 15:04:05 GMT-0700",
+		"Mon Jan 2 2006 15:04:05 GMT-0700",
+		time.RFC3339, "2006-01-02T15:04:05Z07:00", "2006-01-02 15:04:05", "2006-01-02",
+	} {
+		if t, err := time.Parse(layout, s); err == nil {
 			return t
 		}
 	}
@@ -107,9 +125,7 @@ func parseSheetTime(v string) time.Time {
 }
 
 func parseNum(v string) float64 {
-	v = strings.ReplaceAll(strings.TrimSpace(v), ",", "")
-	f, _ := strconv.ParseFloat(v, 64)
-	return f
+	return util.ParseRpNumber(v)
 }
 
 func (s *FinanceSyncService) ensureTabs(ctx context.Context, cli *sheets.Service) error {
@@ -179,6 +195,41 @@ func (s *FinanceSyncService) recordError(ctx context.Context, groupID, entity, e
 	_ = s.repo.SyncError(ctx, groupID, entity, entityID, direction, msg)
 }
 
+// PullGroup menarik sheet -> DB saja tanpa push balik.
+// Dipakai operator untuk re-sync aman: verifikasi dulu, push belakangan.
+// Urutan: tab legacy bendahara dulu (sumber utama), lalu tab app.
+func (s *FinanceSyncService) PullGroup(ctx context.Context, groupID string) error {
+	cli, err := s.client(ctx)
+	if err != nil {
+		return err
+	}
+	if err := s.ensureTabs(ctx, cli); err != nil {
+		return err
+	}
+	if err := s.pullLegacyMembers(ctx, cli, groupID); err != nil {
+		s.recordError(ctx, groupID, "due_members", "", "legacy->db", err.Error())
+	}
+	if err := s.pullLegacyPayments(ctx, cli, groupID); err != nil {
+		s.recordError(ctx, groupID, "due_payments", "", "legacy->db", err.Error())
+	}
+	if err := s.pullLegacyCash(ctx, cli, groupID); err != nil {
+		s.recordError(ctx, groupID, "cash", "", "legacy->db", err.Error())
+	}
+	if err := s.pullCash(ctx, cli, groupID); err != nil {
+		s.recordError(ctx, groupID, "cash", "", "sheet->db", err.Error())
+	}
+	if err := s.pullDueMembers(ctx, cli, groupID); err != nil {
+		s.recordError(ctx, groupID, "due_members", "", "sheet->db", err.Error())
+	}
+	if err := s.pullDuePayments(ctx, cli, groupID); err != nil {
+		s.recordError(ctx, groupID, "due_payments", "", "sheet->db", err.Error())
+	}
+	if err := s.pullZakat(ctx, cli, groupID); err != nil {
+		s.recordError(ctx, groupID, "zakat", "", "sheet->db", err.Error())
+	}
+	return nil
+}
+
 // SyncGroup merges one group both ways, then rewrites the four tabs from DB state.
 func (s *FinanceSyncService) SyncGroup(ctx context.Context, groupID string) error {
 	cli, err := s.client(ctx)
@@ -187,6 +238,15 @@ func (s *FinanceSyncService) SyncGroup(ctx context.Context, groupID string) erro
 	}
 	if err := s.ensureTabs(ctx, cli); err != nil {
 		return err
+	}
+	if err := s.pullLegacyMembers(ctx, cli, groupID); err != nil {
+		s.recordError(ctx, groupID, "due_members", "", "legacy->db", err.Error())
+	}
+	if err := s.pullLegacyPayments(ctx, cli, groupID); err != nil {
+		s.recordError(ctx, groupID, "due_payments", "", "legacy->db", err.Error())
+	}
+	if err := s.pullLegacyCash(ctx, cli, groupID); err != nil {
+		s.recordError(ctx, groupID, "cash", "", "legacy->db", err.Error())
 	}
 	if err := s.pullCash(ctx, cli, groupID); err != nil {
 		s.recordError(ctx, groupID, "cash", "", "sheet->db", err.Error())

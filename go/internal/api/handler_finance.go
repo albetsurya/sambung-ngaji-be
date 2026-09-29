@@ -29,6 +29,45 @@ func financeUser(c *fiber.Ctx) string {
 	return ""
 }
 
+// bodyCarryoverItems membaca rincian susulan terstruktur dari body:
+// carryover_items: [{month: "YYYY-MM", amount: number}].
+// Melewatkan validasi ringan; validasi penuh di service.normalizeCarryovers.
+func bodyCarryoverItems(c *fiber.Ctx) []service.DuePaymentCarryoverInput {
+	body := BodyOf(c)
+	raw, ok := body["carryover_items"]
+	if !ok || raw == nil {
+		return nil
+	}
+	items, ok := raw.([]interface{})
+	if !ok {
+		return nil
+	}
+	out := make([]service.DuePaymentCarryoverInput, 0, len(items))
+	for _, it := range items {
+		m, ok := it.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		month, _ := m["month"].(string)
+		var amount float64
+		switch v := m["amount"].(type) {
+		case float64:
+			amount = v
+		case float32:
+			amount = float64(v)
+		case int:
+			amount = float64(v)
+		case int64:
+			amount = float64(v)
+		}
+		if month == "" && amount == 0 {
+			continue
+		}
+		out = append(out, service.DuePaymentCarryoverInput{Month: month, Amount: amount})
+	}
+	return out
+}
+
 func handleCashLedger(c *fiber.Ctx, svc *service.FinanceService) error {
 	groupID, ok := financeGroup(c)
 	if !ok {
@@ -140,21 +179,21 @@ func handleDuePaymentSave(c *fiber.Ctx, svc *service.FinanceService) error {
 		return nil
 	}
 	res, err := svc.DuePaymentSave(c.Context(), service.DuePaymentInput{
-		PaymentID:          BodyString(c, "payment_id"),
-		GroupID:            groupID,
-		MemberID:           BodyString(c, "member_id"),
-		PaymentDate:        BodyString(c, "payment_date"),
-		CarryoverIR:        BodyFloat(c, "carryover_ir"),
-		CarryoverMonths:    BodyString(c, "carryover_months"),
-		CarryoverBreakdown: BodyString(c, "carryover_breakdown"),
-		ConnectingFund:     BodyFloat(c, "connecting_fund"),
-		CommunityDues:      BodyFloat(c, "community_dues"),
-		OutreachFund:       BodyFloat(c, "outreach_fund"),
-		ThousandFund:       BodyFloat(c, "thousand_fund"),
-		FuneralFund:        BodyFloat(c, "funeral_fund"),
-		UkhroMT:            BodyFloat(c, "ukhro_mt"),
-		Notes:              BodyString(c, "notes"),
-		CreatedBy:          financeUser(c),
+		PaymentID:       BodyString(c, "payment_id"),
+		GroupID:         groupID,
+		MemberID:        BodyString(c, "member_id"),
+		PaymentDate:     BodyString(c, "payment_date"),
+		CarryoverItems:  bodyCarryoverItems(c),
+		CarryoverMonths: BodyString(c, "carryover_months"),
+		CarryoverIR:     BodyFloat(c, "carryover_ir"),
+		ConnectingFund:  BodyFloat(c, "connecting_fund"),
+		CommunityDues:   BodyFloat(c, "community_dues"),
+		OutreachFund:    BodyFloat(c, "outreach_fund"),
+		ThousandFund:    BodyFloat(c, "thousand_fund"),
+		FuneralFund:     BodyFloat(c, "funeral_fund"),
+		UkhroMT:         BodyFloat(c, "ukhro_mt"),
+		Notes:           BodyString(c, "notes"),
+		CreatedBy:       financeUser(c),
 	})
 	if err != nil {
 		return Fail(c, err.Error())

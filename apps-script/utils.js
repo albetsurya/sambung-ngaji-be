@@ -249,7 +249,11 @@ function buildIndexOne_(rows, keyField) {
 
 function normalizeIso_(val) {
   if (!val) return "";
-  if (val instanceof Date) return val.toISOString();
+  // JANGAN pakai toISOString() untuk tanggal: sheet 1 Agu 00:00 WIB
+  // = 31 Jul 17:00 UTC → mundur 1 hari. Format sebagai kalender WIB.
+  if (val instanceof Date) {
+    return Utilities.formatDate(val, "Asia/Jakarta", "yyyy-MM-dd");
+  }
   return String(val);
 }
 
