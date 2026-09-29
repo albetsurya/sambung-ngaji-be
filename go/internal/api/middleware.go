@@ -191,7 +191,33 @@ func AuthMiddleware(svc *auth.Service) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		body := BodyOf(c)
 		action, _ := body["action"].(string)
-		if action == "" || PublicActions[action] {
+		if action == "" {
+			token := c.Get("Authorization")
+			fromCookie := false
+			if token == "" {
+				token = c.Cookies(sessionCookieName)
+				fromCookie = token != ""
+			}
+			if token != "" {
+				if fromCookie && !originAllowed(c.Get("Origin")) {
+					return Fail(c, "Unauthorized: origin tidak diizinkan")
+				}
+				token = strings.TrimPrefix(token, "Bearer ")
+				if u, claims, err := svc.ValidateSession(c.Context(), token); err == nil {
+					c.Locals(LocalsUser, u)
+					c.Locals(LocalsClaims, claims)
+					if u.Role != "SUPER_ADMIN" {
+						if u.GroupID != nil && *u.GroupID != "" {
+							body["group_id"] = *u.GroupID
+						} else {
+							body["group_id"] = UnassignedGroup
+						}
+					}
+				}
+			}
+			return c.Next()
+		}
+		if PublicActions[action] {
 			return c.Next()
 		}
 
@@ -348,11 +374,12 @@ func DefaultRateLimiterConfig() RateLimiterConfig {
 
 func LoginRateLimiterMiddleware() fiber.Handler {
 	store := NewInMemoryStore()
-	const maxAttempts = 10
+	const maxAttempts = 5
 	const window = time.Minute
 
 	return func(c *fiber.Ctx) error {
-		if BodyString(c, "action") != "login" {
+		isLogin := BodyString(c, "action") == "login" || c.Path() == "/api/v1/auth/login"
+		if !isLogin {
 			return c.Next()
 		}
 		username := BodyString(c, "username")
