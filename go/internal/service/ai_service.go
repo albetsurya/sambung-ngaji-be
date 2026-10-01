@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"pengajian-backend/internal/ai"
+	"pengajian-backend/internal/auth"
 	"pengajian-backend/internal/model"
 	"pengajian-backend/internal/repository"
 	"pengajian-backend/internal/util"
@@ -142,8 +143,9 @@ func (s *AIService) Chat(ctx context.Context, user *model.User, req model.ChatRe
 		tools = ai.MemberTools()
 		sysPrompt = buildSystemPromptMember(user.Nama)
 	} else {
-		tools = ai.AdminTools()
-		sysPrompt = buildSystemPrompt(user.Nama)
+		canFinance := auth.CanAccess(user.Role, "getCashLedger")
+		tools = ai.AdminTools(canFinance)
+		sysPrompt = buildSystemPrompt(user)
 	}
 
 	messages := []model.LLMMessage{
@@ -238,7 +240,7 @@ func (s *AIService) runProvider(
 			if tc.Function.Arguments != "" {
 				_ = json.Unmarshal([]byte(tc.Function.Arguments), &args)
 			}
-			toolResult, terr := s.executor.Execute(ctx, tc.Function.Name, args, user.UserID, memberID, isMember)
+			toolResult, terr := s.executor.Execute(ctx, tc.Function.Name, args, user, memberID, isMember)
 			var payload string
 			if terr != nil {
 				payload = `{"success":false,"message":` + jsonQuote(terr.Error()) + `}`
@@ -367,15 +369,33 @@ func (s *AIService) GetUsageStats(ctx context.Context, user *model.User) (*model
 	}, nil
 }
 
-func buildSystemPrompt(user string) string {
+func buildSystemPrompt(user *model.User) string {
 	today := time.Now().Format("Monday, 2 January 2006")
-	return "Kamu adalah asisten AI untuk aplikasi Sambung Ngaji yang mencakup data jamaah, kelompok, absensi, monitoring, dan pengumuman.\n" +
-		"Hari ini: " + today + ".\n" +
-		"Kamu sedang berbicara dengan: " + user + ".\n\n" +
-		"FORMAT JAWABAN (WAJIB DIIKUTI):\n" +
+	canFinance := auth.CanAccess(user.Role, "getCashLedger")
+
+	prompt := "Kamu adalah asisten AI untuk aplikasi Sambung Ngaji yang mencakup data jamaah, kelompok, absensi, monitoring, dan pengumuman"
+	if canFinance {
+		prompt += ", serta laporan keuangan (kas ledger, iuran shodaqoh, dan zakat)"
+	}
+	prompt += ".\n"
+	prompt += "Hari ini: " + today + ".\n"
+	prompt += "Kamu sedang berbicara dengan: " + user.Nama + " (Role: " + user.Role + ").\n\n"
+
+	if canFinance {
+		prompt += "HAK AKSES KEUANGAN:\n" +
+			"- User ini (" + user.Role + ") MEMILIKI HAK AKSES data keuangan.\n" +
+			"- Gunakan tools keuangan (get_finance_summary, get_shodaqoh_summary, get_zakat_summary) untuk menjawab pertanyaan seputar saldo kas, pemasukan/pengeluaran, iuran shodaqoh, dan zakat.\n\n"
+	} else {
+		prompt += "HAK AKSES KEUANGAN:\n" +
+			"- User ini (" + user.Role + ") TIDAK MEMILIKI HAK AKSES ke data keuangan.\n" +
+			"- Jika user menanyakan tentang saldo kas, iuran shodaqoh, atau zakat, JAWAB DENGAN TEGAS DAN SOPAN: \"Maaf, role Anda (" + user.Role + ") tidak memiliki hak akses untuk melihat data keuangan.\"\n" +
+			"- DILARANG KERAS memanggil tool keuangan untuk role ini.\n\n"
+	}
+
+	prompt += "FORMAT JAWABAN (WAJIB DIIKUTI):\n" +
 		"1. Selalu pakai bullet list dengan tanda '-' untuk daftar.\n" +
 		"2. Setiap item di baris terpisah.\n" +
-		"3. Pakai **bold** untuk nama orang dan angka penting.\n" +
+		"3. Pakai **bold** untuk nama orang, nominal uang (Rp), dan angka penting.\n" +
 		"4. Beri jarak kosong antar bagian.\n" +
 		"5. Akhiri dengan ringkasan singkat atau catatan penting.\n\n" +
 		"PENTING:\n" +
@@ -383,6 +403,7 @@ func buildSystemPrompt(user string) string {
 		"- JANGAN pernah mengarang atau menebak data.\n" +
 		"- Jika data tidak ditemukan, katakan dengan jujur.\n" +
 		"- Jawab dalam Bahasa Indonesia yang ramah dan profesional."
+	return prompt
 }
 
 func buildSystemPromptMember(user string) string {
