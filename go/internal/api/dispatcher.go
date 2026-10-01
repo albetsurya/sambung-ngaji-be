@@ -182,6 +182,21 @@ type Services struct {
 }
 
 func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, providers map[string]ai.Provider, providerOrder []string, storage *service.StorageService) *Services {
+	financeSvc := service.NewFinanceService(repository.NewFinanceRepo(pool))
+	financeSyncSvc := service.NewFinanceSyncService(
+		repository.NewFinanceRepo(pool),
+		repository.NewGroupRepo(pool),
+		financeSvc,
+	)
+	financeSvc.AfterWrite = func(groupID string) {
+		if !financeSyncSvc.IsConfigured() {
+			return
+		}
+		if err := financeSyncSvc.SyncGroup(context.Background(), groupID); err != nil {
+			log.Warn().Err(err).Str("group", groupID).Msg("finance sheet push gagal")
+		}
+	}
+
 	aiSvc := service.NewAIService(
 		providers,
 		providerOrder,
@@ -213,19 +228,12 @@ func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, providers map[string
 				repository.NewMonitoringRepo(pool),
 				repository.NewMeetingRepo(pool),
 			),
+			financeSvc,
 		),
 		repository.NewSettingsRepo(pool),
 	)
 
 	fonnteSvc := service.NewFonnteService()
-
-	financeSvc := service.NewFinanceService(repository.NewFinanceRepo(pool))
-	financeSyncSvc := service.NewFinanceSyncService(
-		repository.NewFinanceRepo(pool),
-		repository.NewGroupRepo(pool),
-		financeSvc,
-	)
-	financeSvc.AfterWrite = func(groupID string) {
 		if !financeSyncSvc.IsConfigured() {
 			return
 		}
@@ -350,6 +358,7 @@ func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, providers map[string
 						repository.NewMonitoringRepo(pool),
 						repository.NewMeetingRepo(pool),
 					),
+					financeSvc,
 				),
 				repository.NewSettingsRepo(pool),
 			),
