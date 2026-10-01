@@ -2,7 +2,9 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -248,11 +250,80 @@ func (r *FinanceRepo) DuePaymentReverse(ctx context.Context, groupID, paymentID 
 	return err
 }
 
+func (r *FinanceRepo) ZakatListWithCounts(ctx context.Context, groupID string) ([]model.ZakatRecordDTO, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT z.zakat_id, z.group_id, z.title, z.description, z.location,
+		        z.soul_count, z.total_rice_kg, z.total_money_rp, z.status, z.transaction_date, z.completed_at, z.version, z.created_by, z.updated_by, z.created_at, z.updated_at,
+		        COALESCE(p.cnt, 0) AS payer_count,
+		        COALESCE(rc.cnt, 0) AS recipient_count,
+		        COALESCE(c.cats, '') AS cats
+		 FROM zakat_records z
+		 LEFT JOIN (SELECT zakat_id, COUNT(*) cnt FROM zakat_payers GROUP BY zakat_id) p ON p.zakat_id = z.zakat_id
+		 LEFT JOIN (SELECT zakat_id, COUNT(*) cnt FROM zakat_recipients GROUP BY zakat_id) rc ON rc.zakat_id = z.zakat_id
+		 LEFT JOIN (
+		   SELECT zakat_id, string_agg(zakat_category, ',' ORDER BY zakat_category) AS cats
+		   FROM (SELECT DISTINCT zakat_id, zakat_category FROM zakat_payers
+		         UNION
+		         SELECT DISTINCT zakat_id, zakat_category FROM zakat_recipients) u
+		   GROUP BY zakat_id
+		 ) c ON c.zakat_id = z.zakat_id
+		 WHERE z.group_id = $1 AND z.deleted_at IS NULL
+		 ORDER BY z.transaction_date DESC NULLS LAST, z.created_at DESC`, groupID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []model.ZakatRecordDTO
+	for rows.Next() {
+		var z model.ZakatRecord
+		var payerCount, recipientCount int
+		var cats string
+		if err := rows.Scan(&z.ZakatID, &z.GroupID, &z.Title, &z.Description, &z.Location,
+			&z.SoulCount, &z.TotalRiceKg, &z.TotalMoneyRp, &z.Status, &z.TransactionDate, &z.CompletedAt, &z.Version, &z.CreatedBy, &z.UpdatedBy, &z.CreatedAt, &z.UpdatedAt,
+			&payerCount, &recipientCount, &cats); err != nil {
+			return nil, err
+		}
+		var tgl, comp string
+		if z.TransactionDate != nil {
+			tgl = z.TransactionDate.Format("2006-01-02")
+		}
+		if z.CompletedAt != nil {
+			comp = z.CompletedAt.Format("2006-01-02T15:04:05Z07:00")
+		}
+		categories := make([]string, 0)
+		for _, c := range strings.Split(cats, ",") {
+			if c = strings.TrimSpace(c); c != "" {
+				categories = append(categories, c)
+			}
+		}
+		out = append(out, model.ZakatRecordDTO{
+			ZakatID:     z.ZakatID,
+			GroupID:     ptrStr(z.GroupID),
+			Title:       z.Title,
+			Description: z.Description,
+			Location:    z.Location,
+			Categories:  categories,
+			SoulCount:   z.SoulCount,
+			TotalRiceKg:     z.TotalRiceKg,
+			TotalMoneyRp:    z.TotalMoneyRp,
+			Status:          z.Status,
+			TransactionDate: tgl,
+			CompletedAt:     comp,
+			Version:         z.Version,
+			UpdatedBy:       z.UpdatedBy,
+			UpdatedAt:       z.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+			PayerCount:      payerCount,
+			RecipientCount:  recipientCount,
+		})
+	}
+	return out, rows.Err()
+}
+
 func (r *FinanceRepo) ZakatList(ctx context.Context, groupID string) ([]model.ZakatRecord, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT zakat_id, group_id, zakat_type, muzakki_name, soul_count, total_rice_kg,
-		  total_money_rp, status, transaction_date, details, created_by, created_at, updated_at
-		 FROM zakat_records WHERE group_id = $1 ORDER BY created_at DESC`, groupID)
+		`SELECT zakat_id, group_id, title, description, location, soul_count, total_rice_kg,
+		  total_money_rp, status, transaction_date, completed_at, deleted_at, version, created_by, updated_by, created_at, updated_at
+		 FROM zakat_records WHERE group_id = $1 AND deleted_at IS NULL ORDER BY created_at DESC`, groupID)
 	if err != nil {
 		return nil, err
 	}
@@ -260,9 +331,9 @@ func (r *FinanceRepo) ZakatList(ctx context.Context, groupID string) ([]model.Za
 	out := make([]model.ZakatRecord, 0)
 	for rows.Next() {
 		var z model.ZakatRecord
-		if err := rows.Scan(&z.ZakatID, &z.GroupID, &z.ZakatType, &z.MuzakkiName,
+		if err := rows.Scan(&z.ZakatID, &z.GroupID, &z.Title, &z.Description, &z.Location,
 			&z.SoulCount, &z.TotalRiceKg, &z.TotalMoneyRp, &z.Status,
-			&z.TransactionDate, &z.Details, &z.CreatedBy, &z.CreatedAt, &z.UpdatedAt); err != nil {
+			&z.TransactionDate, &z.CompletedAt, &z.DeletedAt, &z.Version, &z.CreatedBy, &z.UpdatedBy, &z.CreatedAt, &z.UpdatedAt); err != nil {
 			return nil, err
 		}
 		out = append(out, z)
@@ -277,34 +348,212 @@ func (r *FinanceRepo) ZakatUpsert(ctx context.Context, z *model.ZakatRecord) err
 	}
 	_, err := r.pool.Exec(ctx,
 		`INSERT INTO zakat_records
-		   (zakat_id, group_id, zakat_type, muzakki_name, soul_count, total_rice_kg,
-		    total_money_rp, status, transaction_date, details, created_by, created_at, updated_at)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,COALESCE(NULLIF($8,''),'PENDING'),$9::date,$10,$11,now(),now())
+		   (zakat_id, group_id, title, description, location, soul_count, total_rice_kg,
+		    total_money_rp, status, transaction_date, version, created_by, updated_by, created_at, updated_at)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,COALESCE(NULLIF($9,''),'PENDING'),$10::date,$11,$12,$13,now(),now())
 		 ON CONFLICT (zakat_id) DO UPDATE SET
-		   zakat_type = EXCLUDED.zakat_type,
-		   muzakki_name = EXCLUDED.muzakki_name,
+		   title = EXCLUDED.title,
+		   description = EXCLUDED.description,
+		   location = EXCLUDED.location,
 		   soul_count = EXCLUDED.soul_count,
 		   total_rice_kg = EXCLUDED.total_rice_kg,
 		   total_money_rp = EXCLUDED.total_money_rp,
 		   status = EXCLUDED.status,
 		   transaction_date = EXCLUDED.transaction_date,
-		   details = EXCLUDED.details,
+		   version = EXCLUDED.version,
+		   updated_by = EXCLUDED.updated_by,
 		   updated_at = now()`,
-		z.ZakatID, z.GroupID, z.ZakatType, z.MuzakkiName, z.SoulCount,
-		z.TotalRiceKg, z.TotalMoneyRp, z.Status, tgl, z.Details, z.CreatedBy)
+		z.ZakatID, z.GroupID, z.Title, z.Description, z.Location, z.SoulCount,
+		z.TotalRiceKg, z.TotalMoneyRp, z.Status, tgl, z.Version, z.CreatedBy, z.UpdatedBy)
 	return err
 }
 
-func (r *FinanceRepo) ZakatSetStatus(ctx context.Context, groupID, zakatID, status string) error {
+func (r *FinanceRepo) ZakatDetail(ctx context.Context, groupID, zakatID string) (*model.ZakatRecord, []model.ZakatPayer, []model.ZakatRecipient, []model.ZakatAllocation, error) {
+	var z model.ZakatRecord
+	err := r.pool.QueryRow(ctx,
+		`SELECT zakat_id, group_id, title, description, location, soul_count, total_rice_kg,
+		  total_money_rp, status, transaction_date, completed_at, deleted_at, version, created_by, updated_by, created_at, updated_at
+		 FROM zakat_records WHERE zakat_id = $1 AND group_id = $2 AND deleted_at IS NULL`, zakatID, groupID).Scan(
+		&z.ZakatID, &z.GroupID, &z.Title, &z.Description, &z.Location,
+		&z.SoulCount, &z.TotalRiceKg, &z.TotalMoneyRp, &z.Status,
+		&z.TransactionDate, &z.CompletedAt, &z.DeletedAt, &z.Version, &z.CreatedBy, &z.UpdatedBy, &z.CreatedAt, &z.UpdatedAt)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, nil, nil, nil, nil
+		}
+		return nil, nil, nil, nil, err
+	}
+
+	payersRows, err := r.pool.Query(ctx, `SELECT payer_id, zakat_id, master_id, name, amount, zakat_category, family_members_count, sort_order, created_at FROM zakat_payers WHERE zakat_id = $1 ORDER BY sort_order ASC`, zakatID)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+	defer payersRows.Close()
+	var payers []model.ZakatPayer
+	for payersRows.Next() {
+		var p model.ZakatPayer
+		if err := payersRows.Scan(&p.PayerID, &p.ZakatID, &p.MasterID, &p.Name, &p.Amount, &p.ZakatCategory, &p.FamilyMembersCount, &p.SortOrder, &p.CreatedAt); err != nil {
+			return nil, nil, nil, nil, err
+		}
+		payers = append(payers, p)
+	}
+
+	recipRows, err := r.pool.Query(ctx, `SELECT recipient_id, zakat_id, master_id, name, amount, zakat_category, sort_order, created_at FROM zakat_recipients WHERE zakat_id = $1 ORDER BY sort_order ASC`, zakatID)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+	defer recipRows.Close()
+	var recipients []model.ZakatRecipient
+	for recipRows.Next() {
+		var p model.ZakatRecipient
+		if err := recipRows.Scan(&p.RecipientID, &p.ZakatID, &p.MasterID, &p.Name, &p.Amount, &p.ZakatCategory, &p.SortOrder, &p.CreatedAt); err != nil {
+			return nil, nil, nil, nil, err
+		}
+		recipients = append(recipients, p)
+	}
+
+	allocRows, err := r.pool.Query(ctx, `SELECT zakat_id, category, recipient_percent, recipient_amount, recipient_group_percent, recipient_group_amount, recipient_region_percent, recipient_region_amount, sabilillah_percent, sabilillah_amount, amil_percent, amil_amount, amil_group_percent, amil_group_amount, amil_village_percent, amil_village_amount, amil_region_percent, amil_region_amount FROM zakat_allocations WHERE zakat_id = $1`, zakatID)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+	defer allocRows.Close()
+	var allocs []model.ZakatAllocation
+	for allocRows.Next() {
+		var a model.ZakatAllocation
+		if err := allocRows.Scan(&a.ZakatID, &a.Category, &a.RecipientPercent, &a.RecipientAmount, &a.RecipientGroupPercent, &a.RecipientGroupAmount, &a.RecipientRegionPercent, &a.RecipientRegionAmount, &a.SabilillahPercent, &a.SabilillahAmount, &a.AmilPercent, &a.AmilAmount, &a.AmilGroupPercent, &a.AmilGroupAmount, &a.AmilVillagePercent, &a.AmilVillageAmount, &a.AmilRegionPercent, &a.AmilRegionAmount); err != nil {
+			return nil, nil, nil, nil, err
+		}
+		allocs = append(allocs, a)
+	}
+
+	return &z, payers, recipients, allocs, nil
+}
+
+func (r *FinanceRepo) ReplaceZakatPayers(ctx context.Context, zakatID string, items []model.ZakatPayer) error {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil { return err }
+	defer tx.Rollback(ctx)
+
+	if _, err := tx.Exec(ctx, `DELETE FROM zakat_payers WHERE zakat_id = $1`, zakatID); err != nil {
+		return err
+	}
+	for i, p := range items {
+		if p.PayerID == "" { p.PayerID = util.NewID("PYR") }
+		var masterID *string
+		if p.MasterID != nil && *p.MasterID != "" { masterID = p.MasterID }
+		if _, err := tx.Exec(ctx, `
+			INSERT INTO zakat_payers
+			  (payer_id, zakat_id, master_id, name, amount, zakat_category,
+			   family_members_count, sort_order)
+			VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+			p.PayerID, zakatID, masterID, p.Name, p.Amount, p.ZakatCategory,
+			p.FamilyMembersCount, i); err != nil {
+			return err
+		}
+	}
+	return tx.Commit(ctx)
+}
+
+func (r *FinanceRepo) ReplaceZakatRecipients(ctx context.Context, zakatID string, items []model.ZakatRecipient) error {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil { return err }
+	defer tx.Rollback(ctx)
+
+	if _, err := tx.Exec(ctx, `DELETE FROM zakat_recipients WHERE zakat_id = $1`, zakatID); err != nil {
+		return err
+	}
+	for i, p := range items {
+		if p.RecipientID == "" { p.RecipientID = util.NewID("RCP") }
+		var masterID *string
+		if p.MasterID != nil && *p.MasterID != "" { masterID = p.MasterID }
+		if _, err := tx.Exec(ctx, `
+			INSERT INTO zakat_recipients
+			  (recipient_id, zakat_id, master_id, name, amount, zakat_category, sort_order)
+			VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+			p.RecipientID, zakatID, masterID, p.Name, p.Amount, p.ZakatCategory, i); err != nil {
+			return err
+		}
+	}
+	return tx.Commit(ctx)
+}
+
+func (r *FinanceRepo) ReplaceZakatAllocations(ctx context.Context, zakatID string, items []model.ZakatAllocation) error {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil { return err }
+	defer tx.Rollback(ctx)
+
+	if _, err := tx.Exec(ctx, `DELETE FROM zakat_allocations WHERE zakat_id = $1`, zakatID); err != nil {
+		return err
+	}
+	for _, a := range items {
+		if _, err := tx.Exec(ctx, `
+			INSERT INTO zakat_allocations
+			  (zakat_id, category, recipient_percent, recipient_amount, recipient_group_percent, recipient_group_amount, recipient_region_percent, recipient_region_amount, sabilillah_percent, sabilillah_amount, amil_percent, amil_amount, amil_group_percent, amil_group_amount, amil_village_percent, amil_village_amount, amil_region_percent, amil_region_amount)
+			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)`,
+			zakatID, a.Category, a.RecipientPercent, a.RecipientAmount, a.RecipientGroupPercent, a.RecipientGroupAmount, a.RecipientRegionPercent, a.RecipientRegionAmount, a.SabilillahPercent, a.SabilillahAmount, a.AmilPercent, a.AmilAmount, a.AmilGroupPercent, a.AmilGroupAmount, a.AmilVillagePercent, a.AmilVillageAmount, a.AmilRegionPercent, a.AmilRegionAmount); err != nil {
+			return err
+		}
+	}
+	return tx.Commit(ctx)
+}
+
+func (r *FinanceRepo) MastersList(ctx context.Context, groupID string) ([]model.MasterEntry, []model.MasterEntry, error) {
+	payersRows, err := r.pool.Query(ctx, `SELECT master_id, group_id, name, status FROM master_payers WHERE group_id = $1 ORDER BY name ASC`, groupID)
+	if err != nil { return nil, nil, err }
+	defer payersRows.Close()
+	var payers []model.MasterEntry
+	for payersRows.Next() {
+		var e model.MasterEntry
+		if err := payersRows.Scan(&e.MasterID, &e.GroupID, &e.Name, &e.Status); err != nil { return nil, nil, err }
+		payers = append(payers, e)
+	}
+
+	recipRows, err := r.pool.Query(ctx, `SELECT master_id, group_id, name, status FROM master_recipients WHERE group_id = $1 ORDER BY name ASC`, groupID)
+	if err != nil { return nil, nil, err }
+	defer recipRows.Close()
+	var recipients []model.MasterEntry
+	for recipRows.Next() {
+		var e model.MasterEntry
+		if err := recipRows.Scan(&e.MasterID, &e.GroupID, &e.Name, &e.Status); err != nil { return nil, nil, err }
+		recipients = append(recipients, e)
+	}
+	return payers, recipients, nil
+}
+
+func (r *FinanceRepo) MasterUpsert(ctx context.Context, kind, groupID, name string) (string, error) {
+	table  := "master_payers"
+	prefix := "MPY"
+	if kind == "recipient" {
+		table  = "master_recipients"
+		prefix = "MRS"
+	}
+	var id string
+	err := r.pool.QueryRow(ctx, `
+		INSERT INTO `+table+` (master_id, group_id, name)
+		VALUES ($1, $2, $3)
+		ON CONFLICT (group_id, name) DO UPDATE SET updated_at = now()
+		RETURNING master_id`,
+		util.NewID(prefix), groupID, name,
+	).Scan(&id)
+	return id, err
+}
+
+func (r *FinanceRepo) ZakatSetStatus(ctx context.Context, groupID, zakatID, status string, completedAt *time.Time) error {
+	var comp sql.NullTime
+	if completedAt != nil {
+		comp.Time = *completedAt
+		comp.Valid = true
+	}
 	_, err := r.pool.Exec(ctx,
-		`UPDATE zakat_records SET status=$3, updated_at=now()
-		 WHERE zakat_id=$1 AND group_id=$2`, zakatID, groupID, status)
+		`UPDATE zakat_records SET status=$3, completed_at=$4, updated_at=now(), version=version+1
+		 WHERE zakat_id=$1 AND group_id=$2`, zakatID, groupID, status, comp)
 	return err
 }
 
 func (r *FinanceRepo) ZakatDelete(ctx context.Context, groupID, zakatID string) error {
 	_, err := r.pool.Exec(ctx,
-		`DELETE FROM zakat_records WHERE zakat_id=$1 AND group_id=$2`, zakatID, groupID)
+		`UPDATE zakat_records SET deleted_at=now(), updated_at=now(), version=version+1
+		 WHERE zakat_id=$1 AND group_id=$2`, zakatID, groupID)
 	return err
 }
 

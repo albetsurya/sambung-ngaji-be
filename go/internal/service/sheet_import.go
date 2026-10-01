@@ -216,7 +216,6 @@ func (s *FinanceSyncService) ImportFromGAS(ctx context.Context, groupID string) 
 				if id == "" {
 					id = util.NewID("ZKT")
 				}
-				det, _ := json.Marshal(m)
 				status := strings.ToUpper(str(m, "status"))
 				if status == "" {
 					status = "PENDING"
@@ -228,10 +227,9 @@ func (s *FinanceSyncService) ImportFromGAS(ctx context.Context, groupID string) 
 					}
 				}
 				z := &model.ZakatRecord{
-					ZakatID: id, GroupID: &gid, ZakatType: "FITRAH",
-					MuzakkiName: str(m, "title"), SoulCount: 1,
-					TotalRiceKg: 0, TotalMoneyRp: num(m, "total"),
-					Status: status, TransactionDate: tgl, Details: string(det),
+					ZakatID: id, GroupID: &gid, Title: str(m, "title"),
+					SoulCount: 1, TotalRiceKg: 0, TotalMoneyRp: num(m, "total"),
+					Status: status, TransactionDate: tgl,
 				}
 				if err := s.repo.ZakatUpsert(ctx, z); err != nil {
 					s.recordError(ctx, groupID, "zakat", id, "gas-import", err.Error())

@@ -110,6 +110,8 @@ func main() {
 		files := []string{
 			"db/migrations/000023_backfill_group_id.up.sql",
 			"db/migrations/000024_normalize_carryover.up.sql",
+			"db/migrations/000025_zakat_relational.up.sql",
+			"db/migrations/000026_finance_standard.up.sql",
 		}
 		for _, f := range files {
 			sql, err := os.ReadFile(filepath.Join(".", f))
@@ -315,7 +317,9 @@ func main() {
 			fmt.Printf("[%s] %s date=%s notes=%s\n", t, id, d, txt)
 		}
 		rows.Close()
-	case "dupes":
+	case "pull", "sync", "dupes":
+		// MODE=pull GROUP... — sheet->DB saja (aman, tanpa push balik).
+		// MODE=sync GROUP... — dua arah + tulis ulang tab mirror.
 		// MODE=dupes [PAYID...] — cek tanggal DB untuk payment tertentu.
 		finRepo := repository.NewFinanceRepo(pool)
 		groups := repository.NewGroupRepo(pool)

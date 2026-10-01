@@ -43,16 +43,18 @@ func (s *FinanceSyncService) pullCash(ctx context.Context, cli *sheets.Service, 
 		if exists && !newerThan(r["updated_at"], dbTS) {
 			continue
 		}
-		tgl, err := util.ParseSheetDate(r["tanggal"])
+		dateStr := sheetGet(r, "transaction_date", "tanggal")
+		tgl, err := util.ParseSheetDate(dateStr)
 		if err != nil {
-			s.recordError(ctx, groupID, "cash", r["cash_id"], "sheet->db", "tanggal tidak valid: "+r["tanggal"])
+			s.recordError(ctx, groupID, "cash", r["cash_id"], "sheet->db", "transaction_date tidak valid: "+dateStr)
 			continue
 		}
 		gid := groupID
 		k := &model.CashTransaction{
 			CashID: r["cash_id"], GroupID: &gid, CashType: normCashType(r["cash_type"]),
-			Tanggal: tgl, AccountName: r["account_name"], Description: r["description"],
-			Debit: parseNum(r["debit"]), Credit: parseNum(r["credit"]),
+			Tanggal: tgl, AccountName: sheetGet(r, "account_name", "account"),
+			Description: sheetGet(r, "description", "notes", "keterangan"),
+			Debit: parseNum(sheetGet(r, "debit", "debet")), Credit: parseNum(sheetGet(r, "credit", "kredit")),
 			CreatedBy: r["created_by"],
 		}
 		if !exists {
@@ -80,16 +82,18 @@ func (s *FinanceSyncService) pullDueMembers(ctx context.Context, cli *sheets.Ser
 	}
 	tombs, _ := s.repo.Tombstones(ctx, groupID, "due_members")
 	for i, r := range rows {
-		if r["group_id"] != groupID || r["member_id"] == "" || tombs[r["member_id"]] {
+		memberID := sheetGet(r, "member_id", "due_member_id")
+		memberName := sheetGet(r, "member_name", "nama", "full_name")
+		if r["group_id"] != groupID || memberID == "" || tombs[memberID] {
 			continue
 		}
 		sheetRow := i + 2
-		dbTS, exists := states[r["member_id"]]
+		dbTS, exists := states[memberID]
 		if exists && !newerThan(r["updated_at"], dbTS) {
 			continue
 		}
-		if strings.TrimSpace(r["member_name"]) == "" {
-			s.recordError(ctx, groupID, "due_members", r["member_id"], "sheet->db", "member_name kosong")
+		if strings.TrimSpace(memberName) == "" {
+			s.recordError(ctx, groupID, "due_members", memberID, "sheet->db", "member_name kosong")
 			continue
 		}
 		status := strings.ToUpper(strings.TrimSpace(r["status"]))
@@ -98,15 +102,15 @@ func (s *FinanceSyncService) pullDueMembers(ctx context.Context, cli *sheets.Ser
 		}
 		gid := groupID
 		m := &model.DueMember{
-			MemberID: r["member_id"], GroupID: &gid,
-			MemberName:    strings.TrimSpace(r["member_name"]),
-			MonthlyTarget: parseNum(r["monthly_target"]), Status: status,
+			MemberID: memberID, GroupID: &gid,
+			MemberName:    strings.TrimSpace(memberName),
+			MonthlyTarget: parseNum(sheetGet(r, "monthly_target", "nominal_bulanan")), Status: status,
 		}
 		if err := s.repo.DueMemberUpsert(ctx, m); err != nil {
-			s.recordError(ctx, groupID, "due_members", r["member_id"], "sheet->db", err.Error())
+			s.recordError(ctx, groupID, "due_members", memberID, "sheet->db", err.Error())
 			continue
 		}
-		_ = s.repo.MarkSynced(ctx, "due_members", "due_member_id", r["member_id"], "sheet", sheetRow)
+		_ = s.repo.MarkSynced(ctx, "due_members", "due_member_id", memberID, "sheet", sheetRow)
 	}
 	return nil
 }
@@ -130,24 +134,25 @@ func (s *FinanceSyncService) pullDuePayments(ctx context.Context, cli *sheets.Se
 		if exists && !newerThan(r["updated_at"], dbTS) {
 			continue
 		}
-		tgl, err := util.ParseSheetDate(r["payment_date"])
+		dateStr := sheetGet(r, "payment_date", "transaction_date", "tanggal")
+		tgl, err := util.ParseSheetDate(dateStr)
 		if err != nil {
-			s.recordError(ctx, groupID, "due_payments", r["payment_id"], "sheet->db", "payment_date tidak valid: "+r["payment_date"])
+			s.recordError(ctx, groupID, "due_payments", r["payment_id"], "sheet->db", "payment_date tidak valid: "+dateStr)
 			continue
 		}
 		// Susulan: teks bulan sheet → rincian per bulan (bagi rata dari carryover_ir).
 		// carryover_ir sheet TIDAK dipercaya mentah: total selalu dihitung ulang
 		// dari rincian agar SUM(anak) = carryover_ir (aturan 000024).
-		months, unknowns := util.SplitSheetMonths(r["carryover_months"])
+		months, unknowns := util.SplitSheetMonths(sheetGet(r, "carryover_months", "susulan_bulan"))
 		if len(unknowns) > 0 {
 			s.recordError(ctx, groupID, "due_payments", r["payment_id"], "sheet->db", "bulan susulan tidak dikenal: "+strings.Join(unknowns, ", "))
 			continue
 		}
-		sheetIR := parseNum(r["carryover_ir"])
-		carryItems, carryIR, notes := buildSheetCarryovers(months, sheetIR, r["carryover_breakdown"], r["notes"])
-		total := carryIR + parseNum(r["connecting_fund"]) +
-			parseNum(r["community_dues"]) + parseNum(r["outreach_fund"]) +
-			parseNum(r["thousand_fund"]) + parseNum(r["funeral_fund"]) + parseNum(r["ukhro_mt"])
+		sheetIR := parseNum(sheetGet(r, "carryover_ir", "susulan_ir"))
+		carryItems, carryIR, notes := buildSheetCarryovers(months, sheetIR, sheetGet(r, "carryover_breakdown", "susulan_rincian"), sheetGet(r, "notes", "keterangan"))
+		total := carryIR + parseNum(sheetGet(r, "connecting_fund", "uang_sambung")) +
+			parseNum(sheetGet(r, "community_dues", "jimpitan")) + parseNum(sheetGet(r, "outreach_fund", "siar_siar")) +
+			parseNum(sheetGet(r, "thousand_fund", "seribuan")) + parseNum(sheetGet(r, "funeral_fund", "kafan")) + parseNum(r["ukhro_mt"])
 		status := strings.ToUpper(strings.TrimSpace(r["status"]))
 		if status == "" {
 			status = "ACTIVE"
@@ -184,54 +189,114 @@ func (s *FinanceSyncService) pullZakat(ctx context.Context, cli *sheets.Service,
 	if err != nil {
 		return err
 	}
-	states, err := s.repo.ZakatStates(ctx, groupID)
+	_, err = s.repo.ZakatStates(ctx, groupID)
 	if err != nil {
 		return err
 	}
 	tombs, _ := s.repo.Tombstones(ctx, groupID, "zakat")
 	for i, r := range rows {
-		if r["group_id"] != groupID || r["zakat_id"] == "" || tombs[r["zakat_id"]] {
+		if r["zakat_id"] == "" || tombs[r["zakat_id"]] {
 			continue
 		}
 		sheetRow := i + 2
-		dbTS, exists := states[r["zakat_id"]]
-		if exists && !newerThan(r["updated_at"], dbTS) {
+		// ZAKAT tab has no group_id column; single-group spreadsheet assumed.
+		// Skip newerThan check because trigger auto-updates updated_at on every write.
+		title := sheetGet(r, "title")
+		muzakkiName := sheetGet(r, "muzakki_name", "nama")
+		if strings.TrimSpace(title) == "" && strings.TrimSpace(muzakkiName) == "" {
+			s.recordError(ctx, groupID, "zakat", r["zakat_id"], "sheet->db", "title/muzakki_name kosong")
 			continue
 		}
-		if strings.TrimSpace(r["muzakki_name"]) == "" {
-			s.recordError(ctx, groupID, "zakat", r["zakat_id"], "sheet->db", "muzakki_name kosong")
-			continue
-		}
-		zt := strings.ToUpper(strings.TrimSpace(r["zakat_type"]))
-		if zt != "MAL" {
-			zt = "FITRAH"
+		if title == "" {
+			title = muzakkiName
 		}
 		var tgl *time.Time
-		if strings.TrimSpace(r["transaction_date"]) != "" {
-			if t, err := util.ParseSheetDate(strings.TrimSpace(r["transaction_date"])); err == nil {
+		if ds := sheetGet(r, "transaction_date", "tanggal"); ds != "" {
+			if t, err := util.ParseSheetDate(strings.TrimSpace(ds)); err == nil {
 				tgl = &t
 			}
 		}
 		status := strings.ToUpper(strings.TrimSpace(r["status"]))
 		if status == "" {
-			status = "PENDING"
+			status = "ACTIVE"
 		}
 		gid := groupID
 		z := &model.ZakatRecord{
-			ZakatID: r["zakat_id"], GroupID: &gid, ZakatType: zt,
-			MuzakkiName:  strings.TrimSpace(r["muzakki_name"]),
-			SoulCount:    atoi(r["soul_count"], 1),
-			TotalRiceKg:  parseNum(r["total_rice_kg"]),
-			TotalMoneyRp: parseNum(r["total_money_rp"]),
-			Status:       status, TransactionDate: tgl, Details: "{}",
+			ZakatID: r["zakat_id"], GroupID: &gid,
+			Title: title, Description: sheetGet(r, "description", "notes", "keterangan"),
+			Location: sheetGet(r, "location", "tempat"),
+			SoulCount: atoi(sheetGet(r, "soul_count", "jumlah_anggota_keluarga"), 0),
+			TotalRiceKg: parseNum(r["total_rice_kg"]), TotalMoneyRp: parseNum(sheetGet(r, "total_money_rp", "total_amount", "total", "nominal")),
+			Status: status, TransactionDate: tgl,
 		}
 		if err := s.repo.ZakatUpsert(ctx, z); err != nil {
 			s.recordError(ctx, groupID, "zakat", r["zakat_id"], "sheet->db", err.Error())
 			continue
 		}
+		allocs := buildZakatAllocationsFromSheet(r, r["zakat_id"])
+		if len(allocs) > 0 {
+			if err := s.repo.ReplaceZakatAllocations(ctx, r["zakat_id"], allocs); err != nil {
+				s.recordError(ctx, groupID, "zakat_allocations", r["zakat_id"], "sheet->db", err.Error())
+			}
+		}
 		_ = s.repo.MarkSynced(ctx, "zakat_records", "zakat_id", r["zakat_id"], "sheet", sheetRow)
 	}
 	return nil
+}
+
+func buildZakatAllocationsFromSheet(r map[string]string, zakatID string) []model.ZakatAllocation {
+	var allocs []model.ZakatAllocation
+	fitrah := model.ZakatAllocation{
+		ZakatID: zakatID, Category: "FITRAH",
+		RecipientPercent:       atoi(sheetGet(r, "fitrah_mustahik_persen", "fitrah_mustahik_percent"), 0),
+		RecipientAmount:        parseNum(sheetGet(r, "fitrah_mustahik_nominal", "fitrah_mustahik_amount")),
+		RecipientGroupPercent:  atoi(sheetGet(r, "fitrah_amil_kelompok_persen", "fitrah_amil_kelompok_percent"), 0),
+		RecipientGroupAmount:   parseNum(sheetGet(r, "fitrah_amil_kelompok_nominal", "fitrah_amil_kelompok_amount")),
+		RecipientRegionPercent: atoi(sheetGet(r, "fitrah_amil_daerah_persen", "fitrah_amil_daerah_percent"), 0),
+		RecipientRegionAmount:  parseNum(sheetGet(r, "fitrah_amil_daerah_nominal", "fitrah_amil_daerah_amount")),
+		SabilillahPercent:      atoi(sheetGet(r, "fitrah_sabilillah_persen", "fitrah_sabilillah_percent"), 0),
+		SabilillahAmount:       parseNum(sheetGet(r, "fitrah_sabilillah_nominal", "fitrah_sabilillah_amount")),
+		AmilPercent:            atoi(sheetGet(r, "fitrah_amil_persen", "fitrah_amil_percent"), 0),
+		AmilAmount:             parseNum(sheetGet(r, "fitrah_amil_nominal", "fitrah_amil_amount")),
+		AmilGroupPercent:       atoi(sheetGet(r, "fitrah_amil_kelompok_persen", "fitrah_amil_kelompok_percent"), 0),
+		AmilGroupAmount:        parseNum(sheetGet(r, "fitrah_amil_kelompok_nominal", "fitrah_amil_kelompok_amount")),
+		AmilVillagePercent:     atoi(sheetGet(r, "fitrah_amil_desa_persen", "fitrah_amil_desa_percent"), 0),
+		AmilVillageAmount:      parseNum(sheetGet(r, "fitrah_amil_desa_nominal", "fitrah_amil_desa_amount")),
+		AmilRegionPercent:      atoi(sheetGet(r, "fitrah_amil_daerah_persen", "fitrah_amil_daerah_percent"), 0),
+		AmilRegionAmount:       parseNum(sheetGet(r, "fitrah_amil_daerah_nominal", "fitrah_amil_daerah_amount")),
+	}
+	maal := model.ZakatAllocation{
+		ZakatID: zakatID, Category: "MAAL",
+		RecipientPercent:       atoi(sheetGet(r, "maal_mustahik_persen", "maal_mustahik_percent"), 0),
+		RecipientAmount:        parseNum(sheetGet(r, "maal_mustahik_nominal", "maal_mustahik_amount")),
+		RecipientGroupPercent:  atoi(sheetGet(r, "maal_mustahik_kelompok_persen", "maal_mustahik_kelompok_percent"), 0),
+		RecipientGroupAmount:   parseNum(sheetGet(r, "maal_mustahik_kelompok_nominal", "maal_mustahik_kelompok_amount")),
+		RecipientRegionPercent: atoi(sheetGet(r, "maal_mustahik_daerah_persen", "maal_mustahik_daerah_percent"), 0),
+		RecipientRegionAmount:  parseNum(sheetGet(r, "maal_mustahik_daerah_nominal", "maal_mustahik_daerah_amount")),
+		SabilillahPercent:      atoi(sheetGet(r, "maal_sabilillah_persen", "maal_sabilillah_percent"), 0),
+		SabilillahAmount:       parseNum(sheetGet(r, "maal_sabilillah_nominal", "maal_sabilillah_amount")),
+		AmilPercent:            atoi(sheetGet(r, "maal_amil_persen", "maal_amil_percent"), 0),
+		AmilAmount:             parseNum(sheetGet(r, "maal_amil_nominal", "maal_amil_amount")),
+		AmilGroupPercent:       atoi(sheetGet(r, "maal_amil_kelompok_persen", "maal_amil_kelompok_percent"), 0),
+		AmilGroupAmount:        parseNum(sheetGet(r, "maal_amil_kelompok_nominal", "maal_amil_kelompok_amount")),
+		AmilVillagePercent:     atoi(sheetGet(r, "maal_amil_desa_persen", "maal_amil_desa_percent"), 0),
+		AmilVillageAmount:      parseNum(sheetGet(r, "maal_amil_desa_nominal", "maal_amil_desa_amount")),
+		AmilRegionPercent:      atoi(sheetGet(r, "maal_amil_daerah_persen", "maal_amil_daerah_percent"), 0),
+		AmilRegionAmount:       parseNum(sheetGet(r, "maal_amil_daerah_nominal", "maal_amil_daerah_amount")),
+	}
+	if hasNonZeroAllocation(fitrah) {
+		allocs = append(allocs, fitrah)
+	}
+	if hasNonZeroAllocation(maal) {
+		allocs = append(allocs, maal)
+	}
+	return allocs
+}
+
+func hasNonZeroAllocation(a model.ZakatAllocation) bool {
+	return a.RecipientAmount != 0 || a.SabilillahAmount != 0 || a.AmilAmount != 0 ||
+		a.RecipientGroupAmount != 0 || a.RecipientRegionAmount != 0 ||
+		a.AmilGroupAmount != 0 || a.AmilVillageAmount != 0 || a.AmilRegionAmount != 0
 }
 
 func (s *FinanceSyncService) pushAll(ctx context.Context, cli *sheets.Service, groupID string) error {
@@ -293,8 +358,9 @@ func (s *FinanceSyncService) pushAll(ctx context.Context, cli *sheets.Service, g
 	zakatRows := make([][]interface{}, 0, len(zakats))
 	for _, z := range zakats {
 		zakatRows = append(zakatRows, []interface{}{
-			z.ZakatID, groupID, z.ZakatType, z.MuzakkiName, z.SoulCount,
-			z.TotalRiceKg, z.TotalMoneyRp, z.Status, z.TransactionDate, now,
+			z.ZakatID, groupID, strings.Join(z.Categories, ","), z.Title, z.Description,
+			z.Location, z.SoulCount, z.TotalRiceKg, z.TotalMoneyRp,
+			z.Status, z.TransactionDate, z.CompletedAt, z.Version, now,
 		})
 	}
 	if err := s.mergeWriteTab(ctx, cli, sheetTabZakat, sheetZakatHeaders, groupID, zakatRows); err != nil {

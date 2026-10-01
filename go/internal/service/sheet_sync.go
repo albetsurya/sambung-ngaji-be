@@ -16,18 +16,38 @@ import (
 )
 
 const (
+	// Mirror tabs milik sambung-ngaji (boleh tulis, merge per-group).
 	sheetTabCash        = "CASH"
 	sheetTabDueMembers  = "DUE_MEMBERS"
 	sheetTabDuePayments = "DUE_PAYMENTS"
 	sheetTabZakat       = "ZAKAT"
+	// Legacy tabs milik kas-latukan-web (READ-ONLY, jangan pernah tulis).
+	sheetTabLegacyZakat          = "Zakat"
+	sheetTabLegacyZakatMuzaki    = "Zakat_Muzaki"
+	sheetTabLegacyZakatMustahik  = "Zakat_Mustahik"
+	sheetTabLegacyMasterMuzaki   = "Master_Muzaki"
+	sheetTabLegacyMasterMustahik = "Master_Mustahik"
 )
 
 var (
-	sheetCashHeaders       = []string{"cash_id", "group_id", "cash_type", "tanggal", "account_name", "description", "debit", "credit", "created_by", "updated_at"}
+	sheetCashHeaders       = []string{"cash_id", "group_id", "cash_type", "transaction_date", "account_name", "description", "debit", "credit", "created_by", "updated_at"}
 	sheetDueMemberHeaders  = []string{"member_id", "group_id", "member_name", "monthly_target", "status", "updated_at"}
 	sheetDuePaymentHeaders = []string{"payment_id", "group_id", "member_id", "payment_date", "total_amount", "carryover_ir", "carryover_months", "connecting_fund", "community_dues", "outreach_fund", "thousand_fund", "funeral_fund", "ukhro_mt", "notes", "status", "updated_at"}
-	sheetZakatHeaders      = []string{"zakat_id", "group_id", "zakat_type", "muzakki_name", "soul_count", "total_rice_kg", "total_money_rp", "status", "transaction_date", "updated_at"}
+	sheetZakatHeaders      = []string{"zakat_id", "group_id", "categories", "title", "description", "location", "soul_count", "total_rice_kg", "total_money_rp", "status", "transaction_date", "completed_at", "version", "updated_at"}
 )
+
+// sheetGet mengambil nilai pertama yang tidak kosong dari daftar kunci.
+// Dipakai agar sinkronisasi toleran terhadap header lama/baru
+// (mis. tanggal vs transaction_date, nama vs member_name) tanpa
+// mengubah struktur spreadsheet yang ada.
+func sheetGet(r map[string]string, keys ...string) string {
+	for _, k := range keys {
+		if v := strings.TrimSpace(r[k]); v != "" {
+			return v
+		}
+	}
+	return ""
+}
 
 type FinanceSyncService struct {
 	repo      *repository.FinanceRepo
@@ -246,6 +266,9 @@ func (s *FinanceSyncService) PullGroup(ctx context.Context, groupID string) erro
 	if err := s.pullLegacyCash(ctx, cli, groupID); err != nil {
 		s.recordError(ctx, groupID, "cash", "", "legacy->db", err.Error())
 	}
+	if err := s.pullLegacyZakat(ctx, cli, groupID); err != nil {
+		s.recordError(ctx, groupID, "zakat", "", "legacy->db", err.Error())
+	}
 	if err := s.pullCash(ctx, cli, groupID); err != nil {
 		s.recordError(ctx, groupID, "cash", "", "sheet->db", err.Error())
 	}
@@ -280,6 +303,9 @@ func (s *FinanceSyncService) SyncGroup(ctx context.Context, groupID string) erro
 	}
 	if err := s.pullLegacyCash(ctx, cli, groupID); err != nil {
 		s.recordError(ctx, groupID, "cash", "", "legacy->db", err.Error())
+	}
+	if err := s.pullLegacyZakat(ctx, cli, groupID); err != nil {
+		s.recordError(ctx, groupID, "zakat", "", "legacy->db", err.Error())
 	}
 	if err := s.pullCash(ctx, cli, groupID); err != nil {
 		s.recordError(ctx, groupID, "cash", "", "sheet->db", err.Error())

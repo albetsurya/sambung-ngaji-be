@@ -43,12 +43,14 @@ func (s *FinanceSyncService) pullLegacyCashTab(ctx context.Context, cli *sheets.
 		if exists && !newerThan(r["updated_at"], dbTS) {
 			continue
 		}
-		tgl, err := util.ParseSheetDate(r["transaction_date"])
+		dateStr := sheetGet(r, "transaction_date", "tanggal")
+		tgl, err := util.ParseSheetDate(dateStr)
 		if err != nil {
-			s.recordError(ctx, groupID, "cash", cashID, "legacy->db", "transaction_date tidak valid: "+r["transaction_date"])
+			s.recordError(ctx, groupID, "cash", cashID, "legacy->db", "transaction_date tidak valid: "+dateStr)
 			continue
 		}
-		if strings.TrimSpace(r["account_name"]) == "" {
+		accountName := sheetGet(r, "account_name", "account")
+		if strings.TrimSpace(accountName) == "" {
 			s.recordError(ctx, groupID, "cash", cashID, "legacy->db", "account_name kosong")
 			continue
 		}
@@ -59,9 +61,9 @@ func (s *FinanceSyncService) pullLegacyCashTab(ctx context.Context, cli *sheets.
 		gid := groupID
 		k := &model.CashTransaction{
 			CashID: cashID, GroupID: &gid, CashType: cashType,
-			Tanggal: tgl, AccountName: strings.TrimSpace(r["account_name"]),
-			Description: strings.TrimSpace(r["notes"]),
-			Debit:       parseNum(r["debit"]), Credit: parseNum(r["credit"]),
+			Tanggal: tgl, AccountName: strings.TrimSpace(accountName),
+			Description: sheetGet(r, "description", "notes", "keterangan"),
+			Debit:       parseNum(sheetGet(r, "debit", "debet")), Credit: parseNum(sheetGet(r, "credit", "kredit")),
 			CreatedBy: createdBy,
 		}
 		if !exists {

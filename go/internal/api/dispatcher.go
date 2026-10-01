@@ -138,9 +138,17 @@ var RegisteredActions = map[string]bool{
 	"reverseDuePayment":      true,
 	"getDueLastNominals":     true,
 	"getZakatRecords":        true,
+	"getZakatDetail":         true,
 	"saveZakatRecord":        true,
+	"saveZakatPayers":        true,
+	"saveZakatRecipients":    true,
+	"saveZakatAllocations":   true,
 	"updateZakatStatus":      true,
 	"deleteZakatRecord":      true,
+	"getZakatMasters":        true,
+	"addZakatMaster":         true,
+	"postDueToCash":          true,
+	"cancelPostDueToCash":    true,
 	"runFinanceSync":         true,
 	"runFinanceImport":       true,
 }
@@ -603,12 +611,28 @@ func RegisterAPI(app *fiber.App, svc *Services) {
 			return handleDueLastNominals(c, svc.Finance)
 		case "getZakatRecords":
 			return handleZakatList(c, svc.Finance)
+		case "getZakatDetail":
+			return handleZakatDetail(c, svc.Finance)
 		case "saveZakatRecord":
 			return handleZakatSave(c, svc.Finance)
+		case "saveZakatPayers":
+			return handleZakatSavePayers(c, svc.Finance)
+		case "saveZakatRecipients":
+			return handleZakatSaveRecipients(c, svc.Finance)
+		case "saveZakatAllocations":
+			return handleZakatSaveAllocations(c, svc.Finance)
 		case "updateZakatStatus":
 			return handleZakatStatus(c, svc.Finance)
 		case "deleteZakatRecord":
 			return handleZakatDelete(c, svc.Finance)
+		case "getZakatMasters":
+			return handleZakatMasters(c, svc.Finance)
+		case "addZakatMaster":
+			return handleZakatAddMaster(c, svc.Finance)
+		case "postDueToCash":
+			return handleDuePostToCash(c, svc.Finance)
+		case "cancelPostDueToCash":
+			return handleDueCancelPostToCash(c, svc.Finance)
 		case "runFinanceSync":
 			return handleFinanceSync(c, svc.FinanceSync)
 		case "runFinanceImport":
@@ -764,8 +788,16 @@ func RegisterRESTAPI(app *fiber.App, svc *Services) {
 	v1.Post("/finance/monthly-dues/payments", fin("saveDuePayment", func(c *fiber.Ctx) error { return handleDuePaymentSave(c, svc.Finance) })...)
 	v1.Post("/finance/monthly-dues/payments/reverse", fin("reverseDuePayment", func(c *fiber.Ctx) error { return handleDuePaymentReverse(c, svc.Finance) })...)
 	v1.Get("/finance/monthly-dues/last-nominals", fin("getDueLastNominals", func(c *fiber.Ctx) error { return handleDueLastNominals(c, svc.Finance) })...)
+	v1.Post("/finance/monthly-dues/post-to-kas", fin("postDueToCash", func(c *fiber.Ctx) error { return handleDuePostToCash(c, svc.Finance) })...)
+	v1.Post("/finance/monthly-dues/cancel-post-to-kas", fin("cancelPostDueToCash", func(c *fiber.Ctx) error { return handleDueCancelPostToCash(c, svc.Finance) })...)
 	v1.Get("/finance/zakat", fin("getZakatRecords", func(c *fiber.Ctx) error { return handleZakatList(c, svc.Finance) })...)
+	v1.Get("/finance/zakat/detail", fin("getZakatDetail", func(c *fiber.Ctx) error { return handleZakatDetail(c, svc.Finance) })...)
 	v1.Post("/finance/zakat", fin("saveZakatRecord", func(c *fiber.Ctx) error { return handleZakatSave(c, svc.Finance) })...)
+	v1.Post("/finance/zakat/payers", fin("saveZakatPayers", func(c *fiber.Ctx) error { return handleZakatSavePayers(c, svc.Finance) })...)
+	v1.Post("/finance/zakat/recipients", fin("saveZakatRecipients", func(c *fiber.Ctx) error { return handleZakatSaveRecipients(c, svc.Finance) })...)
+	v1.Post("/finance/zakat/allocations", fin("saveZakatAllocations", func(c *fiber.Ctx) error { return handleZakatSaveAllocations(c, svc.Finance) })...)
+	v1.Get("/finance/zakat/masters", fin("getZakatMasters", func(c *fiber.Ctx) error { return handleZakatMasters(c, svc.Finance) })...)
+	v1.Post("/finance/zakat/masters", fin("addZakatMaster", func(c *fiber.Ctx) error { return handleZakatAddMaster(c, svc.Finance) })...)
 	v1.Put("/finance/zakat/status", fin("updateZakatStatus", func(c *fiber.Ctx) error { return handleZakatStatus(c, svc.Finance) })...)
 	v1.Delete("/finance/zakat", fin("deleteZakatRecord", func(c *fiber.Ctx) error { return handleZakatDelete(c, svc.Finance) })...)
 	v1.Post("/finance/sync", fin("runFinanceSync", func(c *fiber.Ctx) error { return handleFinanceSync(c, svc.FinanceSync) })...)
