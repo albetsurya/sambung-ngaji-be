@@ -234,13 +234,6 @@ func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, providers map[string
 	)
 
 	fonnteSvc := service.NewFonnteService()
-		if !financeSyncSvc.IsConfigured() {
-			return
-		}
-		if err := financeSyncSvc.SyncGroup(context.Background(), groupID); err != nil {
-			log.Warn().Err(err).Str("group", groupID).Msg("finance sheet push gagal")
-		}
-	}
 
 	return &Services{
 		Auth: authSvc,
