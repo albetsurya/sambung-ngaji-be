@@ -9,7 +9,10 @@
 -- Idempotent: IF EXISTS / guard UPDATE dipakai di mana memungkinkan.
 -- ============================================================
 
--- 1. Kanonis MAAL -> MAL (kode setara yang dipakai CHECK anak).
+-- 1. DROP constraint LAMA DULU agar UPDATE 'MAAL' -> 'MAL' atau kategori lain tidak melanggar CHECK lama
+ALTER TABLE zakat_allocations DROP CONSTRAINT IF EXISTS chk_zakat_allocations_category;
+
+-- 2. Kanonis MAAL -> MAL & TERNAK -> LIVESTOCK
 UPDATE zakat_allocations SET category = 'MAL' WHERE category = 'MAAL';
 UPDATE zakat_payers SET zakat_category = 'MAL' WHERE UPPER(TRIM(BOTH ' ' FROM zakat_category)) = 'MAAL';
 UPDATE zakat_recipients SET zakat_category = 'MAL' WHERE UPPER(TRIM(BOTH ' ' FROM zakat_category)) = 'MAAL';
@@ -19,17 +22,16 @@ UPDATE zakat_records SET zakat_category = 'LIVESTOCK' WHERE UPPER(TRIM(BOTH ' ' 
 UPDATE zakat_payers SET zakat_category = 'LIVESTOCK' WHERE UPPER(TRIM(BOTH ' ' FROM zakat_category)) = 'TERNAK';
 UPDATE zakat_recipients SET zakat_category = 'LIVESTOCK' WHERE UPPER(TRIM(BOTH ' ' FROM zakat_category)) = 'TERNAK';
 
--- 2. Rincian boleh untuk semua tipe (1 baris per zakat per kategori).
-ALTER TABLE zakat_allocations DROP CONSTRAINT IF EXISTS chk_zakat_allocations_category;
+-- 3. ADD constraint BARU yang sudah mendukung ('FITRAH','MAL','TIJAROH','ZURU','LIVESTOCK','OTHER')
 ALTER TABLE zakat_allocations ADD CONSTRAINT chk_zakat_allocations_category
   CHECK (category IN ('FITRAH','MAL','TIJAROH','ZURU','LIVESTOCK','OTHER'));
 
--- 3. Judul jangan sampai kosong setelah muzakki_name dihapus.
+-- 4. Judul jangan sampai kosong setelah muzakki_name dihapus.
 UPDATE zakat_records SET title = muzakki_name
 WHERE (title IS NULL OR btrim(title) = '')
   AND muzakki_name IS NOT NULL AND btrim(muzakki_name) <> '';
 
--- 4. Hapus kolom header yang kini redundan.
+-- 5. Hapus kolom header yang kini redundan.
 ALTER TABLE zakat_records DROP COLUMN IF EXISTS zakat_type;
 ALTER TABLE zakat_records DROP COLUMN IF EXISTS zakat_category;
 ALTER TABLE zakat_records DROP COLUMN IF EXISTS muzakki_name;
