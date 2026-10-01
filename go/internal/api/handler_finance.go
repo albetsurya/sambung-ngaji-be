@@ -224,6 +224,30 @@ func handleDueLastNominals(c *fiber.Ctx, svc *service.FinanceService) error {
 	return Ok(c, res)
 }
 
+func handleDuePostToCash(c *fiber.Ctx, svc *service.FinanceService) error {
+	groupID, ok := financeGroup(c)
+	if !ok {
+		return nil
+	}
+	res, err := svc.DuePostToCash(c.Context(), groupID, BodyString(c, "month"), financeUser(c))
+	if err != nil {
+		return Fail(c, err.Error())
+	}
+	return Ok(c, fiber.Map{"posted": len(res), "items": res})
+}
+
+func handleDueCancelPostToCash(c *fiber.Ctx, svc *service.FinanceService) error {
+	groupID, ok := financeGroup(c)
+	if !ok {
+		return nil
+	}
+	n, err := svc.DueCancelPostToCash(c.Context(), groupID, BodyString(c, "month"))
+	if err != nil {
+		return Fail(c, err.Error())
+	}
+	return Ok(c, fiber.Map{"cancelled": n})
+}
+
 func handleZakatList(c *fiber.Ctx, svc *service.FinanceService) error {
 	groupID, ok := financeGroup(c)
 	if !ok {
@@ -236,27 +260,140 @@ func handleZakatList(c *fiber.Ctx, svc *service.FinanceService) error {
 	return Ok(c, res)
 }
 
+func handleZakatDetail(c *fiber.Ctx, svc *service.FinanceService) error {
+	groupID, ok := financeGroup(c)
+	if !ok { return nil }
+	res, err := svc.ZakatDetail(c.Context(), groupID, BodyString(c, "zakat_id"))
+	if err != nil { return Fail(c, err.Error()) }
+	return Ok(c, res)
+}
+
 func handleZakatSave(c *fiber.Ctx, svc *service.FinanceService) error {
 	groupID, ok := financeGroup(c)
-	if !ok {
-		return nil
-	}
-	res, err := svc.ZakatSave(c.Context(), service.ZakatSaveInput{
+	if !ok { return nil }
+	body := BodyOf(c)
+	res, err := svc.ZakatSave(c.Context(), groupID, service.ZakatHeaderInput{
 		ZakatID:         BodyString(c, "zakat_id"),
-		GroupID:         groupID,
-		ZakatType:       BodyString(c, "zakat_type"),
-		MuzakkiName:     BodyString(c, "muzakki_name"),
-		SoulCount:       int(BodyFloat(c, "soul_count")),
-		TotalRiceKg:     BodyFloat(c, "total_rice_kg"),
-		TotalMoneyRp:    BodyFloat(c, "total_money_rp"),
+		Title:           BodyString(c, "title"),
+		Description:     BodyString(c, "description"),
+		Location:        BodyString(c, "location"),
+		SoulCount:       int(numOr(body["soul_count"])),
+		TotalRiceKg:     numOr(body["total_rice_kg"]),
+		TotalMoneyRp:    numOr(body["total_money_rp"]),
 		TransactionDate: BodyString(c, "transaction_date"),
-		Details:         BodyString(c, "details"),
-		CreatedBy:       financeUser(c),
-	})
-	if err != nil {
+	}, financeUser(c))
+	if err != nil { return Fail(c, err.Error()) }
+	return Ok(c, res)
+}
+
+func bodyZakatPayers(c *fiber.Ctx) []service.ZakatPayerInput {
+	body := BodyOf(c)
+	raw, _ := body["payers"].([]interface{})
+	out := make([]service.ZakatPayerInput, 0, len(raw))
+	for _, it := range raw {
+		m, ok := it.(map[string]interface{})
+		if !ok { continue }
+		out = append(out, service.ZakatPayerInput{
+			PayerID:            strOr(m["payer_id"]),
+			MasterID:           strOr(m["master_id"]),
+			Name:               strOr(m["name"]),
+			Amount:             numOr(m["amount"]),
+			ZakatCategory:      strOr(m["zakat_category"]),
+			FamilyMembersCount: int(numOr(m["family_members_count"])),
+		})
+	}
+	return out
+}
+
+func handleZakatSavePayers(c *fiber.Ctx, svc *service.FinanceService) error {
+	groupID, ok := financeGroup(c)
+	if !ok { return nil }
+	if err := svc.ZakatSavePayers(c.Context(), groupID, BodyString(c, "zakat_id"), bodyZakatPayers(c)); err != nil {
 		return Fail(c, err.Error())
 	}
+	return Ok(c, fiber.Map{"saved": true})
+}
+
+func bodyZakatRecipients(c *fiber.Ctx) []service.ZakatRecipientInput {
+	body := BodyOf(c)
+	raw, _ := body["recipients"].([]interface{})
+	out := make([]service.ZakatRecipientInput, 0, len(raw))
+	for _, it := range raw {
+		m, ok := it.(map[string]interface{})
+		if !ok { continue }
+		out = append(out, service.ZakatRecipientInput{
+			RecipientID:   strOr(m["recipient_id"]),
+			MasterID:      strOr(m["master_id"]),
+			Name:          strOr(m["name"]),
+			Amount:        numOr(m["amount"]),
+			ZakatCategory: strOr(m["zakat_category"]),
+		})
+	}
+	return out
+}
+
+func handleZakatSaveRecipients(c *fiber.Ctx, svc *service.FinanceService) error {
+	groupID, ok := financeGroup(c)
+	if !ok { return nil }
+	if err := svc.ZakatSaveRecipients(c.Context(), groupID, BodyString(c, "zakat_id"), bodyZakatRecipients(c)); err != nil {
+		return Fail(c, err.Error())
+	}
+	return Ok(c, fiber.Map{"saved": true})
+}
+
+func bodyZakatAllocations(c *fiber.Ctx) []service.ZakatAllocationInput {
+	body := BodyOf(c)
+	raw, _ := body["allocations"].([]interface{})
+	out := make([]service.ZakatAllocationInput, 0, len(raw))
+	for _, it := range raw {
+		m, ok := it.(map[string]interface{})
+		if !ok { continue }
+		out = append(out, service.ZakatAllocationInput{
+			Category:               strOr(m["category"]),
+			RecipientPercent:       int(numOr(m["recipient_percent"])),
+			RecipientAmount:        numOr(m["recipient_amount"]),
+			RecipientGroupPercent:  int(numOr(m["recipient_group_percent"])),
+			RecipientGroupAmount:   numOr(m["recipient_group_amount"]),
+			RecipientRegionPercent: int(numOr(m["recipient_region_percent"])),
+			RecipientRegionAmount:  numOr(m["recipient_region_amount"]),
+			SabilillahPercent:      int(numOr(m["sabilillah_percent"])),
+			SabilillahAmount:       numOr(m["sabilillah_amount"]),
+			AmilPercent:            int(numOr(m["amil_percent"])),
+			AmilAmount:             numOr(m["amil_amount"]),
+			AmilGroupPercent:       int(numOr(m["amil_group_percent"])),
+			AmilGroupAmount:        numOr(m["amil_group_amount"]),
+			AmilVillagePercent:     int(numOr(m["amil_village_percent"])),
+			AmilVillageAmount:      numOr(m["amil_village_amount"]),
+			AmilRegionPercent:      int(numOr(m["amil_region_percent"])),
+			AmilRegionAmount:       numOr(m["amil_region_amount"]),
+		})
+	}
+	return out
+}
+
+func handleZakatSaveAllocations(c *fiber.Ctx, svc *service.FinanceService) error {
+	groupID, ok := financeGroup(c)
+	if !ok { return nil }
+	if err := svc.ZakatSaveAllocations(c.Context(), groupID, BodyString(c, "zakat_id"), bodyZakatAllocations(c)); err != nil {
+		return Fail(c, err.Error())
+	}
+	return Ok(c, fiber.Map{"saved": true})
+}
+
+func handleZakatMasters(c *fiber.Ctx, svc *service.FinanceService) error {
+	groupID, ok := financeGroup(c)
+	if !ok { return nil }
+	res, err := svc.ZakatMasters(c.Context(), groupID)
+	if err != nil { return Fail(c, err.Error()) }
 	return Ok(c, res)
+}
+
+func handleZakatAddMaster(c *fiber.Ctx, svc *service.FinanceService) error {
+	groupID, ok := financeGroup(c)
+	if !ok { return nil }
+	id, err := svc.ZakatAddMaster(c.Context(), groupID, BodyString(c, "kind"), BodyString(c, "name"))
+	if err != nil { return Fail(c, err.Error()) }
+	return Ok(c, fiber.Map{"master_id": id})
 }
 
 func handleZakatStatus(c *fiber.Ctx, svc *service.FinanceService) error {
@@ -279,6 +416,21 @@ func handleZakatDelete(c *fiber.Ctx, svc *service.FinanceService) error {
 		return Fail(c, err.Error())
 	}
 	return Ok(c, fiber.Map{"deleted": true})
+}
+
+func strOr(v interface{}) string {
+	s, _ := v.(string)
+	return s
+}
+
+func numOr(v interface{}) float64 {
+	switch n := v.(type) {
+	case float64: return n
+	case float32: return float64(n)
+	case int: return float64(n)
+	case int64: return float64(n)
+	default: return 0
+	}
 }
 
 func handleFinanceSync(c *fiber.Ctx, svc *service.FinanceSyncService) error {

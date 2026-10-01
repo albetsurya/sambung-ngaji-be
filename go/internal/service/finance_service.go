@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -544,6 +543,131 @@ func (s *FinanceService) DuePaymentReverse(ctx context.Context, groupID, payment
 	return nil
 }
 
+// DuePostMarker menandai jurnal kas hasil posting shodaqoh agar idempoten.
+// Pola diadaptasi dari Post_Shodaqoh.js kas-latukan-web (POSTED_SHODAQOH_YYYY-MM).
+func DuePostMarker(monthKey string) string {
+	return "POSTED_SHODAQOH_" + monthKey
+}
+
+// DuePostToCash mengagregat pembayaran shodaqoh bulan tertentu menjadi jurnal kas.
+// 7 pos ala kas-latukan-web: susulan IR, uang sambung, jimpitan, siar-siar,
+// seribuan, kafan, ukhro MT. Satu baris DEBIT per pos yang totalnya > 0.
+func (s *FinanceService) DuePostToCash(ctx context.Context, groupID, monthKey, createdBy string) ([]model.CashTransactionDTO, error) {
+	if len(monthKey) != 7 {
+		return nil, errors.New("bulan tidak valid. Gunakan format YYYY-MM.")
+	}
+	tgl, err := time.Parse("2006-01-02", monthKey+"-01")
+	if err != nil {
+		return nil, errors.New("bulan tidak valid. Gunakan format YYYY-MM.")
+	}
+	payments, err := s.repo.DuePayments(ctx, groupID, monthKey)
+	if err != nil {
+		return nil, err
+	}
+	marker := DuePostMarker(monthKey)
+	existing, err := s.repo.CashList(ctx, groupID, "main")
+	if err != nil {
+		return nil, err
+	}
+	for _, k := range existing {
+		if strings.Contains(k.Description, marker) {
+			return nil, errors.New("bulan " + monthKey + " sudah pernah diposting ke kas.")
+		}
+	}
+	var totIR, totSambung, totJimpitan, totSiar, totSeribu, totKafan, totUkhro float64
+	count := 0
+	for _, p := range payments {
+		if p.Status == "REVERSED" || p.Status == "INACTIVE" || p.TotalAmount <= 0 {
+			continue
+		}
+		count++
+		totIR += p.CarryoverIR
+		totSambung += p.ConnectingFund
+		totJimpitan += p.CommunityDues
+		totSiar += p.OutreachFund
+		totSeribu += p.ThousandFund
+		totKafan += p.FuneralFund
+		totUkhro += p.UkhroMT
+	}
+	if count == 0 {
+		return nil, errors.New("tidak ada pembayaran shodaqoh pada bulan " + monthKey + ".")
+	}
+	label := indonesianMonthLabel(monthKey)
+	pos := []struct {
+		account string
+		amount  float64
+	}{
+		{"INFAQ SHODAQOH IR", totIR},
+		{"UANG SAMBUNG", totSambung},
+		{"JIMPITAN", totJimpitan},
+		{"SIAR-SIAR", totSiar},
+		{"SERIBUAN", totSeribu},
+		{"KAFAN", totKafan},
+		{"UKHRO MT", totUkhro},
+	}
+	out := make([]model.CashTransactionDTO, 0, len(pos))
+	gid := groupID
+	for _, pp := range pos {
+		if pp.amount <= 0 {
+			continue
+		}
+		k := &model.CashTransaction{
+			CashID:      util.NewID("KAS"),
+			GroupID:     &gid,
+			CashType:    "main",
+			Tanggal:     tgl,
+			AccountName: pp.account,
+			Description: "Shodaqoh " + label + " - " + pp.account + " [" + marker + "]",
+			Debit:       pp.amount,
+			Credit:      0,
+			CreatedBy:   createdBy,
+		}
+		if err := s.repo.CashInsert(ctx, k); err != nil {
+			return nil, err
+		}
+		_ = s.repo.MarkSynced(ctx, "cash_transactions", "cash_id", k.CashID, "app", 0)
+		out = append(out, model.CashTransactionDTO{
+			CashID: k.CashID, GroupID: groupID, CashType: "main",
+			TransactionDate: tgl.Format("2006-01-02"),
+			AccountName:     k.AccountName, Description: k.Description,
+			Debit: k.Debit, Credit: 0, CreatedBy: createdBy,
+		})
+	}
+	if len(out) == 0 {
+		return nil, errors.New("total agregat shodaqoh nol, tidak ada yang diposting.")
+	}
+	s.notify(groupID)
+	return out, nil
+}
+
+// DueCancelPostToCash menghapus jurnal hasil posting bulan tertentu.
+func (s *FinanceService) DueCancelPostToCash(ctx context.Context, groupID, monthKey string) (int, error) {
+	if len(monthKey) != 7 {
+		return 0, errors.New("bulan tidak valid. Gunakan format YYYY-MM.")
+	}
+	marker := DuePostMarker(monthKey)
+	rows, err := s.repo.CashList(ctx, groupID, "main")
+	if err != nil {
+		return 0, err
+	}
+	deleted := 0
+	for _, k := range rows {
+		if !strings.Contains(k.Description, marker) {
+			continue
+		}
+		if err := s.repo.CashDelete(ctx, groupID, k.CashID); err != nil {
+			return deleted, err
+		}
+		_ = s.repo.Tombstone(ctx, groupID, "cash", k.CashID)
+		deleted++
+	}
+	if deleted == 0 {
+		return 0, errors.New("tidak ditemukan hasil posting bulan " + monthKey + ".")
+	}
+	s.notify(groupID)
+	return deleted, nil
+}
+
 func (s *FinanceService) DueLastNominals(ctx context.Context, groupID, memberID string) (*model.DuePaymentDTO, error) {
 	payments, err := s.repo.DuePayments(ctx, groupID, "")
 	if err != nil {
@@ -572,7 +696,44 @@ func (s *FinanceService) DueLastNominals(ctx context.Context, groupID, memberID 
 	return &dto, nil
 }
 
-func toZakatDTO(z model.ZakatRecord) model.ZakatRecordDTO {
+type ZakatPayerInput struct {
+	PayerID            string  `json:"payer_id"`
+	MasterID           string  `json:"master_id"`
+	Name               string  `json:"name"`
+	Amount             float64 `json:"amount"`
+	ZakatCategory      string  `json:"zakat_category"`
+	FamilyMembersCount int     `json:"family_members_count"`
+}
+
+type ZakatRecipientInput struct {
+	RecipientID   string  `json:"recipient_id"`
+	MasterID      string  `json:"master_id"`
+	Name          string  `json:"name"`
+	Amount        float64 `json:"amount"`
+	ZakatCategory string  `json:"zakat_category"`
+}
+
+type ZakatAllocationInput struct {
+	Category               string  `json:"category"` // kanonis: FITRAH/MAL/TIJAROH/ZURU/LIVESTOCK/OTHER
+	RecipientPercent       int     `json:"recipient_percent"`
+	RecipientAmount        float64 `json:"recipient_amount"`
+	RecipientGroupPercent  int     `json:"recipient_group_percent"`
+	RecipientGroupAmount   float64 `json:"recipient_group_amount"`
+	RecipientRegionPercent int     `json:"recipient_region_percent"`
+	RecipientRegionAmount  float64 `json:"recipient_region_amount"`
+	SabilillahPercent      int     `json:"sabilillah_percent"`
+	SabilillahAmount       float64 `json:"sabilillah_amount"`
+	AmilPercent            int     `json:"amil_percent"`
+	AmilAmount             float64 `json:"amil_amount"`
+	AmilGroupPercent       int     `json:"amil_group_percent"`
+	AmilGroupAmount        float64 `json:"amil_group_amount"`
+	AmilVillagePercent     int     `json:"amil_village_percent"`
+	AmilVillageAmount      float64 `json:"amil_village_amount"`
+	AmilRegionPercent      int     `json:"amil_region_percent"`
+	AmilRegionAmount       float64 `json:"amil_region_amount"`
+}
+
+func toZakatRecordDTO(z model.ZakatRecord, payers []model.ZakatPayer, recips []model.ZakatRecipient, allocs []model.ZakatAllocation) model.ZakatRecordDTO {
 	gid := ""
 	if z.GroupID != nil {
 		gid = *z.GroupID
@@ -581,111 +742,240 @@ func toZakatDTO(z model.ZakatRecord) model.ZakatRecordDTO {
 	if z.TransactionDate != nil {
 		tgl = z.TransactionDate.Format("2006-01-02")
 	}
-	var muzaki, mustahik []interface{}
-	if z.Details != "" {
-		var det map[string]interface{}
-		if err := json.Unmarshal([]byte(z.Details), &det); err == nil {
-			if v, ok := det["muzakki_list"].([]interface{}); ok {
-				muzaki = v
-			}
-			if v, ok := det["mustahik_list"].([]interface{}); ok {
-				mustahik = v
-			}
+	comp := ""
+	if z.CompletedAt != nil {
+		comp = z.CompletedAt.Format("2006-01-02T15:04:05Z07:00")
+	}
+
+	pList := make([]model.ZakatPayerDTO, 0, len(payers))
+	for _, p := range payers {
+		mid := ""
+		if p.MasterID != nil { mid = *p.MasterID }
+		pList = append(pList, model.ZakatPayerDTO{
+			PayerID: p.PayerID, MasterID: mid, Name: p.Name, Amount: p.Amount,
+			ZakatCategory: p.ZakatCategory, FamilyMembersCount: p.FamilyMembersCount, SortOrder: p.SortOrder,
+		})
+	}
+
+	rList := make([]model.ZakatRecipientDTO, 0, len(recips))
+	for _, p := range recips {
+		mid := ""
+		if p.MasterID != nil { mid = *p.MasterID }
+		rList = append(rList, model.ZakatRecipientDTO{
+			RecipientID: p.RecipientID, MasterID: mid, Name: p.Name, Amount: p.Amount,
+			ZakatCategory: p.ZakatCategory, SortOrder: p.SortOrder,
+		})
+	}
+
+	aDTO := model.ZakatAllocationsDTO{ByCategory: map[string]*model.ZakatAllocationCategoryDTO{}}
+	for _, a := range allocs {
+		cat := &model.ZakatAllocationCategoryDTO{
+			Total: a.RecipientAmount + a.SabilillahAmount + a.AmilAmount,
+			Recipient: model.ZakatAllocationGroupDTO{
+				Percent: a.RecipientPercent, Amount: a.RecipientAmount,
+				Group: &model.ZakatAllocationGroupDTO{Percent: a.RecipientGroupPercent, Amount: a.RecipientGroupAmount},
+				Region: &model.ZakatAllocationGroupDTO{Percent: a.RecipientRegionPercent, Amount: a.RecipientRegionAmount},
+			},
+			Sabilillah: model.ZakatAllocationGroupDTO{Percent: a.SabilillahPercent, Amount: a.SabilillahAmount},
+			Amil: model.ZakatAllocationGroupDTO{
+				Percent: a.AmilPercent, Amount: a.AmilAmount,
+				Group: &model.ZakatAllocationGroupDTO{Percent: a.AmilGroupPercent, Amount: a.AmilGroupAmount},
+				Village: &model.ZakatAllocationGroupDTO{Percent: a.AmilVillagePercent, Amount: a.AmilVillageAmount},
+				Region: &model.ZakatAllocationGroupDTO{Percent: a.AmilRegionPercent, Amount: a.AmilRegionAmount},
+			},
+		}
+		normCat := util.NormZakatCategory(a.Category)
+		aDTO.ByCategory[normCat] = cat
+		if normCat == "FITRAH" {
+			aDTO.Fitrah = cat
+		} else if aDTO.Maal == nil {
+			aDTO.Maal = cat
 		}
 	}
+
+	catSet := map[string]struct{}{}
+	for _, p := range payers {
+		catSet[util.NormZakatCategory(p.ZakatCategory)] = struct{}{}
+	}
+	for _, p := range recips {
+		catSet[util.NormZakatCategory(p.ZakatCategory)] = struct{}{}
+	}
+	categories := make([]string, 0, len(catSet))
+	for c := range catSet {
+		categories = append(categories, c)
+	}
+	sort.Strings(categories)
+
 	return model.ZakatRecordDTO{
-		ZakatID: z.ZakatID, GroupID: gid, ZakatType: z.ZakatType,
-		MuzakkiName: z.MuzakkiName, SoulCount: z.SoulCount,
-		TotalRiceKg: z.TotalRiceKg, TotalMoneyRp: z.TotalMoneyRp,
-		Status: z.Status, TransactionDate: tgl,
-		MuzakkiList: muzaki, MustahikList: mustahik,
-		UpdatedAt: z.UpdatedAt.Format(time.RFC3339),
+		ZakatID: z.ZakatID, GroupID: gid,
+		Title: z.Title, Description: z.Description, Location: z.Location,
+		Categories: categories,
+		SoulCount: z.SoulCount, TotalRiceKg: z.TotalRiceKg, TotalMoneyRp: z.TotalMoneyRp,
+		Status: z.Status, TransactionDate: tgl, CompletedAt: comp, Version: z.Version,
+		UpdatedAt: z.UpdatedAt.Format(time.RFC3339), UpdatedBy: z.UpdatedBy,
+		PayerList: pList, RecipientList: rList, Allocations: &aDTO,
 	}
 }
 
 func (s *FinanceService) ZakatList(ctx context.Context, groupID string) ([]model.ZakatRecordDTO, error) {
-	rows, err := s.repo.ZakatList(ctx, groupID)
-	if err != nil {
-		return nil, err
-	}
-	out := make([]model.ZakatRecordDTO, 0, len(rows))
-	for _, z := range rows {
-		out = append(out, toZakatDTO(z))
-	}
-	return out, nil
+	return s.repo.ZakatListWithCounts(ctx, groupID)
 }
 
-type ZakatSaveInput struct {
-	ZakatID         string
-	GroupID         string
-	ZakatType       string
-	MuzakkiName     string
-	SoulCount       int
-	TotalRiceKg     float64
-	TotalMoneyRp    float64
-	TransactionDate string
-	Details         string
-	CreatedBy       string
-}
-
-func (s *FinanceService) ZakatSave(ctx context.Context, in ZakatSaveInput) (*model.ZakatRecordDTO, error) {
-	if in.MuzakkiName == "" {
-		return nil, errors.New("nama muzakki wajib diisi")
-	}
-	if in.ZakatID == "" {
-		in.ZakatID = util.NewID("ZKT")
-	}
-	zt := strings.ToUpper(in.ZakatType)
-	if zt != "MAL" {
-		zt = "FITRAH"
-	}
-	var tgl *time.Time
-	if in.TransactionDate != "" {
-		t, err := time.Parse("2006-01-02", in.TransactionDate)
-		if err != nil {
-			return nil, errors.New("transaction_date tidak valid (YYYY-MM-DD)")
-		}
-		tgl = &t
-	}
-	det := in.Details
-	if det == "" {
-		det = "{}"
-	}
-	gid := in.GroupID
-	z := &model.ZakatRecord{
-		ZakatID: in.ZakatID, GroupID: &gid, ZakatType: zt,
-		MuzakkiName: in.MuzakkiName, SoulCount: in.SoulCount,
-		TotalRiceKg: in.TotalRiceKg, TotalMoneyRp: in.TotalMoneyRp,
-		Status: "PENDING", TransactionDate: tgl, Details: det, CreatedBy: in.CreatedBy,
-	}
-	if err := s.repo.ZakatUpsert(ctx, z); err != nil {
-		return nil, err
-	}
-	_ = s.repo.MarkSynced(ctx, "zakat_records", "zakat_id", z.ZakatID, "app", 0)
-	dto := toZakatDTO(*z)
-	s.notify(in.GroupID)
+func (s *FinanceService) ZakatDetail(ctx context.Context, groupID, zakatID string) (*model.ZakatRecordDTO, error) {
+	z, payers, recips, allocs, err := s.repo.ZakatDetail(ctx, groupID, zakatID)
+	if err != nil { return nil, err }
+	if z == nil { return nil, errors.New("zakat tidak ditemukan") }
+	dto := toZakatRecordDTO(*z, payers, recips, allocs)
 	return &dto, nil
 }
 
+type ZakatHeaderInput struct {
+	ZakatID         string  `json:"zakat_id"`
+	Title           string  `json:"title"`
+	Description     string  `json:"description"`
+	Location        string  `json:"location"`
+	SoulCount       int     `json:"soul_count"`
+	TotalRiceKg     float64 `json:"total_rice_kg"`
+	TotalMoneyRp    float64 `json:"total_money_rp"`
+	TransactionDate string  `json:"transaction_date"`
+}
+
+func (s *FinanceService) ZakatSave(ctx context.Context, groupID string, in ZakatHeaderInput, actor string) (*model.ZakatRecordDTO, error) {
+	if in.ZakatID != "" {
+		old, _, _, _, _ := s.repo.ZakatDetail(ctx, groupID, in.ZakatID)
+		if old != nil && old.Status == "COMPLETED" {
+			return nil, errors.New("zakat sudah selesai, tidak bisa diubah")
+		}
+	}
+	if in.ZakatID == "" { in.ZakatID = util.NewID("ZKT") }
+	tgl, _ := time.Parse("2006-01-02", in.TransactionDate)
+	z := &model.ZakatRecord{
+		ZakatID: in.ZakatID, GroupID: &groupID,
+		Title: in.Title, Description: in.Description, Location: in.Location,
+		SoulCount: in.SoulCount, TotalRiceKg: in.TotalRiceKg, TotalMoneyRp: in.TotalMoneyRp,
+		TransactionDate: &tgl, CreatedBy: actor, UpdatedBy: actor, Status: "ACTIVE", Version: 1,
+	}
+	if err := s.repo.ZakatUpsert(ctx, z); err != nil { return nil, err }
+	_ = s.repo.MarkSynced(ctx, "zakat_records", "zakat_id", z.ZakatID, "app", 0)
+	s.notify(groupID)
+	return s.ZakatDetail(ctx, groupID, z.ZakatID)
+}
+
+func (s *FinanceService) ZakatSavePayers(ctx context.Context, groupID, zakatID string, items []ZakatPayerInput) error {
+	z, _, _, _, _ := s.repo.ZakatDetail(ctx, groupID, zakatID)
+	if z == nil { return errors.New("zakat tidak ditemukan") }
+	if z.Status == "COMPLETED" { return errors.New("zakat sudah selesai") }
+	payers := make([]model.ZakatPayer, 0, len(items))
+	for _, it := range items {
+		var mid *string
+		if it.MasterID != "" { mid = &it.MasterID }
+		cat := strings.TrimSpace(it.ZakatCategory)
+		if cat == "" {
+			cat = "FITRAH"
+		} else {
+			cat = util.NormZakatCategory(cat)
+		}
+		payers = append(payers, model.ZakatPayer{
+			PayerID: it.PayerID, MasterID: mid, Name: it.Name, Amount: it.Amount,
+			ZakatCategory: cat, FamilyMembersCount: it.FamilyMembersCount,
+		})
+	}
+	if err := s.repo.ReplaceZakatPayers(ctx, zakatID, payers); err != nil { return err }
+	s.notify(groupID)
+	return nil
+}
+
+func (s *FinanceService) ZakatSaveRecipients(ctx context.Context, groupID, zakatID string, items []ZakatRecipientInput) error {
+	z, _, _, _, _ := s.repo.ZakatDetail(ctx, groupID, zakatID)
+	if z == nil { return errors.New("zakat tidak ditemukan") }
+	if z.Status == "COMPLETED" { return errors.New("zakat sudah selesai") }
+	recips := make([]model.ZakatRecipient, 0, len(items))
+	for _, it := range items {
+		var mid *string
+		if it.MasterID != "" { mid = &it.MasterID }
+		cat := strings.TrimSpace(it.ZakatCategory)
+		if cat == "" {
+			cat = "FITRAH"
+		} else {
+			cat = util.NormZakatCategory(cat)
+		}
+		recips = append(recips, model.ZakatRecipient{
+			RecipientID: it.RecipientID, MasterID: mid, Name: it.Name, Amount: it.Amount,
+			ZakatCategory: cat,
+		})
+	}
+	if err := s.repo.ReplaceZakatRecipients(ctx, zakatID, recips); err != nil { return err }
+	s.notify(groupID)
+	return nil
+}
+
+func (s *FinanceService) ZakatSaveAllocations(ctx context.Context, groupID, zakatID string, items []ZakatAllocationInput) error {
+	z, _, _, _, _ := s.repo.ZakatDetail(ctx, groupID, zakatID)
+	if z == nil { return errors.New("zakat tidak ditemukan") }
+	if z.Status == "COMPLETED" { return errors.New("zakat sudah selesai") }
+	allocs := make([]model.ZakatAllocation, 0, len(items))
+	for _, it := range items {
+		if it.RecipientPercent+it.SabilillahPercent+it.AmilPercent != 100 {
+			return errors.New("total persen rincian harus 100%")
+		}
+		allocs = append(allocs, model.ZakatAllocation{
+			ZakatID: zakatID, Category: util.NormZakatCategory(it.Category),
+			RecipientPercent: it.RecipientPercent, RecipientAmount: it.RecipientAmount,
+			RecipientGroupPercent: it.RecipientGroupPercent, RecipientGroupAmount: it.RecipientGroupAmount,
+			RecipientRegionPercent: it.RecipientRegionPercent, RecipientRegionAmount: it.RecipientRegionAmount,
+			SabilillahPercent: it.SabilillahPercent, SabilillahAmount: it.SabilillahAmount,
+			AmilPercent: it.AmilPercent, AmilAmount: it.AmilAmount,
+			AmilGroupPercent: it.AmilGroupPercent, AmilGroupAmount: it.AmilGroupAmount,
+			AmilVillagePercent: it.AmilVillagePercent, AmilVillageAmount: it.AmilVillageAmount,
+			AmilRegionPercent: it.AmilRegionPercent, AmilRegionAmount: it.AmilRegionAmount,
+		})
+	}
+	if err := s.repo.ReplaceZakatAllocations(ctx, zakatID, allocs); err != nil { return err }
+	s.notify(groupID)
+	return nil
+}
+
 func (s *FinanceService) ZakatSetStatus(ctx context.Context, groupID, zakatID, status string) error {
-	st := strings.ToUpper(status)
-	switch st {
-	case "PENDING", "ACTIVE", "COMPLETED", "CANCELLED":
-	default:
-		return errors.New("status zakat tidak valid")
+	z, _, recips, allocs, _ := s.repo.ZakatDetail(ctx, groupID, zakatID)
+	if z == nil { return errors.New("zakat tidak ditemukan") }
+	if strings.ToUpper(status) == "COMPLETED" {
+		var danaRecipient float64
+		for _, a := range allocs {
+			if util.NormZakatCategory(a.Category) == "MAL" {
+				danaRecipient += a.RecipientGroupAmount + a.RecipientRegionAmount
+			} else {
+				danaRecipient += a.RecipientAmount
+			}
+		}
+		var totalRecip float64
+		for _, r := range recips { totalRecip += r.Amount }
+		if totalRecip < danaRecipient-1 {
+			return fmt.Errorf("recipient belum teralokasi semua! Kurang Rp %.0f", danaRecipient-totalRecip)
+		}
 	}
-	if err := s.repo.ZakatSetStatus(ctx, groupID, zakatID, st); err != nil {
-		return err
+	var comp *time.Time
+	if strings.ToUpper(status) == "COMPLETED" {
+		now := time.Now()
+		comp = &now
 	}
+	if err := s.repo.ZakatSetStatus(ctx, groupID, zakatID, strings.ToUpper(status), comp); err != nil { return err }
 	_ = s.repo.MarkSynced(ctx, "zakat_records", "zakat_id", zakatID, "app", 0)
 	s.notify(groupID)
 	return nil
 }
 
+func (s *FinanceService) ZakatMasters(ctx context.Context, groupID string) (map[string]interface{}, error) {
+	p, r, err := s.repo.MastersList(ctx, groupID)
+	if err != nil { return nil, err }
+	return map[string]interface{}{"payers": p, "recipients": r}, nil
+}
+
+func (s *FinanceService) ZakatAddMaster(ctx context.Context, groupID, kind, name string) (string, error) {
+	return s.repo.MasterUpsert(ctx, kind, groupID, name)
+}
+
 func (s *FinanceService) ZakatDelete(ctx context.Context, groupID, zakatID string) error {
-	if err := s.repo.ZakatDelete(ctx, groupID, zakatID); err != nil {
-		return err
-	}
+	if err := s.repo.ZakatDelete(ctx, groupID, zakatID); err != nil { return err }
 	_ = s.repo.Tombstone(ctx, groupID, "zakat", zakatID)
 	s.notify(groupID)
 	return nil

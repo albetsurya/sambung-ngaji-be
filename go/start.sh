@@ -39,7 +39,7 @@ if [ -n "$DATABASE_URL" ]; then
     # efek yang diinginkan dibawa ulang oleh 023/024 (idempotent).
     # Versi yang tidak ada di remote -> repair gagal -> diabaikan (|| true).
     echo "--- supabase migration repair (cleanup history hantu) ---"
-    for ghost in 000013 021 022; do
+    for ghost in 000013 021 022 028; do
         supabase migration repair --db-url "$DATABASE_URL" --status reverted "$ghost" --yes 2>/dev/null || true
     done
 

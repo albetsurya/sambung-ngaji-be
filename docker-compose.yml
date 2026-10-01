@@ -4,7 +4,7 @@ services:
     container_name: sambung-ngaji-postgres
     restart: unless-stopped
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     environment:
       POSTGRES_USER: pengajian
       POSTGRES_PASSWORD: dev_password
@@ -40,7 +40,7 @@ services:
     container_name: sambung-ngaji-adminer
     restart: unless-stopped
     ports:
-      - "8091:8080"
+      - "127.0.0.1:8091:8080"
     depends_on:
       - postgres
 

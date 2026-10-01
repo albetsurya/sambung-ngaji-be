@@ -2,8 +2,58 @@ package ai
 
 import "pengajian-backend/internal/model"
 
-func AdminTools() []model.LLMToolDef {
+func FinanceTools() []model.LLMToolDef {
 	return []model.LLMToolDef{
+		{
+			Type: "function",
+			Function: model.LLMToolDefFunc{
+				Name:        "get_finance_summary",
+				Description: "Ambil ringkasan kas (kas utama & kas kedua/event), total pemasukan, pengeluaran, saldo, dan daftar transaksi terbaru.",
+				Parameters: map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"cash_type": map[string]interface{}{"type": "string", "description": "main atau secondary"},
+						"group_id":  map[string]interface{}{"type": "string", "description": "group_id kelompok (opsional)"},
+					},
+					"required": []string{},
+				},
+			},
+		},
+		{
+			Type: "function",
+			Function: model.LLMToolDefFunc{
+				Name:        "get_shodaqoh_summary",
+				Description: "Ambil rekap iuran shodaqoh bulanan (total penerimaan, target, daftar anggota lunas & tunggakan).",
+				Parameters: map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"group_id": map[string]interface{}{"type": "string", "description": "group_id kelompok (opsional)"},
+						"month":    map[string]interface{}{"type": "string", "description": "Format YYYY-MM (contoh: 2026-09)"},
+					},
+					"required": []string{},
+				},
+			},
+		},
+		{
+			Type: "function",
+			Function: model.LLMToolDefFunc{
+				Name:        "get_zakat_summary",
+				Description: "Ambil rekap data zakat fitrah & zakat mal (total jiwa, total beras, total uang, alokasi per kategori, daftar muzaki & mustahik).",
+				Parameters: map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"group_id": map[string]interface{}{"type": "string", "description": "group_id kelompok (opsional)"},
+						"zakat_id": map[string]interface{}{"type": "string", "description": "zakat_id (opsional jika ingin detail zakat spesifik)"},
+					},
+					"required": []string{},
+				},
+			},
+		},
+	}
+}
+
+func AdminTools(canFinance bool) []model.LLMToolDef {
+	tools := []model.LLMToolDef{
 		{
 			Type: "function",
 			Function: model.LLMToolDefFunc{
@@ -127,6 +177,10 @@ func AdminTools() []model.LLMToolDef {
 			},
 		},
 	}
+	if canFinance {
+		tools = append(tools, FinanceTools()...)
+	}
+	return tools
 }
 
 func MemberTools() []model.LLMToolDef {

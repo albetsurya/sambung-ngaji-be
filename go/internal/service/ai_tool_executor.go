@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 
+	"pengajian-backend/internal/auth"
 	"pengajian-backend/internal/model"
 	"pengajian-backend/internal/util"
 )
@@ -20,6 +21,7 @@ type AIToolExecutor struct {
 	monitoring   *MonitoringService
 	announcement *AnnouncementService
 	profile      *ProfileService
+	finance      *FinanceService
 }
 
 func NewAIToolExecutor(
@@ -31,6 +33,7 @@ func NewAIToolExecutor(
 	monitoring *MonitoringService,
 	announcement *AnnouncementService,
 	profile *ProfileService,
+	finance *FinanceService,
 ) *AIToolExecutor {
 	return &AIToolExecutor{
 		dashboard:    dashboard,
@@ -41,11 +44,69 @@ func NewAIToolExecutor(
 		monitoring:   monitoring,
 		announcement: announcement,
 		profile:      profile,
+		finance:      finance,
 	}
 }
 
-func (e *AIToolExecutor) Execute(ctx context.Context, name string, args map[string]interface{}, userID, memberID string, isMember bool) (interface{}, error) {
+func (e *AIToolExecutor) Execute(ctx context.Context, name string, args map[string]interface{}, user *model.User, memberID string, isMember bool) (interface{}, error) {
+	userRole := ""
+	userGroupID := ""
+	if user != nil {
+		userRole = user.Role
+		if user.GroupID != nil {
+			userGroupID = *user.GroupID
+		}
+	}
+
 	switch name {
+	case "get_finance_summary":
+		if !auth.CanAccess(userRole, "getCashLedger") {
+			return nil, fmt.Errorf("Access Denied: Role Anda (%s) tidak memiliki izin untuk mengakses data keuangan", userRole)
+		}
+		if e.finance == nil {
+			return nil, errors.New("layanan keuangan belum diinisialisasi")
+		}
+		cashType := getStringArg(args, "cash_type")
+		if cashType == "" {
+			cashType = "main"
+		}
+		targetGroup := userGroupID
+		if g := getStringArg(args, "group_id"); g != "" {
+			targetGroup = g
+		}
+		return e.finance.CashList(ctx, targetGroup, cashType)
+
+	case "get_shodaqoh_summary":
+		if !auth.CanAccess(userRole, "getMonthlyDues") {
+			return nil, fmt.Errorf("Access Denied: Role Anda (%s) tidak memiliki izin untuk mengakses data keuangan", userRole)
+		}
+		if e.finance == nil {
+			return nil, errors.New("layanan keuangan belum diinisialisasi")
+		}
+		month := getStringArg(args, "month")
+		targetGroup := userGroupID
+		if g := getStringArg(args, "group_id"); g != "" {
+			targetGroup = g
+		}
+		return e.finance.DuesData(ctx, targetGroup, month)
+
+	case "get_zakat_summary":
+		if !auth.CanAccess(userRole, "getZakatRecords") {
+			return nil, fmt.Errorf("Access Denied: Role Anda (%s) tidak memiliki izin untuk mengakses data keuangan", userRole)
+		}
+		if e.finance == nil {
+			return nil, errors.New("layanan keuangan belum diinisialisasi")
+		}
+		targetGroup := userGroupID
+		if g := getStringArg(args, "group_id"); g != "" {
+			targetGroup = g
+		}
+		zakatID := getStringArg(args, "zakat_id")
+		if zakatID != "" {
+			return e.finance.ZakatDetail(ctx, targetGroup, zakatID)
+		}
+		return e.finance.ZakatList(ctx, targetGroup)
+
 	case "get_dashboard_summary":
 		return e.dashboard.GetGeneral(ctx, "")
 

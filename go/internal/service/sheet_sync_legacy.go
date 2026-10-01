@@ -90,9 +90,10 @@ func (s *FinanceSyncService) pullLegacyPayments(ctx context.Context, cli *sheets
 		if exists && !newerThan(r["updated_at"], dbTS) {
 			continue
 		}
-		tgl, err := util.ParseSheetDate(r["transaction_date"])
+		dateStr := sheetGet(r, "payment_date", "transaction_date", "tanggal")
+		tgl, err := util.ParseSheetDate(dateStr)
 		if err != nil {
-			s.recordError(ctx, groupID, "due_payments", r["payment_id"], "legacy->db", "transaction_date tidak valid: "+r["transaction_date"])
+			s.recordError(ctx, groupID, "due_payments", r["payment_id"], "legacy->db", "transaction_date tidak valid: "+dateStr)
 			continue
 		}
 		// Rincian susulan: breakdown JSON (eksak) > teks bulan (bagi rata).
