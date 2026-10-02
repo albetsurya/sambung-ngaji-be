@@ -6,8 +6,8 @@ var rolePermissions = map[string][]string{
 	"changeMyPassword": {"SUPER_ADMIN", "ADMIN", "TIM_PNKB", "TIM_ABSENSI", "PENGAWAS", "MEMBER"},
 	"changeMyUsername": {"SUPER_ADMIN", "ADMIN", "TIM_PNKB", "TIM_ABSENSI", "PENGAWAS", "MEMBER"},
 
-	"getDashboard":   {"ADMIN", "TIM_PNKB", "TIM_ABSENSI", "PENGAWAS"},
-	"getMyDashboard": {"SUPER_ADMIN", "ADMIN", "TIM_PNKB", "TIM_ABSENSI", "PENGAWAS", "MEMBER"},
+	"getDashboard":   {"ADMIN", "TIM_PNKB", "TIM_ABSENSI", "PENGAWAS", "TIM_KU"},
+	"getMyDashboard": {"SUPER_ADMIN", "ADMIN", "TIM_PNKB", "TIM_ABSENSI", "PENGAWAS", "TIM_KU", "MEMBER"},
 
 	"getMembers":           {"ADMIN", "PENGAWAS"},
 	"getMembersPaged":      {"ADMIN", "TIM_ABSENSI", "PENGAWAS"},

@@ -378,6 +378,7 @@ var validRoles = map[string]bool{
 	"TIM_PNKB":    true,
 	"TIM_ABSENSI": true,
 	"PENGAWAS":    true,
+	"TIM_KU":      true,
 	"MEMBER":      true,
 }
 
