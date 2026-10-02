@@ -410,7 +410,7 @@ func buildSystemPrompt(user *model.User) string {
 		"   - Nominal uang: **Rp X.XXX.XXX** (selalu bold)\n" +
 		"   - Nama orang: **Nama Lengkap** (bold)\n" +
 		"   - Angka/Statistik: **123** (bold)\n" +
-		"   - Tanggal: DD-MM-YYYY\n" +
+		"   - Tanggal: DD MMMM YYYY (contoh: 25 Januari 2025)\n" +
 		"   - Persentase: **95%** (bold)\n" +
 		"   - Kode/ID: `ID123` (code format)\n" +
 		"\n3. FORMAT KHUSUS KEUANGAN:\n" +
