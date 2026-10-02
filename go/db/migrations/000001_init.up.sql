@@ -50,7 +50,7 @@ CREATE TABLE users (
   username       TEXT NOT NULL UNIQUE,
   password_hash  TEXT NOT NULL,
   nama           TEXT NOT NULL DEFAULT '',
-  role           TEXT NOT NULL CHECK (role IN ('SUPER_ADMIN','ADMIN','TIM_PNKB','TIM_ABSENSI','PENGAWAS','MEMBER')),
+  role           TEXT NOT NULL CHECK (role IN ('SUPER_ADMIN','ADMIN','TIM_PNKB','TIM_ABSENSI','PENGAWAS','TIM_KU','MEMBER')),
   member_id      TEXT,
   status_aktif   BOOLEAN NOT NULL DEFAULT true,
   created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),

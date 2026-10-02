@@ -59,7 +59,7 @@ func handleLogin(c *fiber.Ctx, svc *auth.Service, auditSvc *service.AuditService
 
 	token, u, err := svc.Login(c.Context(), username, password)
 	if err != nil {
-		return Fail(c, "Gagal login")
+		return Fail(c, err.Error())
 	}
 
 	setSessionCookie(c, token, sessionCookieMaxAge())
