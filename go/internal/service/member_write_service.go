@@ -290,6 +290,9 @@ func (s *MemberService) UpdateFull(ctx context.Context, in UpdateMemberInput) (*
 	if err := s.repo.Update(ctx, in.MemberID, patch); err != nil {
 		return nil, err
 	}
+	if _, ok := patch["group_id"]; ok {
+		_ = s.repo.SyncUsersGroupByMember(ctx, in.MemberID)
+	}
 	m, err := s.repo.FindByID(ctx, in.MemberID)
 	if err != nil {
 		return nil, err

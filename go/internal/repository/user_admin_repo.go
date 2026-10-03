@@ -19,7 +19,7 @@ func NewUserAdminRepo(pool *pgxpool.Pool) *UserAdminRepo {
 
 const userAdminSelectCols = `
 	u.user_id, u.username, u.password_hash, u.nama, u.role, u.member_id,
-	COALESCE(u.group_id, m.group_id, '') AS group_id,
+	COALESCE(m.group_id, u.group_id, '') AS group_id,
 	u.status_aktif, u.created_at, u.updated_at, u.last_login_at`
 
 func (r *UserAdminRepo) FindAll(ctx context.Context) ([]model.User, error) {
