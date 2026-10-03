@@ -5,11 +5,11 @@ import "time"
 type Monitoring struct {
 	MonitoringID string
 	MemberID     string
-	Tanggal      time.Time
-	Jenis        string
+	Date      time.Time
+	Type        string
 	Status       string
-	Catatan      string
-	TindakLanjut string
+	Notes      string
+	FollowUp string
 	CreatedBy    *string
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
@@ -18,11 +18,11 @@ type Monitoring struct {
 type MonitoringDTO struct {
 	MonitoringID string `json:"monitoring_id"`
 	MemberID     string `json:"member_id"`
-	Tanggal      string `json:"tanggal"`
-	Jenis        string `json:"jenis"`
+	Date      string `json:"date"`
+	Type        string `json:"type"`
 	Status       string `json:"status"`
-	Catatan      string `json:"catatan"`
-	TindakLanjut string `json:"tindak_lanjut"`
+	Notes      string `json:"notes"`
+	FollowUp string `json:"follow_up"`
 	CreatedBy    string `json:"created_by"`
 	CreatedAt    string `json:"created_at"`
 	UpdatedAt    string `json:"updated_at"`

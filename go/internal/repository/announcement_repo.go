@@ -17,7 +17,7 @@ func NewAnnouncementRepo(pool *pgxpool.Pool) *AnnouncementRepo {
 }
 
 const templateSelectCols = `
-	template_id, group_id, nama_template, kode, isi_template, status_aktif, created_at, updated_at`
+	template_id, group_id, template_name, kode, template_body, is_active, created_at, updated_at`
 
 func (r *AnnouncementRepo) FindTemplates(ctx context.Context, groupID string, includeInactive bool) ([]model.AnnouncementTemplate, error) {
 	q := `SELECT ` + templateSelectCols + ` FROM announcement_templates WHERE 1=1`
@@ -29,9 +29,9 @@ func (r *AnnouncementRepo) FindTemplates(ctx context.Context, groupID string, in
 		n++
 	}
 	if !includeInactive {
-		q += ` AND status_aktif = true`
+		q += ` AND is_active = true`
 	}
-	q += ` ORDER BY nama_template`
+	q += ` ORDER BY template_name`
 	rows, err := r.pool.Query(ctx, q, args...)
 	if err != nil {
 		return nil, err
@@ -41,8 +41,8 @@ func (r *AnnouncementRepo) FindTemplates(ctx context.Context, groupID string, in
 	for rows.Next() {
 		var t model.AnnouncementTemplate
 		if err := rows.Scan(
-			&t.TemplateID, &t.GroupID, &t.NamaTemplate, &t.Kode, &t.IsiTemplate,
-			&t.StatusAktif, &t.CreatedAt, &t.UpdatedAt,
+			&t.TemplateID, &t.GroupID, &t.TemplateName, &t.Kode, &t.TemplateBody,
+			&t.IsActive, &t.CreatedAt, &t.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -56,8 +56,8 @@ func (r *AnnouncementRepo) FindTemplateByID(ctx context.Context, id string) (*mo
 	err := r.pool.QueryRow(ctx,
 		`SELECT `+templateSelectCols+` FROM announcement_templates WHERE template_id = $1`, id,
 	).Scan(
-		&t.TemplateID, &t.GroupID, &t.NamaTemplate, &t.Kode, &t.IsiTemplate,
-		&t.StatusAktif, &t.CreatedAt, &t.UpdatedAt,
+		&t.TemplateID, &t.GroupID, &t.TemplateName, &t.Kode, &t.TemplateBody,
+		&t.IsActive, &t.CreatedAt, &t.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err
@@ -70,8 +70,8 @@ func (r *AnnouncementRepo) FindTemplateByKode(ctx context.Context, kode string) 
 	err := r.pool.QueryRow(ctx,
 		`SELECT `+templateSelectCols+` FROM announcement_templates WHERE kode = $1`, kode,
 	).Scan(
-		&t.TemplateID, &t.GroupID, &t.NamaTemplate, &t.Kode, &t.IsiTemplate,
-		&t.StatusAktif, &t.CreatedAt, &t.UpdatedAt,
+		&t.TemplateID, &t.GroupID, &t.TemplateName, &t.Kode, &t.TemplateBody,
+		&t.IsActive, &t.CreatedAt, &t.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err
@@ -82,9 +82,9 @@ func (r *AnnouncementRepo) FindTemplateByKode(ctx context.Context, kode string) 
 func (r *AnnouncementRepo) InsertTemplate(ctx context.Context, t *model.AnnouncementTemplate) error {
 	_, err := r.pool.Exec(ctx, `
 		INSERT INTO announcement_templates
-		(template_id, group_id, nama_template, kode, isi_template, status_aktif, created_at, updated_at)
+		(template_id, group_id, template_name, kode, template_body, is_active, created_at, updated_at)
 		VALUES ($1,$2,$3,$4,$5,$6,now(),now())
-	`, t.TemplateID, t.GroupID, t.NamaTemplate, t.Kode, t.IsiTemplate, t.StatusAktif)
+	`, t.TemplateID, t.GroupID, t.TemplateName, t.Kode, t.TemplateBody, t.IsActive)
 	return err
 }
 
@@ -105,13 +105,13 @@ func (r *AnnouncementRepo) UpdateTemplate(ctx context.Context, id string, patch 
 
 func (r *AnnouncementRepo) SoftDeleteTemplate(ctx context.Context, id string) error {
 	_, err := r.pool.Exec(ctx,
-		`UPDATE announcement_templates SET status_aktif = false, updated_at = now() WHERE template_id = $1`, id)
+		`UPDATE announcement_templates SET is_active = false, updated_at = now() WHERE template_id = $1`, id)
 	return err
 }
 
 const announcementSelectCols = `
-	announcement_id, template_id, meeting_id, group_id, tanggal, hari,
-	jam, acara, materi, catatan, generated_text, status, created_by,
+	announcement_id, template_id, meeting_id, group_id, date, day,
+	time, event, topic, notes, generated_text, status, created_by,
 	created_at, updated_at`
 
 func (r *AnnouncementRepo) FindAnnouncements(ctx context.Context, groupID, status string) ([]model.Announcement, error) {
@@ -127,7 +127,7 @@ func (r *AnnouncementRepo) FindAnnouncements(ctx context.Context, groupID, statu
 		q += ` AND status = $` + itoa(n)
 		args = append(args, status)
 	}
-	q += ` ORDER BY tanggal DESC`
+	q += ` ORDER BY date DESC`
 	rows, err := r.pool.Query(ctx, q, args...)
 	if err != nil {
 		return nil, err
@@ -145,8 +145,8 @@ func (r *AnnouncementRepo) FindAnnouncementByID(ctx context.Context, id string) 
 func scanAnnouncement(s rowScanner) (*model.Announcement, error) {
 	var a model.Announcement
 	err := s.Scan(
-		&a.AnnouncementID, &a.TemplateID, &a.MeetingID, &a.GroupID, &a.Tanggal, &a.Hari,
-		&a.Jam, &a.Acara, &a.Materi, &a.Catatan, &a.GeneratedText, &a.Status, &a.CreatedBy,
+		&a.AnnouncementID, &a.TemplateID, &a.MeetingID, &a.GroupID, &a.Date, &a.Day,
+		&a.Time, &a.Event, &a.Topic, &a.Notes, &a.GeneratedText, &a.Status, &a.CreatedBy,
 		&a.CreatedAt, &a.UpdatedAt,
 	)
 	if err != nil {
@@ -160,8 +160,8 @@ func scanAnnouncements(rows rowsScanner) ([]model.Announcement, error) {
 	for rows.Next() {
 		var a model.Announcement
 		err := rows.Scan(
-			&a.AnnouncementID, &a.TemplateID, &a.MeetingID, &a.GroupID, &a.Tanggal, &a.Hari,
-			&a.Jam, &a.Acara, &a.Materi, &a.Catatan, &a.GeneratedText, &a.Status, &a.CreatedBy,
+			&a.AnnouncementID, &a.TemplateID, &a.MeetingID, &a.GroupID, &a.Date, &a.Day,
+			&a.Time, &a.Event, &a.Topic, &a.Notes, &a.GeneratedText, &a.Status, &a.CreatedBy,
 			&a.CreatedAt, &a.UpdatedAt,
 		)
 		if err != nil {
@@ -175,12 +175,12 @@ func scanAnnouncements(rows rowsScanner) ([]model.Announcement, error) {
 func (r *AnnouncementRepo) InsertAnnouncement(ctx context.Context, a *model.Announcement) error {
 	_, err := r.pool.Exec(ctx, `
 		INSERT INTO announcements
-		(announcement_id, template_id, meeting_id, group_id, tanggal, hari,
-		 jam, acara, materi, catatan, generated_text, status, created_by,
+		(announcement_id, template_id, meeting_id, group_id, date, day,
+		 time, event, topic, notes, generated_text, status, created_by,
 		 created_at, updated_at)
 		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,now(),now())
-	`, a.AnnouncementID, a.TemplateID, a.MeetingID, a.GroupID, a.Tanggal, a.Hari,
-		a.Jam, a.Acara, a.Materi, a.Catatan, a.GeneratedText, a.Status, a.CreatedBy)
+	`, a.AnnouncementID, a.TemplateID, a.MeetingID, a.GroupID, a.Date, a.Day,
+		a.Time, a.Event, a.Topic, a.Notes, a.GeneratedText, a.Status, a.CreatedBy)
 	return err
 }
 

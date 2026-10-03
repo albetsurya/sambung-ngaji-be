@@ -9,13 +9,13 @@ import (
 func handleSaveFridaySchedule(c *fiber.Ctx, svc *service.FridayService) error {
 	in := service.SaveFridayInput{
 		GroupID:       BodyString(c, "group_id"),
-		Tanggal:       BodyString(c, "tanggal"),
-		KhatibImam:    BodyString(c, "khatib_imam"),
+		Date:       BodyString(c, "date"),
+		SermonLeader:    BodyString(c, "sermon_leader"),
 		Muadzin:       BodyString(c, "muadzin"),
-		Penasihat:     BodyString(c, "penasihat"),
-		PetugasParkir: BodyString(c, "petugas_parkir"),
-		PenataSandal:  BodyString(c, "penata_sandal"),
-		Catatan:       BodyString(c, "catatan"),
+		Advisor:     BodyString(c, "advisor"),
+		ParkingAttendant: BodyString(c, "parking_attendant"),
+		FootwearAttendant:  BodyString(c, "footwear_attendant"),
+		Notes:       BodyString(c, "notes"),
 	}
 	if u := UserOf(c); u != nil {
 		in.CreatedBy = u.Username
@@ -40,10 +40,10 @@ func handleGetFridaySchedules(c *fiber.Ctx, svc *service.FridayService) error {
 }
 
 func handleDeleteFridaySchedule(c *fiber.Ctx, svc *service.FridayService) error {
-	if err := svc.Delete(c.Context(), BodyString(c, "group_id"), BodyString(c, "tanggal")); err != nil {
+	if err := svc.Delete(c.Context(), BodyString(c, "group_id"), BodyString(c, "date")); err != nil {
 		return Fail(c, err.Error())
 	}
-	return Ok(c, fiber.Map{"tanggal": BodyString(c, "tanggal"), "deleted": true})
+	return Ok(c, fiber.Map{"date": BodyString(c, "date"), "deleted": true})
 }
 
 func handleGetFridayReminderStatus(c *fiber.Ctx, svc *service.FridayReminderService) error {
@@ -55,7 +55,7 @@ func handleGetFridayReminderStatus(c *fiber.Ctx, svc *service.FridayReminderServ
 }
 
 func handleMarkFridayReminderSent(c *fiber.Ctx, svc *service.FridayReminderService) error {
-	if err := svc.MarkSent(c.Context(), BodyString(c, "tanggal")); err != nil {
+	if err := svc.MarkSent(c.Context(), BodyString(c, "date")); err != nil {
 		return Fail(c, err.Error())
 	}
 	return Ok(c, fiber.Map{"marked": true})

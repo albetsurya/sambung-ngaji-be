@@ -6,11 +6,11 @@ type User struct {
 	UserID       string
 	Username     string
 	PasswordHash string
-	Nama         string
+	Name         string
 	Role         string
 	GroupID      *string
 	MemberID     *string
-	StatusAktif  bool
+	IsActive  bool
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 	LastLoginAt  *time.Time
@@ -19,12 +19,12 @@ type User struct {
 type PublicUser struct {
 	UserID       string `json:"user_id"`
 	Username     string `json:"username"`
-	Nama         string `json:"nama"`
+	Name         string `json:"name"`
 	Role         string `json:"role"`
 	GroupID      string `json:"group_id"`
 	MemberID     string `json:"member_id"`
-	JenisKelamin string `json:"jenis_kelamin"`
-	FotoURL      string `json:"foto_url"`
+	Gender string `json:"gender"`
+	PhotoURL      string `json:"photo_url"`
 }
 
 type SessionClaims struct {

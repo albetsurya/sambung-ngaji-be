@@ -10,9 +10,9 @@ import (
 func parseMemberFilter(c *fiber.Ctx) model.MemberListFilter {
 	return model.MemberListFilter{
 		Search:          BodyString(c, "search"),
-		Kelompok:        BodyString(c, "kelompok"),
-		JenisKelamin:    BodyString(c, "jenis_kelamin"),
-		Desa:            BodyString(c, "desa"),
+		GroupLabel:        BodyString(c, "group_label"),
+		Gender:    BodyString(c, "gender"),
+		Village:            BodyString(c, "village"),
 		Kategori:        BodyString(c, "kategori"),
 		IncludeInactive: BodyBool(c, "includeInactive"),
 		Limit:           int(BodyFloat(c, "limit")),
@@ -24,7 +24,7 @@ func handleGetMembers(c *fiber.Ctx, svc *service.MemberService) error {
 	f := parseMemberFilter(c)
 	groupID := BodyString(c, "group_id")
 	if groupID == "" {
-		groupID = f.Kelompok
+		groupID = f.GroupLabel
 	}
 	if g, isSuper := ActorOf(c); !isSuper && g != "" && g != UnassignedGroup {
 		groupID = g
@@ -40,7 +40,7 @@ func handleGetMembersPaged(c *fiber.Ctx, svc *service.MemberService) error {
 	f := parseMemberFilter(c)
 	groupID := BodyString(c, "group_id")
 	if groupID == "" {
-		groupID = f.Kelompok
+		groupID = f.GroupLabel
 	}
 	if g, isSuper := ActorOf(c); !isSuper && g != "" && g != UnassignedGroup {
 		groupID = g

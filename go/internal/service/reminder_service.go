@@ -57,7 +57,7 @@ func (s *ReminderService) RunOnce(ctx context.Context) error {
 		if err := s.meetingRepo.MarkReminderSent(ctx, m.MeetingID); err != nil {
 			log.Error().Err(err).Str("meeting_id", m.MeetingID).Msg("gagal update reminder_sent_at")
 		}
-		log.Info().Str("meeting_id", m.MeetingID).Str("acara", m.Acara).Msg("reminder terkirim")
+		log.Info().Str("meeting_id", m.MeetingID).Str("event", m.Event).Msg("reminder terkirim")
 	}
 
 	return nil
@@ -70,6 +70,6 @@ func buildReminderMessage(m repository.ReminderMeetingRow) string {
 			"📅 %s\n"+
 			"🕐 %s\n\n"+
 			"Mohon hadir tepat waktu. Barakallahu fiik.",
-		m.Acara, m.Tanggal, m.Jam,
+		m.Event, m.Date, m.Time,
 	)
 }

@@ -6,14 +6,14 @@ import (
 )
 
 // Regresi: sheet 1 Agu 00:00 WIB diserial JSON sebagai
-// "2026-07-31T17:00:00.000Z" — harus kembali menjadi 2026-08-01, bukan 31 Juli.
+// "2026-07-31T17:00:00.000Z" - harus kembali menjadi 2026-08-01, bukan 31 Juli.
 func TestParseSheetDate_RFC3339InstantKeWIB(t *testing.T) {
 	got, err := ParseSheetDate("2026-07-31T17:00:00.000Z")
 	if err != nil {
 		t.Fatalf("parse gagal: %v", err)
 	}
 	if got.Format("2006-01-02") != "2026-08-01" {
-		t.Fatalf("selisih 1 hari: dapat %s, mau 2026-08-01", got.Format("2006-01-02"))
+		t.Fatalf("selisih 1 day: dapat %s, mau 2026-08-01", got.Format("2006-01-02"))
 	}
 }
 
@@ -40,7 +40,7 @@ func TestFormatDate_DariInstantUTC(t *testing.T) {
 	if got := FormatDate(&inst); got != "2026-08-01" {
 		t.Fatalf("FormatDate: dapat %s, mau 2026-08-01", got)
 	}
-	// DATE midnight UTC tetap hari yang sama.
+	// DATE midnight UTC tetap day yang sama.
 	mid := time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC)
 	if got := FormatDate(&mid); got != "2026-08-01" {
 		t.Fatalf("FormatDate midnight: dapat %s, mau 2026-08-01", got)

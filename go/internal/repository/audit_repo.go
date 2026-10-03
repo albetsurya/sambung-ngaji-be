@@ -17,7 +17,7 @@ func NewAuditRepo(pool *pgxpool.Pool) *AuditRepo {
 }
 
 const auditSelectCols = `
-	log_id, user_id, user_nama, action, target_type, target_id, timestamp`
+	log_id, user_id, user_name, action, target_type, target_id, timestamp`
 
 func (r *AuditRepo) FindAll(ctx context.Context, userID, targetType string, limit int) ([]model.AuditLog, error) {
 	if limit <= 0 || limit > 1000 {
@@ -49,7 +49,7 @@ func (r *AuditRepo) FindAll(ctx context.Context, userID, targetType string, limi
 	for rows.Next() {
 		var a model.AuditLog
 		if err := rows.Scan(
-			&a.LogID, &a.UserID, &a.UserNama, &a.Action,
+			&a.LogID, &a.UserID, &a.UserName, &a.Action,
 			&a.TargetType, &a.TargetID, &a.Timestamp,
 		); err != nil {
 			return nil, err
@@ -61,7 +61,7 @@ func (r *AuditRepo) FindAll(ctx context.Context, userID, targetType string, limi
 
 func (r *AuditRepo) Insert(ctx context.Context, logID string, userID *string, userNama, action, targetType, targetID string) error {
 	_, err := r.pool.Exec(ctx, `
-		INSERT INTO audit_logs (log_id, user_id, user_nama, action, target_type, target_id, timestamp)
+		INSERT INTO audit_logs (log_id, user_id, user_name, action, target_type, target_id, timestamp)
 		VALUES ($1, $2, $3, $4, $5, $6, now())
 	`, logID, userID, userNama, action, targetType, targetID)
 	return err

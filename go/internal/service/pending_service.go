@@ -72,24 +72,24 @@ func (s *PendingService) CheckUsername(ctx context.Context, username string) (*C
 
 type SubmitRegistrationInput struct {
 	GroupID                string
-	NamaLengkap            string
-	NamaPanggilan          string
-	JenisKelamin           string
-	TempatLahir            string
-	TanggalLahir           string
-	NoWA                   string
-	AlamatRumah            string
-	Desa                   string
-	Daerah                 string
-	Pekerjaan              string
-	Hobi                   string
-	IsNikah                bool
-	JenjangPendidikan      string
-	Sekolah                string
-	Jurusan                string
-	TahunMulaiPendidikan   string
-	TahunSelesaiPendidikan string
-	FotoURL                string
+	FullName            string
+	Nickname          string
+	Gender           string
+	BirthPlace            string
+	BirthDate           string
+	WhatsappNumber                   string
+	HomeAddress            string
+	Village                   string
+	Region                 string
+	Occupation              string
+	Hobby                   string
+	IsMarried                bool
+	EducationLevel      string
+	School                string
+	Major                string
+	EducationStartYear   string
+	EducationEndYear string
+	PhotoURL                string
 	Username               string
 	Password               string
 	ClientIP               string
@@ -97,28 +97,28 @@ type SubmitRegistrationInput struct {
 
 type SubmitRegistrationResult struct {
 	SubmissionID string `json:"submission_id"`
-	NamaLengkap  string `json:"nama_lengkap"`
+	FullName  string `json:"full_name"`
 	SubmittedAt  string `json:"submitted_at"`
 }
 
 func (s *PendingService) SubmitRegistration(ctx context.Context, in SubmitRegistrationInput) (*SubmitRegistrationResult, error) {
 
-	in.NamaLengkap = util.TitleCaseID(in.NamaLengkap)
-	in.NamaPanggilan = util.TitleCaseID(in.NamaPanggilan)
-	in.TempatLahir = util.TitleCaseID(in.TempatLahir)
-	in.Desa = util.TitleCaseID(in.Desa)
-	in.Daerah = util.TitleCaseID(in.Daerah)
-	nama := strings.TrimSpace(in.NamaLengkap)
-	jk := strings.ToUpper(strings.TrimSpace(in.JenisKelamin))
-	noWA := strings.TrimSpace(in.NoWA)
+	in.FullName = util.TitleCaseID(in.FullName)
+	in.Nickname = util.TitleCaseID(in.Nickname)
+	in.BirthPlace = util.TitleCaseID(in.BirthPlace)
+	in.Village = util.TitleCaseID(in.Village)
+	in.Region = util.TitleCaseID(in.Region)
+	name := strings.TrimSpace(in.FullName)
+	jk := strings.ToUpper(strings.TrimSpace(in.Gender))
+	noWA := strings.TrimSpace(in.WhatsappNumber)
 	username := strings.ToLower(strings.TrimSpace(in.Username))
 	password := in.Password
 
-	if len(nama) < 3 {
-		return nil, errors.New("Nama lengkap minimal 3 karakter")
+	if len(name) < 3 {
+		return nil, errors.New("Name lengkap minimal 3 karakter")
 	}
 	if jk != "L" && jk != "P" {
-		return nil, errors.New("Jenis kelamin harus L atau P")
+		return nil, errors.New("Type kelamin harus L atau P")
 	}
 	if noWA == "" {
 		return nil, errors.New("Nomor WhatsApp wajib diisi")
@@ -164,7 +164,7 @@ func (s *PendingService) SubmitRegistration(ctx context.Context, in SubmitRegist
 		return nil, err
 	}
 	for _, m := range allMembers {
-		if util.NormalizePhone(m.NoWA) == normalizedWA && m.NoWA != "" {
+		if util.NormalizePhone(m.WhatsappNumber) == normalizedWA && m.WhatsappNumber != "" {
 			return nil, errors.New("Nomor WhatsApp sudah terdaftar sebagai jamaah")
 		}
 	}
@@ -191,8 +191,8 @@ func (s *PendingService) SubmitRegistration(ctx context.Context, in SubmitRegist
 	}
 
 	var tglLahir *time.Time
-	if in.TanggalLahir != "" {
-		if t, err := time.Parse("2006-01-02", in.TanggalLahir); err == nil {
+	if in.BirthDate != "" {
+		if t, err := time.Parse("2006-01-02", in.BirthDate); err == nil {
 			tglLahir = &t
 		}
 	}
@@ -210,24 +210,24 @@ func (s *PendingService) SubmitRegistration(ctx context.Context, in SubmitRegist
 	p := &model.PendingMember{
 		SubmissionID:           util.NewID("SUB"),
 		GroupID:                groupIDPtr,
-		NamaLengkap:            nama,
-		NamaPanggilan:          strings.TrimSpace(in.NamaPanggilan),
-		JenisKelamin:           jkPtr,
-		TempatLahir:            strings.TrimSpace(in.TempatLahir),
-		TanggalLahir:           tglLahir,
-		NoWA:                   normalizedWA,
-		AlamatRumah:            strings.TrimSpace(in.AlamatRumah),
-		Desa:                   strings.TrimSpace(in.Desa),
-		Daerah:                 strings.TrimSpace(in.Daerah),
-		Pekerjaan:              strings.TrimSpace(in.Pekerjaan),
-		Hobi:                   strings.TrimSpace(in.Hobi),
-		IsNikah:                in.IsNikah,
-		JenjangPendidikan:      strings.TrimSpace(in.JenjangPendidikan),
-		Sekolah:                strings.TrimSpace(in.Sekolah),
-		Jurusan:                strings.TrimSpace(in.Jurusan),
-		TahunMulaiPendidikan:   strings.TrimSpace(in.TahunMulaiPendidikan),
-		TahunSelesaiPendidikan: strings.TrimSpace(in.TahunSelesaiPendidikan),
-		FotoURL:                strings.TrimSpace(in.FotoURL),
+		FullName:            name,
+		Nickname:          strings.TrimSpace(in.Nickname),
+		Gender:           jkPtr,
+		BirthPlace:            strings.TrimSpace(in.BirthPlace),
+		BirthDate:           tglLahir,
+		WhatsappNumber:                   normalizedWA,
+		HomeAddress:            strings.TrimSpace(in.HomeAddress),
+		Village:                   strings.TrimSpace(in.Village),
+		Region:                 strings.TrimSpace(in.Region),
+		Occupation:              strings.TrimSpace(in.Occupation),
+		Hobby:                   strings.TrimSpace(in.Hobby),
+		IsMarried:                in.IsMarried,
+		EducationLevel:      strings.TrimSpace(in.EducationLevel),
+		School:                strings.TrimSpace(in.School),
+		Major:                strings.TrimSpace(in.Major),
+		EducationStartYear:   strings.TrimSpace(in.EducationStartYear),
+		EducationEndYear: strings.TrimSpace(in.EducationEndYear),
+		PhotoURL:                strings.TrimSpace(in.PhotoURL),
 		Username:               username,
 		PasswordHash:           hash,
 		Status:                 "PENDING",
@@ -240,7 +240,7 @@ func (s *PendingService) SubmitRegistration(ctx context.Context, in SubmitRegist
 
 	return &SubmitRegistrationResult{
 		SubmissionID: p.SubmissionID,
-		NamaLengkap:  p.NamaLengkap,
+		FullName:  p.FullName,
 		SubmittedAt:  time.Now().Format(time.RFC3339),
 	}, nil
 }
@@ -273,11 +273,11 @@ type ApproveResult struct {
 	Username     string `json:"username"`
 }
 
-func (s *PendingService) Approve(ctx context.Context, submissionID, kelompok, reviewerID string) (*ApproveResult, error) {
-	return s.ApproveWithGroup(ctx, submissionID, "", kelompok, reviewerID)
+func (s *PendingService) Approve(ctx context.Context, submissionID, group_label, reviewerID string) (*ApproveResult, error) {
+	return s.ApproveWithGroup(ctx, submissionID, "", group_label, reviewerID)
 }
 
-func (s *PendingService) ApproveWithGroup(ctx context.Context, submissionID, groupID, kelompok, reviewerID string) (*ApproveResult, error) {
+func (s *PendingService) ApproveWithGroup(ctx context.Context, submissionID, groupID, group_label, reviewerID string) (*ApproveResult, error) {
 	if submissionID == "" {
 		return nil, errors.New("submission_id wajib diisi")
 	}
@@ -304,17 +304,17 @@ func (s *PendingService) ApproveWithGroup(ctx context.Context, submissionID, gro
 		return nil, errors.New("Username sudah dipakai. Tolak pendaftar dan minta daftar ulang dengan username lain.")
 	}
 
-	p.NamaLengkap = util.TitleCaseID(p.NamaLengkap)
-	p.NamaPanggilan = util.TitleCaseID(p.NamaPanggilan)
-	p.TempatLahir = util.TitleCaseID(p.TempatLahir)
-	p.Desa = util.TitleCaseID(p.Desa)
-	p.Daerah = util.TitleCaseID(p.Daerah)
+	p.FullName = util.TitleCaseID(p.FullName)
+	p.Nickname = util.TitleCaseID(p.Nickname)
+	p.BirthPlace = util.TitleCaseID(p.BirthPlace)
+	p.Village = util.TitleCaseID(p.Village)
+	p.Region = util.TitleCaseID(p.Region)
 
 	memberID := util.NewID("MBR")
 	// Standard: group_id adalah FK tunggal. Resolve dari param group_id,
-	// fallback ke param kelompok (nama), fallback terakhir ke p.GroupID saat daftar.
+	// fallback ke param group_label (name), fallback terakhir ke p.GroupID saat daftar.
 	resolvedGroupID := strings.TrimSpace(groupID)
-	resolvedKelompok := strings.TrimSpace(kelompok)
+	resolvedKelompok := strings.TrimSpace(group_label)
 	if resolvedGroupID == "" && p.GroupID != nil {
 		resolvedGroupID = strings.TrimSpace(*p.GroupID)
 	}
@@ -343,28 +343,28 @@ func (s *PendingService) ApproveWithGroup(ctx context.Context, submissionID, gro
 	memberIn := repository.NewMemberInput{
 		MemberID:               memberID,
 		GroupID:                groupIDPtr,
-		NamaLengkap:            p.NamaLengkap,
-		NamaPanggilan:          p.NamaPanggilan,
-		JenisKelamin:           p.JenisKelamin,
-		TempatLahir:            p.TempatLahir,
-		TanggalLahir:           p.TanggalLahir,
-		FotoURL:                p.FotoURL,
-		NoWA:                   p.NoWA,
-		AlamatRumah:            p.AlamatRumah,
-		Desa:                   p.Desa,
-		Daerah:                 p.Daerah,
-		Kelompok:               resolvedKelompok,
-		IsMuballigh:            false,
-		IsKerja:                false,
-		IsNikah:                p.IsNikah,
-		Hobi:                   p.Hobi,
-		Pekerjaan:              p.Pekerjaan,
-		StatusPembinaan:        "AKTIF",
-		JenjangPendidikan:      p.JenjangPendidikan,
-		Sekolah:                p.Sekolah,
-		Jurusan:                p.Jurusan,
-		TahunMulaiPendidikan:   p.TahunMulaiPendidikan,
-		TahunSelesaiPendidikan: p.TahunSelesaiPendidikan,
+		FullName:            p.FullName,
+		Nickname:          p.Nickname,
+		Gender:           p.Gender,
+		BirthPlace:            p.BirthPlace,
+		BirthDate:           p.BirthDate,
+		PhotoURL:                p.PhotoURL,
+		WhatsappNumber:                   p.WhatsappNumber,
+		HomeAddress:            p.HomeAddress,
+		Village:                   p.Village,
+		Region:                 p.Region,
+		GroupLabel:               resolvedKelompok,
+		IsPreacher:            false,
+		IsEmployed:                false,
+		IsMarried:                p.IsMarried,
+		Hobby:                   p.Hobby,
+		Occupation:              p.Occupation,
+		MentoringStatus:        "AKTIF",
+		EducationLevel:      p.EducationLevel,
+		School:                p.School,
+		Major:                p.Major,
+		EducationStartYear:   p.EducationStartYear,
+		EducationEndYear: p.EducationEndYear,
 	}
 	if err := s.memberRepo.Insert(ctx, memberIn); err != nil {
 		return nil, err
@@ -375,7 +375,7 @@ func (s *PendingService) ApproveWithGroup(ctx context.Context, submissionID, gro
 		UserID:       userID,
 		Username:     username,
 		PasswordHash: p.PasswordHash,
-		Nama:         p.NamaLengkap,
+		Name:         p.FullName,
 		Role:         "MEMBER",
 		MemberID:     memberID,
 		GroupID:      groupIDPtr,
@@ -419,12 +419,12 @@ func (s *PendingService) Reject(ctx context.Context, submissionID, reviewerID, r
 
 func toPendingDTO(p model.PendingMember) model.PendingMemberDTO {
 	jk := ""
-	if p.JenisKelamin != nil {
-		jk = *p.JenisKelamin
+	if p.Gender != nil {
+		jk = *p.Gender
 	}
 	tgl := ""
-	if p.TanggalLahir != nil {
-		tgl = p.TanggalLahir.Format("2006-01-02")
+	if p.BirthDate != nil {
+		tgl = p.BirthDate.Format("2006-01-02")
 	}
 	rvBy := ""
 	if p.ReviewedBy != nil {
@@ -445,24 +445,24 @@ func toPendingDTO(p model.PendingMember) model.PendingMemberDTO {
 	return model.PendingMemberDTO{
 		SubmissionID:           p.SubmissionID,
 		GroupID:                grpID,
-		NamaLengkap:            p.NamaLengkap,
-		NamaPanggilan:          p.NamaPanggilan,
-		JenisKelamin:           jk,
-		TempatLahir:            p.TempatLahir,
-		TanggalLahir:           tgl,
-		NoWA:                   p.NoWA,
-		AlamatRumah:            p.AlamatRumah,
-		Desa:                   p.Desa,
-		Daerah:                 p.Daerah,
-		Pekerjaan:              p.Pekerjaan,
-		Hobi:                   p.Hobi,
-		IsNikah:                p.IsNikah,
-		JenjangPendidikan:      p.JenjangPendidikan,
-		Sekolah:                p.Sekolah,
-		Jurusan:                p.Jurusan,
-		TahunMulaiPendidikan:   p.TahunMulaiPendidikan,
-		TahunSelesaiPendidikan: p.TahunSelesaiPendidikan,
-		FotoURL:                p.FotoURL,
+		FullName:            p.FullName,
+		Nickname:          p.Nickname,
+		Gender:           jk,
+		BirthPlace:            p.BirthPlace,
+		BirthDate:           tgl,
+		WhatsappNumber:                   p.WhatsappNumber,
+		HomeAddress:            p.HomeAddress,
+		Village:                   p.Village,
+		Region:                 p.Region,
+		Occupation:              p.Occupation,
+		Hobby:                   p.Hobby,
+		IsMarried:                p.IsMarried,
+		EducationLevel:      p.EducationLevel,
+		School:                p.School,
+		Major:                p.Major,
+		EducationStartYear:   p.EducationStartYear,
+		EducationEndYear: p.EducationEndYear,
+		PhotoURL:                p.PhotoURL,
 		Username:               p.Username,
 		Status:                 p.Status,
 		SubmittedAt:            p.SubmittedAt.Format("2006-01-02T15:04:05.000Z07:00"),

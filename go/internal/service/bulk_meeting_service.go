@@ -36,13 +36,13 @@ var hariIndex = map[string]int{
 type BulkParams struct {
 	Tahun          int
 	Bulan          int
-	Hari           []string
-	Jam            string
-	Acara          string
+	Day           []string
+	Time            string
+	Event          string
 	GroupID        string
-	Materi         string
-	Catatan        string
-	KategoriTarget []string
+	Topic         string
+	Notes        string
+	TargetCategories []string
 }
 
 func validateBulk(p BulkParams) error {
@@ -55,14 +55,14 @@ func validateBulk(p BulkParams) error {
 	if p.Bulan < 1 || p.Bulan > 12 {
 		return apperrors.Wrap(apperrors.ErrValidation, "bulan tidak valid")
 	}
-	if len(p.Hari) == 0 {
-		return apperrors.Wrap(apperrors.ErrValidation, "hari wajib dipilih minimal 1")
+	if len(p.Day) == 0 {
+		return apperrors.Wrap(apperrors.ErrValidation, "day wajib dipilih minimal 1")
 	}
-	if p.Jam == "" {
-		return apperrors.Wrap(apperrors.ErrValidation, "jam wajib diisi")
+	if p.Time == "" {
+		return apperrors.Wrap(apperrors.ErrValidation, "time wajib diisi")
 	}
-	if p.Acara == "" {
-		return apperrors.Wrap(apperrors.ErrValidation, "acara wajib diisi")
+	if p.Event == "" {
+		return apperrors.Wrap(apperrors.ErrValidation, "event wajib diisi")
 	}
 	if p.GroupID == "" {
 		return apperrors.Wrap(apperrors.ErrValidation, "kelompok wajib dipilih")
@@ -72,7 +72,7 @@ func validateBulk(p BulkParams) error {
 
 func buildDateList(p BulkParams) []time.Time {
 	dayIdx := []int{}
-	for _, h := range p.Hari {
+	for _, h := range p.Day {
 		if idx, ok := hariIndex[h]; ok {
 			dayIdx = append(dayIdx, idx)
 		}
@@ -97,9 +97,9 @@ func buildDateList(p BulkParams) []time.Time {
 }
 
 type BulkPreviewItem struct {
-	Tanggal        string `json:"tanggal"`
+	Date        string `json:"date"`
 	TanggalDisplay string `json:"tanggal_display"`
-	Hari           string `json:"hari"`
+	Day           string `json:"day"`
 	SudahAda       bool   `json:"sudah_ada"`
 }
 
@@ -116,7 +116,7 @@ func (s *BulkMeetingService) Preview(ctx context.Context, p BulkParams) (*BulkPr
 	}
 	dates := buildDateList(p)
 	if len(dates) == 0 {
-		return nil, apperrors.Wrap(apperrors.ErrValidation, "tidak ada tanggal valid di bulan ini untuk hari yang dipilih")
+		return nil, apperrors.Wrap(apperrors.ErrValidation, "tidak ada date valid di bulan ini untuk day yang dipilih")
 	}
 
 	existing, err := s.meetingRepo.FindAll(ctx, model.MeetingListFilter{})
@@ -129,7 +129,7 @@ func (s *BulkMeetingService) Preview(ctx context.Context, p BulkParams) (*BulkPr
 		if m.GroupID != nil {
 			gid = *m.GroupID
 		}
-		existingKey[m.Tanggal.Format("2006-01-02")+"|"+gid] = true
+		existingKey[m.Date.Format("2006-01-02")+"|"+gid] = true
 	}
 
 	items := make([]BulkPreviewItem, 0, len(dates))
@@ -141,9 +141,9 @@ func (s *BulkMeetingService) Preview(ctx context.Context, p BulkParams) (*BulkPr
 			totalNew++
 		}
 		items = append(items, BulkPreviewItem{
-			Tanggal:        iso,
+			Date:        iso,
 			TanggalDisplay: formatDateShort(d),
-			Hari:           util.GetHariFromDate(&d),
+			Day:           util.GetHariFromDate(&d),
 			SudahAda:       sudahAda,
 		})
 	}
@@ -164,9 +164,9 @@ type BulkCreateResult struct {
 
 type BulkCreatedItem struct {
 	MeetingID      string `json:"meeting_id"`
-	Tanggal        string `json:"tanggal"`
+	Date        string `json:"date"`
 	TanggalDisplay string `json:"tanggal_display"`
-	Hari           string `json:"hari"`
+	Day           string `json:"day"`
 }
 
 func (s *BulkMeetingService) BulkCreate(ctx context.Context, p BulkParams, userID string) (*BulkCreateResult, error) {
@@ -182,7 +182,7 @@ func (s *BulkMeetingService) BulkCreate(ctx context.Context, p BulkParams, userI
 		if m.GroupID != nil {
 			gid = *m.GroupID
 		}
-		existingKey[m.Tanggal.Format("2006-01-02")+"|"+gid] = true
+		existingKey[m.Date.Format("2006-01-02")+"|"+gid] = true
 	}
 
 	var toCreate []time.Time
@@ -192,7 +192,7 @@ func (s *BulkMeetingService) BulkCreate(ctx context.Context, p BulkParams, userI
 		}
 	}
 	if len(toCreate) == 0 {
-		return nil, apperrors.Wrap(apperrors.ErrConflict, "semua tanggal sudah ada. tidak ada yang dibuat")
+		return nil, apperrors.Wrap(apperrors.ErrConflict, "semua date sudah ada. tidak ada yang dibuat")
 	}
 
 	created := []BulkCreatedItem{}
@@ -201,30 +201,30 @@ func (s *BulkMeetingService) BulkCreate(ctx context.Context, p BulkParams, userI
 		gid := p.GroupID
 		m := &model.Meeting{
 			MeetingID:      mid,
-			Tanggal:        d,
-			Hari:           util.GetHariFromDate(&d),
-			Jam:            p.Jam,
+			Date:        d,
+			Day:           util.GetHariFromDate(&d),
+			Time:            p.Time,
 			GroupID:        &gid,
-			Acara:          p.Acara,
-			Materi:         p.Materi,
+			Event:          p.Event,
+			Topic:         p.Topic,
 			Status:         "SCHEDULED",
-			Catatan:        p.Catatan,
-			KategoriTarget: p.KategoriTarget,
+			Notes:        p.Notes,
+			TargetCategories: p.TargetCategories,
 		}
 		if userID != "" {
 			m.CreatedBy = &userID
 		}
-		if m.KategoriTarget == nil {
-			m.KategoriTarget = []string{}
+		if m.TargetCategories == nil {
+			m.TargetCategories = []string{}
 		}
 		if err := s.meetingRepo.Create(ctx, m); err != nil {
 			return nil, err
 		}
 		created = append(created, BulkCreatedItem{
 			MeetingID:      mid,
-			Tanggal:        d.Format("2006-01-02"),
+			Date:        d.Format("2006-01-02"),
 			TanggalDisplay: formatDateShort(d),
-			Hari:           util.GetHariFromDate(&d),
+			Day:           util.GetHariFromDate(&d),
 		})
 	}
 
@@ -237,9 +237,9 @@ func (s *BulkMeetingService) BulkCreate(ctx context.Context, p BulkParams, userI
 
 type BulkTemplateDTO struct {
 	TemplateID   string `json:"template_id"`
-	NamaTemplate string `json:"nama_template"`
+	TemplateName string `json:"template_name"`
 	Kode         string `json:"kode"`
-	IsiTemplate  string `json:"isi_template"`
+	TemplateBody  string `json:"template_body"`
 }
 
 func (s *BulkMeetingService) GetTemplates(ctx context.Context, groupID string) ([]BulkTemplateDTO, error) {
@@ -251,9 +251,9 @@ func (s *BulkMeetingService) GetTemplates(ctx context.Context, groupID string) (
 	for _, t := range tpls {
 		out = append(out, BulkTemplateDTO{
 			TemplateID:   t.TemplateID,
-			NamaTemplate: t.NamaTemplate,
+			TemplateName: t.TemplateName,
 			Kode:         t.Kode,
-			IsiTemplate:  t.IsiTemplate,
+			TemplateBody:  t.TemplateBody,
 		})
 	}
 	return out, nil

@@ -37,10 +37,10 @@ func handleUpdateMyProfile(c *fiber.Ctx, svc *service.ProfileService) error {
 	body := BodyOf(c)
 	patch := map[string]interface{}{}
 	for _, k := range []string{
-		"nama_panggilan", "no_wa", "alamat_rumah", "desa", "daerah",
-		"pekerjaan", "hobi", "foto_url", "tinggi_badan", "berat_badan",
-		"jenjang_pendidikan", "sekolah", "jurusan",
-		"tahun_mulai_pendidikan", "tahun_selesai_pendidikan",
+		"nickname", "whatsapp_number", "home_address", "village", "region",
+		"occupation", "hobby", "photo_url", "height", "weight",
+		"education_level", "school", "major",
+		"education_start_year", "education_end_year",
 	} {
 		if v, ok := body[k]; ok {
 			if s, ok := v.(string); ok {
@@ -48,7 +48,7 @@ func handleUpdateMyProfile(c *fiber.Ctx, svc *service.ProfileService) error {
 			}
 		}
 	}
-	for _, k := range []string{"is_kerja", "is_nikah"} {
+	for _, k := range []string{"is_employed", "is_married"} {
 		if v, ok := body[k].(bool); ok {
 			patch[k] = v
 		}

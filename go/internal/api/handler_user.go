@@ -47,7 +47,7 @@ func handleCreateUser(c *fiber.Ctx, svc *service.UserService) error {
 		Username: BodyString(c, "username"),
 		Password: BodyString(c, "password"),
 		Role:     BodyString(c, "role"),
-		Nama:     BodyString(c, "nama"),
+		Name:     BodyString(c, "name"),
 		MemberID: BodyString(c, "member_id"),
 		AdminID:  adminID,
 	}
@@ -63,14 +63,14 @@ func handleUpdateUser(c *fiber.Ctx, svc *service.UserService) error {
 	in := service.UpdateUserInput{
 		UserID: BodyString(c, "user_id"),
 	}
-	if v, ok := body["nama"].(string); ok {
-		in.Nama = &v
+	if v, ok := body["name"].(string); ok {
+		in.Name = &v
 	}
 	if v, ok := body["role"].(string); ok {
 		in.Role = &v
 	}
-	if v, ok := body["status_aktif"].(bool); ok {
-		in.StatusAktif = &v
+	if v, ok := body["is_active"].(bool); ok {
+		in.IsActive = &v
 	}
 	if v, ok := body["password"].(string); ok && v != "" {
 		in.Password = &v

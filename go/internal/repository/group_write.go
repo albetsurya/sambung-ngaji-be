@@ -9,11 +9,11 @@ import (
 func (r *GroupRepo) Insert(ctx context.Context, g *model.Group) error {
 	_, err := r.pool.Exec(ctx, `
 		INSERT INTO groups
-		(group_id, group_code, group_name, pembina, penandatangan,
-		 jadwal, status_aktif, created_at, updated_at)
+		(group_id, group_code, group_name, mentor, signatory,
+		 schedule, is_active, created_at, updated_at)
 		VALUES ($1,$2,$3,$4,$5,$6,$7,now(),now())
-	`, g.GroupID, g.GroupCode, g.GroupName, g.Pembina, g.Penandatangan,
-		g.Jadwal, g.StatusAktif)
+	`, g.GroupID, g.GroupCode, g.GroupName, g.Mentor, g.Signatory,
+		g.Schedule, g.IsActive)
 	return err
 }
 

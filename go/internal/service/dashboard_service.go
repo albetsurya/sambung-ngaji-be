@@ -34,8 +34,8 @@ func NewDashboardService(
 
 type AttentionItem struct {
 	MemberID    string   `json:"member_id"`
-	NamaLengkap string   `json:"nama_lengkap"`
-	FotoURL     string   `json:"foto_url"`
+	FullName string   `json:"full_name"`
+	PhotoURL     string   `json:"photo_url"`
 	Reasons     []string `json:"reasons"`
 }
 
@@ -88,7 +88,7 @@ func (s *DashboardService) GetGeneral(ctx context.Context, groupID string) (*Gen
 		util.KatRemaja: 0, util.KatPraNikah: 0, util.KatDewasa: 0, util.KatIstimewa: 0,
 	}
 	for _, m := range members {
-		k := util.GetMemberCategory(m.TanggalLahir, m.JenjangPendidikan, m.IsNikah)
+		k := util.GetMemberCategory(m.BirthDate, m.EducationLevel, m.IsMarried)
 		perKategori[k]++
 	}
 
@@ -96,13 +96,13 @@ func (s *DashboardService) GetGeneral(ctx context.Context, groupID string) (*Gen
 	var upcoming *model.Meeting
 	var futureMeetings []model.Meeting
 	for _, m := range meetings {
-		if m.Tanggal.Format("2006-01-02") >= today {
+		if m.Date.Format("2006-01-02") >= today {
 			futureMeetings = append(futureMeetings, m)
 		}
 	}
 	if len(futureMeetings) > 0 {
 		sort.Slice(futureMeetings, func(i, j int) bool {
-			return futureMeetings[i].Tanggal.Before(futureMeetings[j].Tanggal)
+			return futureMeetings[i].Date.Before(futureMeetings[j].Date)
 		})
 		upcoming = &futureMeetings[0]
 	}
@@ -126,14 +126,14 @@ func (s *DashboardService) GetGeneral(ctx context.Context, groupID string) (*Gen
 
 	meetingDates := make(map[string]time.Time, len(meetings))
 	for _, m := range meetings {
-		meetingDates[m.MeetingID] = m.Tanggal
+		meetingDates[m.MeetingID] = m.Date
 	}
 
 	attention := s.buildAttentionList(members, attGrouped, meetingDates, liburMeetingIDs)
 
 	incomplete := 0
 	for _, m := range members {
-		if m.TanggalLahir == nil || m.Kelompok == "" || m.Desa == "" || m.AlamatRumah == "" {
+		if m.BirthDate == nil || m.GroupLabel == "" || m.Village == "" || m.HomeAddress == "" {
 			incomplete++
 		}
 	}
@@ -142,10 +142,10 @@ func (s *DashboardService) GetGeneral(ctx context.Context, groupID string) (*Gen
 	if upcoming != nil {
 		terdekat = map[string]interface{}{
 			"meeting_id":      upcoming.MeetingID,
-			"tanggal":         upcoming.Tanggal.Format("2006-01-02"),
-			"hari":            upcoming.Hari,
-			"acara":           upcoming.Acara,
-			"kategori_target": upcoming.KategoriTarget,
+			"date":         upcoming.Date.Format("2006-01-02"),
+			"day":            upcoming.Day,
+			"event":           upcoming.Event,
+			"target_categories": upcoming.TargetCategories,
 		}
 	}
 
@@ -196,7 +196,7 @@ func (s *DashboardService) buildAttentionList(
 			}
 			rate := (hadir * 100) / len(window)
 			if rate < 50 {
-				reasons = append(reasons, "Kehadiran 30 hari terakhir <50% ("+strconv.Itoa(rate)+"%)")
+				reasons = append(reasons, "Kehadiran 30 day terakhir <50% ("+strconv.Itoa(rate)+"%)")
 			}
 		}
 
@@ -209,17 +209,17 @@ func (s *DashboardService) buildAttentionList(
 		}
 
 		if m.UpdatedAt.Before(cutoff) {
-			reasons = append(reasons, "Data belum diperbarui > 30 hari")
+			reasons = append(reasons, "Data belum diperbarui > 30 day")
 		}
-		if m.StatusPembinaan == "PERLU_PERHATIAN" || m.StatusPembinaan == "TIDAK_AKTIF" {
-			reasons = append(reasons, "Status pembinaan: "+m.StatusPembinaan)
+		if m.MentoringStatus == "PERLU_PERHATIAN" || m.MentoringStatus == "TIDAK_AKTIF" {
+			reasons = append(reasons, "Status pembinaan: "+m.MentoringStatus)
 		}
 
 		if len(reasons) > 0 {
 			out = append(out, AttentionItem{
 				MemberID:    m.MemberID,
-				NamaLengkap: m.NamaLengkap,
-				FotoURL:     m.FotoURL,
+				FullName: m.FullName,
+				PhotoURL:     m.PhotoURL,
 				Reasons:     reasons,
 			})
 		}
@@ -260,34 +260,34 @@ func (s *DashboardService) GetMyDashboard(ctx context.Context, memberID string) 
 
 	profile := map[string]interface{}{
 		"member_id":                m.MemberID,
-		"nama_lengkap":             m.NamaLengkap,
-		"nama_panggilan":           m.NamaPanggilan,
-		"jenis_kelamin":            strOr(m.JenisKelamin, ""),
-		"tempat_lahir":             m.TempatLahir,
-		"tanggal_lahir":            util.FormatDate(m.TanggalLahir),
-		"foto_url":                 m.FotoURL,
-		"kelompok":                 m.Kelompok,
-		"desa":                     m.Desa,
-		"daerah":                   m.Daerah,
-		"alamat_rumah":             m.AlamatRumah,
-		"no_wa":                    m.NoWA,
-		"pekerjaan":                m.Pekerjaan,
-		"hobi":                     m.Hobi,
-		"tinggi_badan":             m.TinggiBadan,
-		"berat_badan":              m.BeratBadan,
-		"is_kerja":                 m.IsKerja,
-		"is_nikah":                 m.IsNikah,
-		"is_muballigh":             m.IsMuballigh,
-		"tanggal_masuk":            util.FormatDate(m.TanggalMasuk),
-		"status_pembinaan":         m.StatusPembinaan,
-		"status_aktif":             m.StatusAktif,
-		"jenjang_pendidikan":       m.JenjangPendidikan,
-		"sekolah":                  m.Sekolah,
-		"jurusan":                  m.Jurusan,
-		"tahun_mulai_pendidikan":   m.TahunMulaiPendidikan,
-		"tahun_selesai_pendidikan": m.TahunSelesaiPendidikan,
-		"kategori":                 util.GetMemberCategory(m.TanggalLahir, m.JenjangPendidikan, m.IsNikah),
-		"usia":                     util.GetAge(m.TanggalLahir),
+		"full_name":             m.FullName,
+		"nickname":           m.Nickname,
+		"gender":            strOr(m.Gender, ""),
+		"birth_place":             m.BirthPlace,
+		"birth_date":            util.FormatDate(m.BirthDate),
+		"photo_url":                 m.PhotoURL,
+		"group_label":                 m.GroupLabel,
+		"village":                     m.Village,
+		"region":                   m.Region,
+		"home_address":             m.HomeAddress,
+		"whatsapp_number":                    m.WhatsappNumber,
+		"occupation":                m.Occupation,
+		"hobby":                     m.Hobby,
+		"height":             m.Height,
+		"weight":              m.Weight,
+		"is_employed":                 m.IsEmployed,
+		"is_married":                 m.IsMarried,
+		"is_preacher":             m.IsPreacher,
+		"joined_date":            util.FormatDate(m.JoinedDate),
+		"mentoring_status":         m.MentoringStatus,
+		"is_active":             m.IsActive,
+		"education_level":       m.EducationLevel,
+		"school":                  m.School,
+		"major":                  m.Major,
+		"education_start_year":   m.EducationStartYear,
+		"education_end_year": m.EducationEndYear,
+		"kategori":                 util.GetMemberCategory(m.BirthDate, m.EducationLevel, m.IsMarried),
+		"usia":                     util.GetAge(m.BirthDate),
 		"pendidikan":               []any{},
 	}
 
@@ -309,11 +309,11 @@ func (s *DashboardService) GetMyDashboard(ctx context.Context, memberID string) 
 			"meeting_id":     a.MeetingID,
 			"status":         a.Status,
 			"status_meeting": mt.Status,
-			"catatan":        a.Catatan,
-			"tanggal":        mt.Tanggal.Format("2006-01-02"),
-			"hari":           mt.Hari,
-			"acara":          mt.Acara,
-			"jam":            mt.Jam,
+			"notes":        a.Notes,
+			"date":        mt.Date.Format("2006-01-02"),
+			"day":           mt.Day,
+			"event":          mt.Event,
+			"time":            mt.Time,
 			"created_at":     a.CreatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
 		})
 	}
@@ -327,16 +327,16 @@ func (s *DashboardService) GetMyDashboard(ctx context.Context, memberID string) 
 		monitoring = append(monitoring, toMonitoringDTO(mr))
 	}
 
-	memberKat := util.GetMemberCategory(m.TanggalLahir, m.JenjangPendidikan, m.IsNikah)
+	memberKat := util.GetMemberCategory(m.BirthDate, m.EducationLevel, m.IsMarried)
 	today := time.Now().Format("2006-01-02")
 	upcoming := []model.MeetingDTO{}
 	for _, mt := range meetings {
-		if mt.Tanggal.Format("2006-01-02") < today {
+		if mt.Date.Format("2006-01-02") < today {
 			continue
 		}
-		if len(mt.KategoriTarget) > 0 {
+		if len(mt.TargetCategories) > 0 {
 			match := false
-			for _, k := range mt.KategoriTarget {
+			for _, k := range mt.TargetCategories {
 				if k == memberKat {
 					match = true
 					break

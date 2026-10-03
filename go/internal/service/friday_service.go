@@ -20,29 +20,29 @@ func NewFridayService(repo *repository.FridayRepo) *FridayService {
 
 type SaveFridayInput struct {
 	GroupID       string
-	Tanggal       string
-	KhatibImam    string
+	Date       string
+	SermonLeader    string
 	Muadzin       string
-	Penasihat     string
-	PetugasParkir string
-	PenataSandal  string
-	Catatan       string
+	Advisor     string
+	ParkingAttendant string
+	FootwearAttendant  string
+	Notes       string
 	CreatedBy     string
 }
 
 func (s *FridayService) Save(ctx context.Context, in SaveFridayInput) (*model.FridayScheduleDTO, error) {
-	if in.Tanggal == "" {
-		return nil, errors.New("tanggal wajib diisi")
+	if in.Date == "" {
+		return nil, errors.New("date wajib diisi")
 	}
-	tgl, err := time.Parse("2006-01-02", in.Tanggal)
+	tgl, err := time.Parse("2006-01-02", in.Date)
 	if err != nil {
 		return nil, errors.New("tanggal tidak valid (YYYY-MM-DD)")
 	}
 	if tgl.Weekday() != time.Friday {
-		return nil, errors.New("tanggal harus jatuh di hari Jumat")
+		return nil, errors.New("date harus jatuh di day Jumat")
 	}
-	if in.KhatibImam == "" && in.Muadzin == "" && in.Penasihat == "" &&
-		in.PetugasParkir == "" && in.PenataSandal == "" {
+	if in.SermonLeader == "" && in.Muadzin == "" && in.Advisor == "" &&
+		in.ParkingAttendant == "" && in.FootwearAttendant == "" {
 		return nil, errors.New("minimal satu petugas wajib diisi")
 	}
 
@@ -54,22 +54,22 @@ func (s *FridayService) Save(ctx context.Context, in SaveFridayInput) (*model.Fr
 	f := &model.FridaySchedule{
 		FridayID:      util.NewID("JMT"),
 		GroupID:       groupIDPtr,
-		Tanggal:       tgl,
-		KhatibImam:    util.TitleCaseID(in.KhatibImam),
+		Date:       tgl,
+		SermonLeader:    util.TitleCaseID(in.SermonLeader),
 		Muadzin:       util.TitleCaseID(in.Muadzin),
-		Penasihat:     util.TitleCaseID(in.Penasihat),
-		PetugasParkir: util.TitleCaseID(in.PetugasParkir),
-		PenataSandal:  util.TitleCaseID(in.PenataSandal),
-		Catatan:       in.Catatan,
+		Advisor:     util.TitleCaseID(in.Advisor),
+		ParkingAttendant: util.TitleCaseID(in.ParkingAttendant),
+		FootwearAttendant:  util.TitleCaseID(in.FootwearAttendant),
+		Notes:       in.Notes,
 		CreatedBy:     in.CreatedBy,
 	}
 	if err := s.repo.Upsert(ctx, f); err != nil {
 		return nil, err
 	}
 
-	fresh, err := s.repo.FindByDate(ctx, in.GroupID, in.Tanggal)
+	fresh, err := s.repo.FindByDate(ctx, in.GroupID, in.Date)
 	if err != nil || fresh == nil {
-		return nil, errors.New("gagal ambil data jadwal jumat")
+		return nil, errors.New("gagal ambil data schedule jumat")
 	}
 	dto := toFridayDTO(*fresh)
 	return &dto, nil
@@ -87,14 +87,14 @@ func (s *FridayService) List(ctx context.Context, groupID, from, to string) ([]m
 	return out, nil
 }
 
-func (s *FridayService) Delete(ctx context.Context, groupID, tanggal string) error {
-	if tanggal == "" {
-		return errors.New("tanggal wajib diisi")
+func (s *FridayService) Delete(ctx context.Context, groupID, date string) error {
+	if date == "" {
+		return errors.New("date wajib diisi")
 	}
-	if _, err := time.Parse("2006-01-02", tanggal); err != nil {
+	if _, err := time.Parse("2006-01-02", date); err != nil {
 		return errors.New("tanggal tidak valid (YYYY-MM-DD)")
 	}
-	return s.repo.Delete(ctx, groupID, tanggal)
+	return s.repo.Delete(ctx, groupID, date)
 }
 
 func toFridayDTO(f model.FridaySchedule) model.FridayScheduleDTO {
@@ -105,14 +105,14 @@ func toFridayDTO(f model.FridaySchedule) model.FridayScheduleDTO {
 	return model.FridayScheduleDTO{
 		FridayID:      f.FridayID,
 		GroupID:       grpID,
-		Tanggal:       f.Tanggal.Format("2006-01-02"),
-		Hari:          util.GetHariFromDate(&f.Tanggal),
-		KhatibImam:    f.KhatibImam,
+		Date:       f.Date.Format("2006-01-02"),
+		Day:          util.GetHariFromDate(&f.Date),
+		SermonLeader:    f.SermonLeader,
 		Muadzin:       f.Muadzin,
-		Penasihat:     f.Penasihat,
-		PetugasParkir: f.PetugasParkir,
-		PenataSandal:  f.PenataSandal,
-		Catatan:       f.Catatan,
+		Advisor:     f.Advisor,
+		ParkingAttendant: f.ParkingAttendant,
+		FootwearAttendant:  f.FootwearAttendant,
+		Notes:       f.Notes,
 		CreatedBy:     f.CreatedBy,
 		CreatedAt:     f.CreatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
 		UpdatedAt:     f.UpdatedAt.Format("2006-01-02T15:04:05.000Z07:00"),

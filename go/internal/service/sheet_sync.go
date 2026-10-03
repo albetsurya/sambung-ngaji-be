@@ -38,7 +38,7 @@ var (
 
 // sheetGet mengambil nilai pertama yang tidak kosong dari daftar kunci.
 // Dipakai agar sinkronisasi toleran terhadap header lama/baru
-// (mis. tanggal vs transaction_date, nama vs member_name) tanpa
+// (mis. date vs transaction_date, name vs member_name) tanpa
 // mengubah struktur spreadsheet yang ada.
 func sheetGet(r map[string]string, keys ...string) string {
 	for _, k := range keys {
@@ -123,8 +123,8 @@ func firstCol(m map[string]string) string {
 }
 
 func parseSheetTime(v string) time.Time {
-	// Kolom tanggal sheet (DATE) harus dibaca sebagai kalender WIB,
-	// bukan instant UTC — kalau tidak, 1 Agu 00:00 WIB (31 Jul 17:00 UTC)
+	// Kolom date sheet (DATE) harus dibaca sebagai kalender WIB,
+	// bukan instant UTC - kalau tidak, 1 Agu 00:00 WIB (31 Jul 17:00 UTC)
 	// mundur 1 hari. Lihat util.ParseSheetDate.
 	if t, err := util.ParseSheetDate(v); err == nil {
 		return t

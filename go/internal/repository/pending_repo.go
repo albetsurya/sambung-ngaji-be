@@ -17,10 +17,10 @@ func NewPendingRepo(pool *pgxpool.Pool) *PendingRepo {
 }
 
 const pendingSelectCols = `
-	submission_id, group_id, nama_lengkap, nama_panggilan, jenis_kelamin,
-	tempat_lahir, tanggal_lahir, no_wa, alamat_rumah, desa, daerah,
-	pekerjaan, hobi, is_nikah, jenjang_pendidikan, sekolah, jurusan,
-	tahun_mulai_pendidikan, tahun_selesai_pendidikan, foto_url,
+	submission_id, group_id, full_name, nickname, gender,
+	birth_place, birth_date, whatsapp_number, home_address, village, region,
+	occupation, hobby, is_married, education_level, school, major,
+	education_start_year, education_end_year, photo_url,
 	username, password_hash, status, submitted_at, submitted_ip,
 	reviewed_by, reviewed_at, rejection_reason, created_member_id`
 
@@ -66,7 +66,7 @@ func (r *PendingRepo) CountByWAPending(ctx context.Context, noWA string) (int, e
 	var n int
 	err := r.pool.QueryRow(ctx, `
 		SELECT COUNT(*) FROM pending_members
-		WHERE no_wa = $1 AND status = 'PENDING'
+		WHERE whatsapp_number = $1 AND status = 'PENDING'
 	`, noWA).Scan(&n)
 	return n, err
 }
@@ -83,17 +83,17 @@ func (r *PendingRepo) CountByUsernamePending(ctx context.Context, username strin
 func (r *PendingRepo) Insert(ctx context.Context, p *model.PendingMember) error {
 	_, err := r.pool.Exec(ctx, `
 		INSERT INTO pending_members
-		(submission_id, group_id, nama_lengkap, nama_panggilan, jenis_kelamin,
-		 tempat_lahir, tanggal_lahir, no_wa, alamat_rumah, desa, daerah,
-		 pekerjaan, hobi, is_nikah, jenjang_pendidikan, sekolah, jurusan,
-		 tahun_mulai_pendidikan, tahun_selesai_pendidikan, foto_url,
+		(submission_id, group_id, full_name, nickname, gender,
+		 birth_place, birth_date, whatsapp_number, home_address, village, region,
+		 occupation, hobby, is_married, education_level, school, major,
+		 education_start_year, education_end_year, photo_url,
 		 username, password_hash, status, submitted_at, submitted_ip,
 		 reviewed_by, reviewed_at, rejection_reason, created_member_id)
 		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,now(),$24,$25,$26,$27,$28)
-	`, p.SubmissionID, p.GroupID, p.NamaLengkap, p.NamaPanggilan, p.JenisKelamin,
-		p.TempatLahir, p.TanggalLahir, p.NoWA, p.AlamatRumah, p.Desa, p.Daerah,
-		p.Pekerjaan, p.Hobi, p.IsNikah, p.JenjangPendidikan, p.Sekolah, p.Jurusan,
-		p.TahunMulaiPendidikan, p.TahunSelesaiPendidikan, p.FotoURL,
+	`, p.SubmissionID, p.GroupID, p.FullName, p.Nickname, p.Gender,
+		p.BirthPlace, p.BirthDate, p.WhatsappNumber, p.HomeAddress, p.Village, p.Region,
+		p.Occupation, p.Hobby, p.IsMarried, p.EducationLevel, p.School, p.Major,
+		p.EducationStartYear, p.EducationEndYear, p.PhotoURL,
 		p.Username, p.PasswordHash, p.Status, p.SubmittedIP,
 		p.ReviewedBy, p.ReviewedAt, p.RejectionReason, p.CreatedMemberID)
 	return err
@@ -120,10 +120,10 @@ func (r *PendingRepo) UpdateRejected(ctx context.Context, id, reviewedBy, reason
 func scanPending(s rowScanner) (*model.PendingMember, error) {
 	var p model.PendingMember
 	err := s.Scan(
-		&p.SubmissionID, &p.GroupID, &p.NamaLengkap, &p.NamaPanggilan, &p.JenisKelamin,
-		&p.TempatLahir, &p.TanggalLahir, &p.NoWA, &p.AlamatRumah, &p.Desa, &p.Daerah,
-		&p.Pekerjaan, &p.Hobi, &p.IsNikah, &p.JenjangPendidikan, &p.Sekolah, &p.Jurusan,
-		&p.TahunMulaiPendidikan, &p.TahunSelesaiPendidikan, &p.FotoURL,
+		&p.SubmissionID, &p.GroupID, &p.FullName, &p.Nickname, &p.Gender,
+		&p.BirthPlace, &p.BirthDate, &p.WhatsappNumber, &p.HomeAddress, &p.Village, &p.Region,
+		&p.Occupation, &p.Hobby, &p.IsMarried, &p.EducationLevel, &p.School, &p.Major,
+		&p.EducationStartYear, &p.EducationEndYear, &p.PhotoURL,
 		&p.Username, &p.PasswordHash, &p.Status, &p.SubmittedAt, &p.SubmittedIP,
 		&p.ReviewedBy, &p.ReviewedAt, &p.RejectionReason, &p.CreatedMemberID,
 	)
@@ -138,10 +138,10 @@ func scanPendings(rows rowsScanner) ([]model.PendingMember, error) {
 	for rows.Next() {
 		var p model.PendingMember
 		err := rows.Scan(
-			&p.SubmissionID, &p.GroupID, &p.NamaLengkap, &p.NamaPanggilan, &p.JenisKelamin,
-			&p.TempatLahir, &p.TanggalLahir, &p.NoWA, &p.AlamatRumah, &p.Desa, &p.Daerah,
-			&p.Pekerjaan, &p.Hobi, &p.IsNikah, &p.JenjangPendidikan, &p.Sekolah, &p.Jurusan,
-			&p.TahunMulaiPendidikan, &p.TahunSelesaiPendidikan, &p.FotoURL,
+			&p.SubmissionID, &p.GroupID, &p.FullName, &p.Nickname, &p.Gender,
+			&p.BirthPlace, &p.BirthDate, &p.WhatsappNumber, &p.HomeAddress, &p.Village, &p.Region,
+			&p.Occupation, &p.Hobby, &p.IsMarried, &p.EducationLevel, &p.School, &p.Major,
+			&p.EducationStartYear, &p.EducationEndYear, &p.PhotoURL,
 			&p.Username, &p.PasswordHash, &p.Status, &p.SubmittedAt, &p.SubmittedIP,
 			&p.ReviewedBy, &p.ReviewedAt, &p.RejectionReason, &p.CreatedMemberID,
 		)

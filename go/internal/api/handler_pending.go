@@ -22,24 +22,24 @@ func handleSubmitPublicRegistration(c *fiber.Ctx, svc *service.PendingService) e
 	}
 	in := service.SubmitRegistrationInput{
 		GroupID:                BodyString(c, "group_id"),
-		NamaLengkap:            BodyString(c, "nama_lengkap"),
-		NamaPanggilan:          BodyString(c, "nama_panggilan"),
-		JenisKelamin:           BodyString(c, "jenis_kelamin"),
-		TempatLahir:            BodyString(c, "tempat_lahir"),
-		TanggalLahir:           BodyString(c, "tanggal_lahir"),
-		NoWA:                   BodyString(c, "no_wa"),
-		AlamatRumah:            BodyString(c, "alamat_rumah"),
-		Desa:                   BodyString(c, "desa"),
-		Daerah:                 BodyString(c, "daerah"),
-		Pekerjaan:              BodyString(c, "pekerjaan"),
-		Hobi:                   BodyString(c, "hobi"),
-		IsNikah:                BodyBool(c, "is_nikah"),
-		JenjangPendidikan:      BodyString(c, "jenjang_pendidikan"),
-		Sekolah:                BodyString(c, "sekolah"),
-		Jurusan:                BodyString(c, "jurusan"),
-		TahunMulaiPendidikan:   BodyString(c, "tahun_mulai_pendidikan"),
-		TahunSelesaiPendidikan: BodyString(c, "tahun_selesai_pendidikan"),
-		FotoURL:                BodyString(c, "foto_url"),
+		FullName:            BodyString(c, "full_name"),
+		Nickname:          BodyString(c, "nickname"),
+		Gender:           BodyString(c, "gender"),
+		BirthPlace:            BodyString(c, "birth_place"),
+		BirthDate:           BodyString(c, "birth_date"),
+		WhatsappNumber:                   BodyString(c, "whatsapp_number"),
+		HomeAddress:            BodyString(c, "home_address"),
+		Village:                   BodyString(c, "village"),
+		Region:                 BodyString(c, "region"),
+		Occupation:              BodyString(c, "occupation"),
+		Hobby:                   BodyString(c, "hobby"),
+		IsMarried:                BodyBool(c, "is_married"),
+		EducationLevel:      BodyString(c, "education_level"),
+		School:                BodyString(c, "school"),
+		Major:                BodyString(c, "major"),
+		EducationStartYear:   BodyString(c, "education_start_year"),
+		EducationEndYear: BodyString(c, "education_end_year"),
+		PhotoURL:                BodyString(c, "photo_url"),
 		Username:               BodyString(c, "username"),
 		Password:               BodyString(c, "password"),
 		ClientIP:               clientIP,
@@ -53,7 +53,7 @@ func handleSubmitPublicRegistration(c *fiber.Ctx, svc *service.PendingService) e
 
 func handleGetPendingMembers(c *fiber.Ctx, svc *service.PendingService) error {
 	groupID := BodyString(c, "group_id")
-	/* Akun ber-kelompok dikunci ke kelompoknya (abaikan param klien). */
+	/* Akun ber-group_label dikunci ke kelompoknya (abaikan param klien). */
 	if g, isSuper := ActorOf(c); !isSuper && g != "" && g != UnassignedGroup {
 		groupID = g
 	}
@@ -83,7 +83,7 @@ func handleApprovePendingMember(c *fiber.Ctx, svc *service.PendingService) error
 	res, err := svc.ApproveWithGroup(c.Context(),
 		BodyString(c, "submission_id"),
 		BodyString(c, "group_id"),
-		BodyString(c, "kelompok"),
+		BodyString(c, "group_label"),
 		reviewerID,
 	)
 	if err != nil {

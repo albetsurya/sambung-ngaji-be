@@ -141,7 +141,7 @@ func (s *AIService) Chat(ctx context.Context, user *model.User, req model.ChatRe
 	var sysPrompt string
 	if isMember {
 		tools = ai.MemberTools()
-		sysPrompt = buildSystemPromptMember(user.Nama)
+		sysPrompt = buildSystemPromptMember(user.Name)
 	} else {
 		canFinance := auth.CanAccess(user.Role, "getCashLedger")
 		tools = ai.AdminTools(canFinance)
@@ -262,7 +262,7 @@ func (s *AIService) runProvider(
 	_ = s.repo.InsertUsage(ctx, &model.AIUsageLog{
 		UsageID:      util.NewID("USE"),
 		UserID:       &user.UserID,
-		UserNama:     user.Nama,
+		UserName:     user.Name,
 		Role:         user.Role,
 		Provider:     provider.Name(),
 		InputTokens:  lastResult.InputTokens,
@@ -336,7 +336,7 @@ func (s *AIService) GetUsageStats(ctx context.Context, user *model.User) (*model
 				if byUser[uid] == nil {
 					byUser[uid] = &model.AIUsageByUser{
 						UserID:   uid,
-						UserNama: u.UserNama,
+						UserName: u.UserName,
 						Role:     u.Role,
 					}
 				}
@@ -374,13 +374,13 @@ func buildSystemPrompt(user *model.User) string {
 	canFinance := auth.CanAccess(user.Role, "getCashLedger")
 
 	prompt := "Kamu adalah Asisten AI Profesional untuk aplikasi Sambung Ngaji.\n"
-	prompt += "Domain utama: manajemen jamaah, kelompok pengajian, absensi, monitoring kehadiran, pengumuman"
+	prompt += "Domain utama: manajemen jamaah, group_label pengajian, absensi, monitoring kehadiran, pengumuman"
 	if canFinance {
 		prompt += ", serta manajemen keuangan (kas ledger, iuran shodaqoh, zakat fitrah & mal)"
 	}
 	prompt += ".\n"
-	prompt += "Hari ini: " + today + ".\n"
-	prompt += "Kamu sedang berbicara dengan: " + user.Nama + " (Role: " + user.Role + ").\n\n"
+	prompt += "Day ini: " + today + ".\n"
+	prompt += "Kamu sedang berbicara dengan: " + user.Name + " (Role: " + user.Role + ").\n\n"
 
 	if canFinance {
 		prompt += "HAK AKSES KEUANGAN:\n" +
@@ -408,9 +408,9 @@ func buildSystemPrompt(user *model.User) string {
 		"   - Akhiri dengan KESIMPULAN/RINGKASAN\n" +
 		"\n2. FORMAT TEKS UNIVERSAL:\n" +
 		"   - Nominal uang: **Rp X.XXX.XXX** (selalu bold)\n" +
-		"   - Nama orang: **Nama Lengkap** (bold)\n" +
+		"   - Name orang: **Name Lengkap** (bold)\n" +
 		"   - Angka/Statistik: **123** (bold)\n" +
-		"   - Tanggal: DD MMMM YYYY (contoh: 25 Januari 2025)\n" +
+		"   - Date: DD MMMM YYYY (contoh: 25 Januari 2025)\n" +
 		"   - Persentase: **95%** (bold)\n" +
 		"   - Kode/ID: `ID123` (code format)\n" +
 		"\n3. FORMAT KHUSUS KEUANGAN:\n" +
@@ -425,10 +425,10 @@ func buildSystemPrompt(user *model.User) string {
 		"\n5. TIPE JAWABAN:\n" +
 		"   - Ringkasan Eksekutif: 3-5 poin utama\n" +
 		"   - Detail Laporan: Maks 10 item/bagian\n" +
-		"   - Daftar/Tabular: Urut relevansi/tanggal\n" +
+		"   - Daftar/Tabular: Urut relevansi/date\n" +
 		"   - Analisis: Temuan + Rekomendasi\n" +
 		"\n6. VALIDASI DATA:\n" +
-		"   - SELALU panggil tools untuk angka/nama/statistik\n" +
+		"   - SELALU panggil tools untuk angka/name/statistik\n" +
 		"   - JANGAN mengarang atau menebak\n" +
 		"   - Jika data kosong: 'Belum ada data untuk periode tersebut'\n" +
 		"   - Jika data error: 'Sistem sedang maintenance, silakan coba lagi'\n" +
@@ -445,13 +445,13 @@ func buildSystemPrompt(user *model.User) string {
 func buildSystemPromptMember(user string) string {
 	today := time.Now().Format("Monday, 2 January 2006")
 	return "Kamu adalah asisten AI pribadi untuk jamaah pengajian.\n" +
-		"Hari ini: " + today + ".\n" +
+		"Day ini: " + today + ".\n" +
 		"Kamu sedang berbicara dengan: " + user + ".\n\n" +
 		"ATURAN KETAT:\n" +
 		"1. Kamu HANYA boleh menjawab pertanyaan tentang DATA DIRI user ini:\n" +
-		"   - Biodata pribadi\n   - Riwayat absensi pribadi\n   - Statistik kehadiran pribadi\n   - Riwayat pembinaan pribadi\n   - Jadwal pengajian mendatang\n\n" +
+		"   - Biodata pribadi\n   - Riwayat absensi pribadi\n   - Statistik kehadiran pribadi\n   - Riwayat pembinaan pribadi\n   - Schedule pengajian mendatang\n\n" +
 		"2. Kamu DILARANG KERAS:\n" +
-		"   - Menyebut nama jamaah lain\n   - Memberi data statistik global\n   - Menjawab tentang kelompok lain\n   - Membahas dashboard atau struktur organisasi\n\n" +
+		"   - Menyebut name jamaah lain\n   - Memberi data statistik global\n   - Menjawab tentang group_label lain\n   - Membahas dashboard atau struktur organisasi\n\n" +
 		"3. Kalau user bertanya tentang orang lain atau data global, jawab:\n" +
 		"   Maaf, saya hanya bisa membantu dengan data pribadi Anda.\n\n" +
 		"4. Jangan pernah mengarang data.\n\n" +

@@ -43,10 +43,10 @@ func (r *AIRepo) IncrementQuota(ctx context.Context, userID string, date time.Ti
 func (r *AIRepo) InsertUsage(ctx context.Context, u *model.AIUsageLog) error {
 	_, err := r.pool.Exec(ctx, `
 		INSERT INTO ai_usage
-		(usage_id, user_id, user_nama, role, provider,
+		(usage_id, user_id, user_name, role, provider,
 		 input_tokens, output_tokens, total_tokens, timestamp)
 		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,now())
-	`, u.UsageID, u.UserID, u.UserNama, u.Role, u.Provider,
+	`, u.UsageID, u.UserID, u.UserName, u.Role, u.Provider,
 		u.InputTokens, u.OutputTokens, u.TotalTokens)
 	return err
 }
@@ -54,7 +54,7 @@ func (r *AIRepo) InsertUsage(ctx context.Context, u *model.AIUsageLog) error {
 func (r *AIRepo) GetUsageStats(ctx context.Context) ([]model.AIUsageLog, error) {
 	monthStart := time.Now().AddDate(0, 0, -30)
 	rows, err := r.pool.Query(ctx, `
-		SELECT usage_id, user_id, user_nama, role, provider,
+		SELECT usage_id, user_id, user_name, role, provider,
 		       input_tokens, output_tokens, total_tokens, timestamp
 		FROM ai_usage
 		WHERE timestamp >= $1
@@ -69,7 +69,7 @@ func (r *AIRepo) GetUsageStats(ctx context.Context) ([]model.AIUsageLog, error) 
 	for rows.Next() {
 		var u model.AIUsageLog
 		if err := rows.Scan(
-			&u.UsageID, &u.UserID, &u.UserNama, &u.Role, &u.Provider,
+			&u.UsageID, &u.UserID, &u.UserName, &u.Role, &u.Provider,
 			&u.InputTokens, &u.OutputTokens, &u.TotalTokens, &u.Timestamp,
 		); err != nil {
 			return nil, err

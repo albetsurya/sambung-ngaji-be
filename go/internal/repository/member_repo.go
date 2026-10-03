@@ -18,14 +18,14 @@ func NewMemberRepo(pool *pgxpool.Pool) *MemberRepo {
 }
 
 const memberSelectCols = `
-	member_id, group_id, nama_lengkap, nama_panggilan, jenis_kelamin,
-	tempat_lahir, tanggal_lahir, foto_url, no_wa,
-	alamat_rumah, desa, daerah, kelompok,
-	is_muballigh, is_kerja, is_nikah, tinggi_badan, berat_badan,
-	hobi, pekerjaan, status_pembinaan, status_aktif,
-	tanggal_masuk, tanggal_keluar,
-	jenjang_pendidikan, sekolah, jurusan,
-	tahun_mulai_pendidikan, tahun_selesai_pendidikan,
+	member_id, group_id, full_name, nickname, gender,
+	birth_place, birth_date, photo_url, whatsapp_number,
+	home_address, village, region, group_label,
+	is_preacher, is_employed, is_married, height, weight,
+	hobby, occupation, mentoring_status, is_active,
+	joined_date, left_date,
+	education_level, school, major,
+	education_start_year, education_end_year,
 	created_at, updated_at`
 
 func (r *MemberRepo) FindAll(ctx context.Context) ([]model.Member, error) {
@@ -33,7 +33,7 @@ func (r *MemberRepo) FindAll(ctx context.Context) ([]model.Member, error) {
 	defer cancel()
 
 	rows, err := r.pool.Query(ctx,
-		`SELECT `+memberSelectCols+` FROM members WHERE status_aktif = true ORDER BY nama_lengkap`)
+		`SELECT `+memberSelectCols+` FROM members WHERE is_active = true ORDER BY full_name`)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func (r *MemberRepo) FindAllByGroup(ctx context.Context, groupID string) ([]mode
 		return r.FindAll(ctx)
 	}
 	rows, err := r.pool.Query(ctx,
-		`SELECT `+memberSelectCols+` FROM members WHERE status_aktif = true AND group_id = $1 ORDER BY nama_lengkap`,
+		`SELECT `+memberSelectCols+` FROM members WHERE is_active = true AND group_id = $1 ORDER BY full_name`,
 		groupID)
 	if err != nil {
 		return nil, err
@@ -74,14 +74,14 @@ type rowScanner interface {
 func scanMember(s rowScanner) (*model.Member, error) {
 	var m model.Member
 	err := s.Scan(
-		&m.MemberID, &m.GroupID, &m.NamaLengkap, &m.NamaPanggilan, &m.JenisKelamin,
-		&m.TempatLahir, &m.TanggalLahir, &m.FotoURL, &m.NoWA,
-		&m.AlamatRumah, &m.Desa, &m.Daerah, &m.Kelompok,
-		&m.IsMuballigh, &m.IsKerja, &m.IsNikah, &m.TinggiBadan, &m.BeratBadan,
-		&m.Hobi, &m.Pekerjaan, &m.StatusPembinaan, &m.StatusAktif,
-		&m.TanggalMasuk, &m.TanggalKeluar,
-		&m.JenjangPendidikan, &m.Sekolah, &m.Jurusan,
-		&m.TahunMulaiPendidikan, &m.TahunSelesaiPendidikan,
+		&m.MemberID, &m.GroupID, &m.FullName, &m.Nickname, &m.Gender,
+		&m.BirthPlace, &m.BirthDate, &m.PhotoURL, &m.WhatsappNumber,
+		&m.HomeAddress, &m.Village, &m.Region, &m.GroupLabel,
+		&m.IsPreacher, &m.IsEmployed, &m.IsMarried, &m.Height, &m.Weight,
+		&m.Hobby, &m.Occupation, &m.MentoringStatus, &m.IsActive,
+		&m.JoinedDate, &m.LeftDate,
+		&m.EducationLevel, &m.School, &m.Major,
+		&m.EducationStartYear, &m.EducationEndYear,
 		&m.CreatedAt, &m.UpdatedAt,
 	)
 	if err != nil {
@@ -101,14 +101,14 @@ func scanMembers(rows rowsScanner) ([]model.Member, error) {
 	for rows.Next() {
 		var m model.Member
 		err := rows.Scan(
-			&m.MemberID, &m.GroupID, &m.NamaLengkap, &m.NamaPanggilan, &m.JenisKelamin,
-			&m.TempatLahir, &m.TanggalLahir, &m.FotoURL, &m.NoWA,
-			&m.AlamatRumah, &m.Desa, &m.Daerah, &m.Kelompok,
-			&m.IsMuballigh, &m.IsKerja, &m.IsNikah, &m.TinggiBadan, &m.BeratBadan,
-			&m.Hobi, &m.Pekerjaan, &m.StatusPembinaan, &m.StatusAktif,
-			&m.TanggalMasuk, &m.TanggalKeluar,
-			&m.JenjangPendidikan, &m.Sekolah, &m.Jurusan,
-			&m.TahunMulaiPendidikan, &m.TahunSelesaiPendidikan,
+			&m.MemberID, &m.GroupID, &m.FullName, &m.Nickname, &m.Gender,
+			&m.BirthPlace, &m.BirthDate, &m.PhotoURL, &m.WhatsappNumber,
+			&m.HomeAddress, &m.Village, &m.Region, &m.GroupLabel,
+			&m.IsPreacher, &m.IsEmployed, &m.IsMarried, &m.Height, &m.Weight,
+			&m.Hobby, &m.Occupation, &m.MentoringStatus, &m.IsActive,
+			&m.JoinedDate, &m.LeftDate,
+			&m.EducationLevel, &m.School, &m.Major,
+			&m.EducationStartYear, &m.EducationEndYear,
 			&m.CreatedAt, &m.UpdatedAt,
 		)
 		if err != nil {

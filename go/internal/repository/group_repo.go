@@ -17,13 +17,13 @@ func NewGroupRepo(pool *pgxpool.Pool) *GroupRepo {
 }
 
 const groupSelectCols = `
-	group_id, group_code, group_name, pembina, penandatangan,
-	jadwal, status_aktif, created_at, updated_at`
+	group_id, group_code, group_name, mentor, signatory,
+	schedule, is_active, created_at, updated_at`
 
 func (r *GroupRepo) FindAll(ctx context.Context, includeInactive bool) ([]model.Group, error) {
 	q := `SELECT ` + groupSelectCols + ` FROM groups`
 	if !includeInactive {
-		q += ` WHERE status_aktif = true`
+		q += ` WHERE is_active = true`
 	}
 	q += ` ORDER BY group_name`
 
@@ -37,8 +37,8 @@ func (r *GroupRepo) FindAll(ctx context.Context, includeInactive bool) ([]model.
 	for rows.Next() {
 		var g model.Group
 		if err := rows.Scan(
-			&g.GroupID, &g.GroupCode, &g.GroupName, &g.Pembina, &g.Penandatangan,
-			&g.Jadwal, &g.StatusAktif, &g.CreatedAt, &g.UpdatedAt,
+			&g.GroupID, &g.GroupCode, &g.GroupName, &g.Mentor, &g.Signatory,
+			&g.Schedule, &g.IsActive, &g.CreatedAt, &g.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -52,8 +52,8 @@ func (r *GroupRepo) FindByID(ctx context.Context, id string) (*model.Group, erro
 	err := r.pool.QueryRow(ctx,
 		`SELECT `+groupSelectCols+` FROM groups WHERE group_id = $1`, id,
 	).Scan(
-		&g.GroupID, &g.GroupCode, &g.GroupName, &g.Pembina, &g.Penandatangan,
-		&g.Jadwal, &g.StatusAktif, &g.CreatedAt, &g.UpdatedAt,
+		&g.GroupID, &g.GroupCode, &g.GroupName, &g.Mentor, &g.Signatory,
+		&g.Schedule, &g.IsActive, &g.CreatedAt, &g.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err
@@ -64,10 +64,10 @@ func (r *GroupRepo) FindByID(ctx context.Context, id string) (*model.Group, erro
 func (r *GroupRepo) FindByName(ctx context.Context, name string) (*model.Group, error) {
 	var g model.Group
 	err := r.pool.QueryRow(ctx,
-		`SELECT `+groupSelectCols+` FROM groups WHERE LOWER(TRIM(group_name)) = LOWER(TRIM($1)) ORDER BY status_aktif DESC LIMIT 1`, name,
+		`SELECT `+groupSelectCols+` FROM groups WHERE LOWER(TRIM(group_name)) = LOWER(TRIM($1)) ORDER BY is_active DESC LIMIT 1`, name,
 	).Scan(
-		&g.GroupID, &g.GroupCode, &g.GroupName, &g.Pembina, &g.Penandatangan,
-		&g.Jadwal, &g.StatusAktif, &g.CreatedAt, &g.UpdatedAt,
+		&g.GroupID, &g.GroupCode, &g.GroupName, &g.Mentor, &g.Signatory,
+		&g.Schedule, &g.IsActive, &g.CreatedAt, &g.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err

@@ -5,7 +5,7 @@ import "time"
 type MemberRequest struct {
 	RequestID  string
 	UserID     string
-	Nama       string
+	Name       string
 	Status     string
 	MemberID   *string
 	Reason     string
@@ -17,7 +17,7 @@ type MemberRequest struct {
 type MemberRequestDTO struct {
 	RequestID  string `json:"request_id"`
 	UserID     string `json:"user_id"`
-	Nama       string `json:"nama"`
+	Name       string `json:"name"`
 	Status     string `json:"status"`
 	MemberID   string `json:"member_id"`
 	Reason     string `json:"reason"`

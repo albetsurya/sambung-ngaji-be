@@ -14,11 +14,11 @@ func handleCreateMonitoring(c *fiber.Ctx, svc *service.MonitoringService) error 
 	}
 	in := service.CreateMonitoringInput{
 		MemberID:     BodyString(c, "member_id"),
-		Tanggal:      BodyString(c, "tanggal"),
-		Jenis:        BodyString(c, "jenis"),
+		Date:      BodyString(c, "date"),
+		Type:        BodyString(c, "type"),
 		Status:       BodyString(c, "status"),
-		Catatan:      BodyString(c, "catatan"),
-		TindakLanjut: BodyString(c, "tindak_lanjut"),
+		Notes:      BodyString(c, "notes"),
+		FollowUp: BodyString(c, "follow_up"),
 		UserID:       userID,
 	}
 	dto, err := svc.Create(c.Context(), in)
@@ -33,11 +33,11 @@ func handleUpdateMonitoring(c *fiber.Ctx, svc *service.MonitoringService) error 
 	in := service.UpdateMonitoringInput{
 		MonitoringID: BodyString(c, "monitoring_id"),
 	}
-	if v, ok := body["catatan"].(string); ok {
-		in.Catatan = &v
+	if v, ok := body["notes"].(string); ok {
+		in.Notes = &v
 	}
-	if v, ok := body["tindak_lanjut"].(string); ok {
-		in.TindakLanjut = &v
+	if v, ok := body["follow_up"].(string); ok {
+		in.FollowUp = &v
 	}
 	dto, err := svc.UpdateEntry(c.Context(), in)
 	if err != nil {

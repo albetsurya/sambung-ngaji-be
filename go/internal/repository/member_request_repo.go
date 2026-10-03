@@ -17,14 +17,14 @@ func NewMemberRequestRepo(pool *pgxpool.Pool) *MemberRequestRepo {
 }
 
 const memberRequestSelectCols = `
-	request_id, user_id, nama, status, member_id, reason,
+	request_id, user_id, name, status, member_id, reason,
 	created_at, reviewed_by, reviewed_at`
 
 func (r *MemberRequestRepo) Insert(ctx context.Context, in *model.MemberRequest) error {
 	_, err := r.pool.Exec(ctx,
-		`INSERT INTO member_requests (request_id, user_id, nama, status, created_at)
+		`INSERT INTO member_requests (request_id, user_id, name, status, created_at)
 		 VALUES ($1,$2,$3,'PENDING', now())`,
-		in.RequestID, in.UserID, in.Nama)
+		in.RequestID, in.UserID, in.Name)
 	return err
 }
 
@@ -43,13 +43,13 @@ func (r *MemberRequestRepo) FindByID(ctx context.Context, requestID string) (*mo
 }
 
 func (r *MemberRequestRepo) FindByStatus(ctx context.Context, status, groupID string) ([]model.MemberRequest, error) {
-	/* Filter group via users.group_id (request milik user ber-kelompok).
+	/* Filter group via users.group_id (request milik user ber-group_label).
 	   Kolom di-qualify karena user_id ada di kedua tabel. */
 	cols := memberRequestSelectCols
 	from := `FROM member_requests`
 	args := []interface{}{}
 	if groupID != "" {
-		cols = `member_requests.request_id, member_requests.user_id, member_requests.nama, member_requests.status, member_requests.member_id, member_requests.reason, member_requests.created_at, member_requests.reviewed_by, member_requests.reviewed_at`
+		cols = `member_requests.request_id, member_requests.user_id, member_requests.name, member_requests.status, member_requests.member_id, member_requests.reason, member_requests.created_at, member_requests.reviewed_by, member_requests.reviewed_at`
 		from += ` JOIN users u ON u.user_id = member_requests.user_id AND u.group_id = $1`
 		args = append(args, groupID)
 	}
@@ -75,7 +75,7 @@ func (r *MemberRequestRepo) FindByStatus(ctx context.Context, status, groupID st
 	var out []model.MemberRequest
 	for rows.Next() {
 		var m model.MemberRequest
-		if err := rows.Scan(&m.RequestID, &m.UserID, &m.Nama, &m.Status, &m.MemberID, &m.Reason,
+		if err := rows.Scan(&m.RequestID, &m.UserID, &m.Name, &m.Status, &m.MemberID, &m.Reason,
 			&m.CreatedAt, &m.ReviewedBy, &m.ReviewedAt); err != nil {
 			return nil, err
 		}
@@ -100,7 +100,7 @@ func (r *MemberRequestRepo) UpdateRejected(ctx context.Context, requestID, revie
 
 func scanMemberRequest(row rowScanner) (*model.MemberRequest, error) {
 	var m model.MemberRequest
-	if err := row.Scan(&m.RequestID, &m.UserID, &m.Nama, &m.Status, &m.MemberID, &m.Reason,
+	if err := row.Scan(&m.RequestID, &m.UserID, &m.Name, &m.Status, &m.MemberID, &m.Reason,
 		&m.CreatedAt, &m.ReviewedBy, &m.ReviewedAt); err != nil {
 		return nil, err
 	}

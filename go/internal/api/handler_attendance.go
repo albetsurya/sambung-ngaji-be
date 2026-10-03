@@ -36,7 +36,7 @@ func handleSaveAttendance(c *fiber.Ctx, svc *service.AttendanceService) error {
 		MeetingID: BodyString(c, "meeting_id"),
 		MemberID:  BodyString(c, "member_id"),
 		Status:    BodyString(c, "status"),
-		Catatan:   BodyString(c, "catatan"),
+		Notes:   BodyString(c, "notes"),
 		UserID:    userID,
 	}
 	dto, err := svc.SaveAttendance(c.Context(), in)
@@ -65,11 +65,11 @@ func handleBulkSaveAttendance(c *fiber.Ctx, svc *service.AttendanceService) erro
 		}
 		mid, _ := m["member_id"].(string)
 		st, _ := m["status"].(string)
-		cat, _ := m["catatan"].(string)
+		cat, _ := m["notes"].(string)
 		items = append(items, repository.BulkItem{
 			MemberID: mid,
 			Status:   st,
-			Catatan:  cat,
+			Notes:  cat,
 		})
 	}
 

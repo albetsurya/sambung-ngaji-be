@@ -113,8 +113,8 @@ func (e *AIToolExecutor) Execute(ctx context.Context, name string, args map[stri
 	case "get_members_list":
 		f := model.MemberListFilter{
 			Kategori:     getStringArg(args, "kategori"),
-			JenisKelamin: getStringArg(args, "jenis_kelamin"),
-			Kelompok:     getStringArg(args, "kelompok"),
+			Gender: getStringArg(args, "gender"),
+			GroupLabel:     getStringArg(args, "group_label"),
 			Search:       getStringArg(args, "search"),
 			Limit:        getIntArg(args, "limit", 50),
 		}

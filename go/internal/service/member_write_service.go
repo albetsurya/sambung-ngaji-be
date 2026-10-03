@@ -11,101 +11,101 @@ import (
 	"pengajian-backend/internal/util"
 )
 
-func (s *MemberService) resolveGroup(ctx context.Context, groupID, kelompok string) (id, name string, err error) {
+func (s *MemberService) resolveGroup(ctx context.Context, groupID, group_label string) (id, name string, err error) {
 	groupID = strings.TrimSpace(groupID)
-	kelompok = strings.TrimSpace(kelompok)
+	group_label = strings.TrimSpace(group_label)
 	if groupID != "" {
 		if s.groupRepo == nil {
-			return groupID, kelompok, nil
+			return groupID, group_label, nil
 		}
 		g, err := s.groupRepo.FindByID(ctx, groupID)
 		if err != nil {
 			return "", "", apperrors.Wrap(apperrors.ErrValidation, "kelompok tidak dikenal")
 		}
-		if kelompok == "" {
-			kelompok = g.GroupName
+		if group_label == "" {
+			group_label = g.GroupName
 		}
-		return g.GroupID, kelompok, nil
+		return g.GroupID, group_label, nil
 	}
-	if kelompok == "" {
+	if group_label == "" {
 		return "", "", apperrors.Wrap(apperrors.ErrValidation, "kelompok wajib dipilih")
 	}
 	if s.groupRepo == nil {
-		return "", kelompok, nil
+		return "", group_label, nil
 	}
-	g, err := s.groupRepo.FindByName(ctx, kelompok)
+	g, err := s.groupRepo.FindByName(ctx, group_label)
 	if err != nil {
-		return "", "", apperrors.Wrap(apperrors.ErrValidation, "kelompok tidak dikenal: "+kelompok)
+		return "", "", apperrors.Wrap(apperrors.ErrValidation, "kelompok tidak dikenal: "+group_label)
 	}
 	return g.GroupID, g.GroupName, nil
 }
 
 type CreateMemberInput struct {
 	GroupID                string
-	NamaLengkap            string
-	NamaPanggilan          string
-	JenisKelamin           string
-	TempatLahir            string
-	TanggalLahir           string
-	Kelompok               string
-	Desa                   string
-	Daerah                 string
-	AlamatRumah            string
-	NoWA                   string
-	IsMuballigh            bool
-	IsKerja                bool
-	IsNikah                bool
-	TinggiBadan            string
-	BeratBadan             string
-	Hobi                   string
-	Pekerjaan              string
-	FotoURL                string
-	StatusPembinaan        string
-	TanggalMasuk           string
-	JenjangPendidikan      string
-	Sekolah                string
-	Jurusan                string
-	TahunMulaiPendidikan   string
-	TahunSelesaiPendidikan string
+	FullName            string
+	Nickname          string
+	Gender           string
+	BirthPlace            string
+	BirthDate           string
+	GroupLabel               string
+	Village                   string
+	Region                 string
+	HomeAddress            string
+	WhatsappNumber                   string
+	IsPreacher            bool
+	IsEmployed                bool
+	IsMarried                bool
+	Height            string
+	Weight             string
+	Hobby                   string
+	Occupation              string
+	PhotoURL                string
+	MentoringStatus        string
+	JoinedDate           string
+	EducationLevel      string
+	School                string
+	Major                string
+	EducationStartYear   string
+	EducationEndYear string
 }
 
 func (s *MemberService) Create(ctx context.Context, in CreateMemberInput) (*model.MemberDetailDTO, error) {
 
-	in.NamaLengkap = util.TitleCaseID(in.NamaLengkap)
-	in.NamaPanggilan = util.TitleCaseID(in.NamaPanggilan)
-	in.TempatLahir = util.TitleCaseID(in.TempatLahir)
-	in.Desa = util.TitleCaseID(in.Desa)
-	in.Daerah = util.TitleCaseID(in.Daerah)
-	if strings.TrimSpace(in.NamaLengkap) == "" {
-		return nil, apperrors.Wrap(apperrors.ErrValidation, "nama_lengkap wajib diisi")
+	in.FullName = util.TitleCaseID(in.FullName)
+	in.Nickname = util.TitleCaseID(in.Nickname)
+	in.BirthPlace = util.TitleCaseID(in.BirthPlace)
+	in.Village = util.TitleCaseID(in.Village)
+	in.Region = util.TitleCaseID(in.Region)
+	if strings.TrimSpace(in.FullName) == "" {
+		return nil, apperrors.Wrap(apperrors.ErrValidation, "nama lengkap wajib diisi")
 	}
 
-	jk := normalizeGender(in.JenisKelamin)
+	jk := normalizeGender(in.Gender)
 	var jkPtr *string
 	if jk != "" {
 		jkPtr = &jk
 	}
 
 	var tglLahir interface{}
-	if in.TanggalLahir != "" {
-		tglLahir = in.TanggalLahir
+	if in.BirthDate != "" {
+		tglLahir = in.BirthDate
 	}
 
-	status := in.StatusPembinaan
+	status := in.MentoringStatus
 	if status == "" {
 		status = "AKTIF"
 	}
-	tglMasuk := in.TanggalMasuk
+	tglMasuk := in.JoinedDate
 	if tglMasuk == "" {
 		tglMasuk = time.Now().Format("2006-01-02")
 	}
 
 	noWA := ""
-	if in.NoWA != "" {
-		noWA = util.NormalizePhone(in.NoWA)
+	if in.WhatsappNumber != "" {
+		noWA = util.NormalizePhone(in.WhatsappNumber)
 	}
 
-	groupID, kelompok, err := s.resolveGroup(ctx, in.GroupID, in.Kelompok)
+	groupID, group_label, err := s.resolveGroup(ctx, in.GroupID, in.GroupLabel)
 	if err != nil {
 		return nil, err
 	}
@@ -113,13 +113,13 @@ func (s *MemberService) Create(ctx context.Context, in CreateMemberInput) (*mode
 	memberID := util.NewID("MBR")
 	_, err = s.repo.Pool().Exec(ctx, `
 		INSERT INTO members (
-			member_id, nama_lengkap, nama_panggilan, jenis_kelamin,
-			tempat_lahir, tanggal_lahir, foto_url, no_wa,
-			alamat_rumah, desa, daerah, kelompok, group_id,
-			is_muballigh, is_kerja, is_nikah, tinggi_badan, berat_badan,
-			hobi, pekerjaan, status_pembinaan, status_aktif, tanggal_masuk,
-			jenjang_pendidikan, sekolah, jurusan,
-			tahun_mulai_pendidikan, tahun_selesai_pendidikan,
+			member_id, full_name, nickname, gender,
+			birth_place, birth_date, photo_url, whatsapp_number,
+			home_address, village, region, group_label, group_id,
+			is_preacher, is_employed, is_married, height, weight,
+			hobby, occupation, mentoring_status, is_active, joined_date,
+			education_level, school, major,
+			education_start_year, education_end_year,
 			created_at, updated_at
 		) VALUES (
 			$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,
@@ -127,13 +127,13 @@ func (s *MemberService) Create(ctx context.Context, in CreateMemberInput) (*mode
 			$23,$24,$25,$26,$27,now(),now()
 		)
 	`,
-		memberID, in.NamaLengkap, in.NamaPanggilan, jkPtr,
-		in.TempatLahir, tglLahir, in.FotoURL, noWA,
-		in.AlamatRumah, in.Desa, in.Daerah, kelompok, groupID,
-		in.IsMuballigh, in.IsKerja, in.IsNikah, in.TinggiBadan, in.BeratBadan,
-		in.Hobi, in.Pekerjaan, status, tglMasuk,
-		in.JenjangPendidikan, in.Sekolah, in.Jurusan,
-		in.TahunMulaiPendidikan, in.TahunSelesaiPendidikan,
+		memberID, in.FullName, in.Nickname, jkPtr,
+		in.BirthPlace, tglLahir, in.PhotoURL, noWA,
+		in.HomeAddress, in.Village, in.Region, group_label, groupID,
+		in.IsPreacher, in.IsEmployed, in.IsMarried, in.Height, in.Weight,
+		in.Hobby, in.Occupation, status, tglMasuk,
+		in.EducationLevel, in.School, in.Major,
+		in.EducationStartYear, in.EducationEndYear,
 	)
 	if err != nil {
 		return nil, err
@@ -149,55 +149,55 @@ func (s *MemberService) Create(ctx context.Context, in CreateMemberInput) (*mode
 type UpdateMemberInput struct {
 	MemberID               string
 	GroupID                *string
-	NamaLengkap            *string
-	NamaPanggilan          *string
-	JenisKelamin           *string
-	TempatLahir            *string
-	TanggalLahir           *string
-	Kelompok               *string
-	Desa                   *string
-	Daerah                 *string
-	AlamatRumah            *string
-	NoWA                   *string
-	IsMuballigh            *bool
-	IsKerja                *bool
-	IsNikah                *bool
-	TinggiBadan            *string
-	BeratBadan             *string
-	Hobi                   *string
-	Pekerjaan              *string
-	FotoURL                *string
-	StatusPembinaan        *string
-	TanggalMasuk           *string
-	TanggalKeluar          *string
-	JenjangPendidikan      *string
-	Sekolah                *string
-	Jurusan                *string
-	TahunMulaiPendidikan   *string
-	TahunSelesaiPendidikan *string
+	FullName            *string
+	Nickname          *string
+	Gender           *string
+	BirthPlace            *string
+	BirthDate           *string
+	GroupLabel               *string
+	Village                   *string
+	Region                 *string
+	HomeAddress            *string
+	WhatsappNumber                   *string
+	IsPreacher            *bool
+	IsEmployed                *bool
+	IsMarried                *bool
+	Height            *string
+	Weight             *string
+	Hobby                   *string
+	Occupation              *string
+	PhotoURL                *string
+	MentoringStatus        *string
+	JoinedDate           *string
+	LeftDate          *string
+	EducationLevel      *string
+	School                *string
+	Major                *string
+	EducationStartYear   *string
+	EducationEndYear *string
 }
 
 func (s *MemberService) UpdateFull(ctx context.Context, in UpdateMemberInput) (*model.MemberDetailDTO, error) {
 
-	if in.NamaLengkap != nil {
-		v := util.TitleCaseID(*in.NamaLengkap)
-		in.NamaLengkap = &v
+	if in.FullName != nil {
+		v := util.TitleCaseID(*in.FullName)
+		in.FullName = &v
 	}
-	if in.NamaPanggilan != nil {
-		v := util.TitleCaseID(*in.NamaPanggilan)
-		in.NamaPanggilan = &v
+	if in.Nickname != nil {
+		v := util.TitleCaseID(*in.Nickname)
+		in.Nickname = &v
 	}
-	if in.TempatLahir != nil {
-		v := util.TitleCaseID(*in.TempatLahir)
-		in.TempatLahir = &v
+	if in.BirthPlace != nil {
+		v := util.TitleCaseID(*in.BirthPlace)
+		in.BirthPlace = &v
 	}
-	if in.Desa != nil {
-		v := util.TitleCaseID(*in.Desa)
-		in.Desa = &v
+	if in.Village != nil {
+		v := util.TitleCaseID(*in.Village)
+		in.Village = &v
 	}
-	if in.Daerah != nil {
-		v := util.TitleCaseID(*in.Daerah)
-		in.Daerah = &v
+	if in.Region != nil {
+		v := util.TitleCaseID(*in.Region)
+		in.Region = &v
 	}
 	if in.MemberID == "" {
 		return nil, apperrors.Wrap(apperrors.ErrValidation, "member_id wajib diisi")
@@ -218,71 +218,71 @@ func (s *MemberService) UpdateFull(ctx context.Context, in UpdateMemberInput) (*
 		}
 	}
 
-	addStr("nama_lengkap", in.NamaLengkap)
-	addStr("nama_panggilan", in.NamaPanggilan)
-	if in.JenisKelamin != nil {
-		if jk := normalizeGender(*in.JenisKelamin); jk != "" {
-			patch["jenis_kelamin"] = jk
+	addStr("full_name", in.FullName)
+	addStr("nickname", in.Nickname)
+	if in.Gender != nil {
+		if jk := normalizeGender(*in.Gender); jk != "" {
+			patch["gender"] = jk
 		}
 	}
-	addStr("tempat_lahir", in.TempatLahir)
-	if in.TanggalLahir != nil {
-		if *in.TanggalLahir == "" {
-			patch["tanggal_lahir"] = nil
+	addStr("birth_place", in.BirthPlace)
+	if in.BirthDate != nil {
+		if *in.BirthDate == "" {
+			patch["birth_date"] = nil
 		} else {
-			patch["tanggal_lahir"] = *in.TanggalLahir
+			patch["birth_date"] = *in.BirthDate
 		}
 	}
-	if in.Kelompok != nil || in.GroupID != nil {
+	if in.GroupLabel != nil || in.GroupID != nil {
 		gid := ""
 		if in.GroupID != nil {
 			gid = *in.GroupID
 		}
 		knama := ""
-		if in.Kelompok != nil {
-			knama = *in.Kelompok
+		if in.GroupLabel != nil {
+			knama = *in.GroupLabel
 		}
 		resolvedID, resolvedName, err := s.resolveGroup(ctx, gid, knama)
 		if err != nil {
 			return nil, err
 		}
 		patch["group_id"] = resolvedID
-		patch["kelompok"] = resolvedName
+		patch["group_label"] = resolvedName
 	}
-	addStr("desa", in.Desa)
-	addStr("daerah", in.Daerah)
-	addStr("alamat_rumah", in.AlamatRumah)
-	if in.NoWA != nil && *in.NoWA != "" {
-		patch["no_wa"] = util.NormalizePhone(*in.NoWA)
+	addStr("village", in.Village)
+	addStr("region", in.Region)
+	addStr("home_address", in.HomeAddress)
+	if in.WhatsappNumber != nil && *in.WhatsappNumber != "" {
+		patch["whatsapp_number"] = util.NormalizePhone(*in.WhatsappNumber)
 	}
-	addBool("is_muballigh", in.IsMuballigh)
-	addBool("is_kerja", in.IsKerja)
-	addBool("is_nikah", in.IsNikah)
-	addStr("tinggi_badan", in.TinggiBadan)
-	addStr("berat_badan", in.BeratBadan)
-	addStr("hobi", in.Hobi)
-	addStr("pekerjaan", in.Pekerjaan)
-	addStr("foto_url", in.FotoURL)
-	addStr("status_pembinaan", in.StatusPembinaan)
-	if in.TanggalMasuk != nil {
-		if *in.TanggalMasuk == "" {
-			patch["tanggal_masuk"] = nil
+	addBool("is_preacher", in.IsPreacher)
+	addBool("is_employed", in.IsEmployed)
+	addBool("is_married", in.IsMarried)
+	addStr("height", in.Height)
+	addStr("weight", in.Weight)
+	addStr("hobby", in.Hobby)
+	addStr("occupation", in.Occupation)
+	addStr("photo_url", in.PhotoURL)
+	addStr("mentoring_status", in.MentoringStatus)
+	if in.JoinedDate != nil {
+		if *in.JoinedDate == "" {
+			patch["joined_date"] = nil
 		} else {
-			patch["tanggal_masuk"] = *in.TanggalMasuk
+			patch["joined_date"] = *in.JoinedDate
 		}
 	}
-	if in.TanggalKeluar != nil {
-		if *in.TanggalKeluar == "" {
-			patch["tanggal_keluar"] = nil
+	if in.LeftDate != nil {
+		if *in.LeftDate == "" {
+			patch["left_date"] = nil
 		} else {
-			patch["tanggal_keluar"] = *in.TanggalKeluar
+			patch["left_date"] = *in.LeftDate
 		}
 	}
-	addStr("jenjang_pendidikan", in.JenjangPendidikan)
-	addStr("sekolah", in.Sekolah)
-	addStr("jurusan", in.Jurusan)
-	addStr("tahun_mulai_pendidikan", in.TahunMulaiPendidikan)
-	addStr("tahun_selesai_pendidikan", in.TahunSelesaiPendidikan)
+	addStr("education_level", in.EducationLevel)
+	addStr("school", in.School)
+	addStr("major", in.Major)
+	addStr("education_start_year", in.EducationStartYear)
+	addStr("education_end_year", in.EducationEndYear)
 
 	if len(patch) == 0 {
 		return nil, apperrors.Wrap(apperrors.ErrValidation, "tidak ada perubahan")
@@ -319,29 +319,29 @@ func (s *MemberService) FindForExport(ctx context.Context) ([]map[string]interfa
 	out := make([]map[string]interface{}, 0, len(rows))
 	for _, r := range rows {
 		jk := ""
-		if r.JenisKelamin != nil {
-			jk = *r.JenisKelamin
+		if r.Gender != nil {
+			jk = *r.Gender
 		}
 		tgl := ""
-		if r.TanggalLahir != nil {
-			tgl = r.TanggalLahir.Format("2006-01-02")
+		if r.BirthDate != nil {
+			tgl = r.BirthDate.Format("2006-01-02")
 		}
 		out = append(out, map[string]interface{}{
-			"nama_lengkap":     r.NamaLengkap,
-			"nama_panggilan":   r.NamaPanggilan,
-			"jenis_kelamin":    jk,
-			"tempat_lahir":     r.TempatLahir,
-			"tanggal_lahir":    tgl,
-			"usia":             util.GetAge(r.TanggalLahir),
-			"kategori":         util.GetMemberCategory(r.TanggalLahir, r.JenjangPendidikan, r.IsNikah),
-			"kelompok":         r.Kelompok,
-			"desa":             r.Desa,
-			"daerah":           r.Daerah,
-			"alamat_rumah":     r.AlamatRumah,
-			"no_wa":            r.NoWA,
-			"pekerjaan":        r.Pekerjaan,
-			"hobi":             r.Hobi,
-			"status_pembinaan": r.StatusPembinaan,
+			"full_name":     r.FullName,
+			"nickname":   r.Nickname,
+			"gender":    jk,
+			"birth_place":     r.BirthPlace,
+			"birth_date":    tgl,
+			"usia":             util.GetAge(r.BirthDate),
+			"kategori":         util.GetMemberCategory(r.BirthDate, r.EducationLevel, r.IsMarried),
+			"group_label":         r.GroupLabel,
+			"village":             r.Village,
+			"region":           r.Region,
+			"home_address":     r.HomeAddress,
+			"whatsapp_number":            r.WhatsappNumber,
+			"occupation":        r.Occupation,
+			"hobby":             r.Hobby,
+			"mentoring_status": r.MentoringStatus,
 		})
 	}
 	return out, nil

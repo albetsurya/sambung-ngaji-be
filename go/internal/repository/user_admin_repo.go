@@ -18,9 +18,9 @@ func NewUserAdminRepo(pool *pgxpool.Pool) *UserAdminRepo {
 }
 
 const userAdminSelectCols = `
-	u.user_id, u.username, u.password_hash, u.nama, u.role, u.member_id,
+	u.user_id, u.username, u.password_hash, u.name, u.role, u.member_id,
 	COALESCE(m.group_id, u.group_id, '') AS group_id,
-	u.status_aktif, u.created_at, u.updated_at, u.last_login_at`
+	u.is_active, u.created_at, u.updated_at, u.last_login_at`
 
 func (r *UserAdminRepo) FindAll(ctx context.Context) ([]model.User, error) {
 	q := `SELECT ` + userAdminSelectCols + ` FROM users u LEFT JOIN members m ON u.member_id = m.member_id ORDER BY u.username`
@@ -35,8 +35,8 @@ func (r *UserAdminRepo) FindAll(ctx context.Context) ([]model.User, error) {
 		var u model.User
 		var groupID string
 		if err := rows.Scan(
-			&u.UserID, &u.Username, &u.PasswordHash, &u.Nama, &u.Role,
-			&u.MemberID, &groupID, &u.StatusAktif, &u.CreatedAt, &u.UpdatedAt, &u.LastLoginAt,
+			&u.UserID, &u.Username, &u.PasswordHash, &u.Name, &u.Role,
+			&u.MemberID, &groupID, &u.IsActive, &u.CreatedAt, &u.UpdatedAt, &u.LastLoginAt,
 		); err != nil {
 			return nil, err
 		}
@@ -54,8 +54,8 @@ func (r *UserAdminRepo) FindByID(ctx context.Context, id string) (*model.User, e
 	var groupID string
 	q := `SELECT ` + userAdminSelectCols + ` FROM users u LEFT JOIN members m ON u.member_id = m.member_id WHERE u.user_id = $1`
 	err := r.pool.QueryRow(ctx, q, id).Scan(
-		&u.UserID, &u.Username, &u.PasswordHash, &u.Nama, &u.Role,
-		&u.MemberID, &groupID, &u.StatusAktif, &u.CreatedAt, &u.UpdatedAt, &u.LastLoginAt,
+		&u.UserID, &u.Username, &u.PasswordHash, &u.Name, &u.Role,
+		&u.MemberID, &groupID, &u.IsActive, &u.CreatedAt, &u.UpdatedAt, &u.LastLoginAt,
 	)
 	if err != nil {
 		return nil, err
@@ -86,7 +86,7 @@ func (r *UserAdminRepo) CountActiveSuperAdminsExcept(ctx context.Context, except
 	var n int
 	err := r.pool.QueryRow(ctx, `
 		SELECT COUNT(*) FROM users
-		WHERE role = 'SUPER_ADMIN' AND status_aktif = true AND user_id <> $1
+		WHERE role = 'SUPER_ADMIN' AND is_active = true AND user_id <> $1
 	`, exceptID).Scan(&n)
 	return n, err
 }
@@ -94,10 +94,10 @@ func (r *UserAdminRepo) CountActiveSuperAdminsExcept(ctx context.Context, except
 func (r *UserAdminRepo) FindActiveUserByMemberID(ctx context.Context, memberID string) (*model.User, error) {
 	var u model.User
 	var groupID string
-	q := `SELECT ` + userAdminSelectCols + ` FROM users u LEFT JOIN members m ON u.member_id = m.member_id WHERE u.member_id = $1 AND u.status_aktif = true LIMIT 1`
+	q := `SELECT ` + userAdminSelectCols + ` FROM users u LEFT JOIN members m ON u.member_id = m.member_id WHERE u.member_id = $1 AND u.is_active = true LIMIT 1`
 	err := r.pool.QueryRow(ctx, q, memberID).Scan(
-		&u.UserID, &u.Username, &u.PasswordHash, &u.Nama, &u.Role,
-		&u.MemberID, &groupID, &u.StatusAktif, &u.CreatedAt, &u.UpdatedAt, &u.LastLoginAt,
+		&u.UserID, &u.Username, &u.PasswordHash, &u.Name, &u.Role,
+		&u.MemberID, &groupID, &u.IsActive, &u.CreatedAt, &u.UpdatedAt, &u.LastLoginAt,
 	)
 	if err != nil {
 		return nil, err

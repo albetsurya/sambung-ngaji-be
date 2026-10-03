@@ -41,7 +41,7 @@ func (s *Service) Login(ctx context.Context, username, password string) (string,
 		}
 		return "", nil, err
 	}
-	if !u.StatusAktif {
+	if !u.IsActive {
 		return "", nil, ErrUserInactive
 	}
 
@@ -109,7 +109,7 @@ func (s *Service) ValidateSession(ctx context.Context, token string) (*model.Use
 	if err != nil {
 		return nil, nil, ErrInvalidToken
 	}
-	if !u.StatusAktif {
+	if !u.IsActive {
 		return nil, nil, ErrInvalidToken
 	}
 	return u, claims, nil
@@ -124,12 +124,12 @@ func (s *Service) findByUsername(ctx context.Context, username string) (*model.U
 	var u model.User
 	var gid *string
 	err := s.pool.QueryRow(ctx, `
-		SELECT user_id, username, password_hash, nama, role, group_id, member_id,
-		       status_aktif, created_at, updated_at, last_login_at
+		SELECT user_id, username, password_hash, name, role, group_id, member_id,
+		       is_active, created_at, updated_at, last_login_at
 		FROM users WHERE username = $1
 	`, username).Scan(
-		&u.UserID, &u.Username, &u.PasswordHash, &u.Nama, &u.Role,
-		&gid, &u.MemberID, &u.StatusAktif, &u.CreatedAt, &u.UpdatedAt, &u.LastLoginAt,
+		&u.UserID, &u.Username, &u.PasswordHash, &u.Name, &u.Role,
+		&gid, &u.MemberID, &u.IsActive, &u.CreatedAt, &u.UpdatedAt, &u.LastLoginAt,
 	)
 	u.GroupID = gid
 	if err != nil {
@@ -142,12 +142,12 @@ func (s *Service) findByID(ctx context.Context, userID string) (*model.User, err
 	var u model.User
 	var gid *string
 	err := s.pool.QueryRow(ctx, `
-		SELECT user_id, username, password_hash, nama, role, group_id, member_id,
-		       status_aktif, created_at, updated_at, last_login_at
+		SELECT user_id, username, password_hash, name, role, group_id, member_id,
+		       is_active, created_at, updated_at, last_login_at
 		FROM users WHERE user_id = $1
 	`, userID).Scan(
-		&u.UserID, &u.Username, &u.PasswordHash, &u.Nama, &u.Role,
-		&gid, &u.MemberID, &u.StatusAktif, &u.CreatedAt, &u.UpdatedAt, &u.LastLoginAt,
+		&u.UserID, &u.Username, &u.PasswordHash, &u.Name, &u.Role,
+		&gid, &u.MemberID, &u.IsActive, &u.CreatedAt, &u.UpdatedAt, &u.LastLoginAt,
 	)
 	u.GroupID = gid
 	if err != nil {
@@ -167,7 +167,7 @@ func (s *Service) ToPublic(ctx context.Context, u *model.User) model.PublicUser 
 	p := model.PublicUser{
 		UserID:   u.UserID,
 		Username: u.Username,
-		Nama:     u.Nama,
+		Name:     u.Name,
 		Role:     u.Role,
 		GroupID:  ptrToString(u.GroupID),
 	}
@@ -175,13 +175,13 @@ func (s *Service) ToPublic(ctx context.Context, u *model.User) model.PublicUser 
 		p.MemberID = *u.MemberID
 		var jk, foto *string
 		_ = s.pool.QueryRow(ctx,
-			`SELECT jenis_kelamin, foto_url FROM members WHERE member_id = $1`, *u.MemberID,
+			`SELECT gender, photo_url FROM members WHERE member_id = $1`, *u.MemberID,
 		).Scan(&jk, &foto)
 		if jk != nil {
-			p.JenisKelamin = *jk
+			p.Gender = *jk
 		}
 		if foto != nil {
-			p.FotoURL = *foto
+			p.PhotoURL = *foto
 		}
 	}
 	return p

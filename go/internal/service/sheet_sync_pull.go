@@ -43,16 +43,16 @@ func (s *FinanceSyncService) pullCash(ctx context.Context, cli *sheets.Service, 
 		if exists && !newerThan(r["updated_at"], dbTS) {
 			continue
 		}
-		dateStr := sheetGet(r, "transaction_date", "tanggal")
+		dateStr := sheetGet(r, "transaction_date", "date", "tanggal")
 		tgl, err := util.ParseSheetDate(dateStr)
 		if err != nil {
-			s.recordError(ctx, groupID, "cash", r["cash_id"], "sheet->db", "transaction_date tidak valid: "+dateStr)
+			s.recordError(ctx, groupID, "cash", r["cash_id"], "sheet->db", "transaction_tanggal tidak valid: "+dateStr)
 			continue
 		}
 		gid := groupID
 		k := &model.CashTransaction{
 			CashID: r["cash_id"], GroupID: &gid, CashType: normCashType(r["cash_type"]),
-			Tanggal: tgl, AccountName: sheetGet(r, "account_name", "account"),
+			Date: tgl, AccountName: sheetGet(r, "account_name", "account"),
 			Description: sheetGet(r, "description", "notes", "keterangan"),
 			Debit: parseNum(sheetGet(r, "debit", "debet")), Credit: parseNum(sheetGet(r, "credit", "kredit")),
 			CreatedBy: r["created_by"],
@@ -83,7 +83,7 @@ func (s *FinanceSyncService) pullDueMembers(ctx context.Context, cli *sheets.Ser
 	tombs, _ := s.repo.Tombstones(ctx, groupID, "due_members")
 	for i, r := range rows {
 		memberID := sheetGet(r, "member_id", "due_member_id")
-		memberName := sheetGet(r, "member_name", "nama", "full_name")
+		memberName := sheetGet(r, "member_name", "name", "full_name", "nama", "nama_lengkap")
 		if r["group_id"] != groupID || memberID == "" || tombs[memberID] {
 			continue
 		}
@@ -134,10 +134,10 @@ func (s *FinanceSyncService) pullDuePayments(ctx context.Context, cli *sheets.Se
 		if exists && !newerThan(r["updated_at"], dbTS) {
 			continue
 		}
-		dateStr := sheetGet(r, "payment_date", "transaction_date", "tanggal")
+		dateStr := sheetGet(r, "payment_date", "transaction_date", "date", "tanggal")
 		tgl, err := util.ParseSheetDate(dateStr)
 		if err != nil {
-			s.recordError(ctx, groupID, "due_payments", r["payment_id"], "sheet->db", "payment_date tidak valid: "+dateStr)
+			s.recordError(ctx, groupID, "due_payments", r["payment_id"], "sheet->db", "payment_tanggal tidak valid: "+dateStr)
 			continue
 		}
 		// Susulan: teks bulan sheet → rincian per bulan (bagi rata dari carryover_ir).
@@ -202,7 +202,7 @@ func (s *FinanceSyncService) pullZakat(ctx context.Context, cli *sheets.Service,
 		// ZAKAT tab has no group_id column; single-group spreadsheet assumed.
 		// Skip newerThan check because trigger auto-updates updated_at on every write.
 		title := sheetGet(r, "title")
-		muzakkiName := sheetGet(r, "muzakki_name", "nama")
+		muzakkiName := sheetGet(r, "muzakki_name", "name", "nama")
 		if strings.TrimSpace(title) == "" && strings.TrimSpace(muzakkiName) == "" {
 			s.recordError(ctx, groupID, "zakat", r["zakat_id"], "sheet->db", "title/muzakki_name kosong")
 			continue
@@ -211,7 +211,7 @@ func (s *FinanceSyncService) pullZakat(ctx context.Context, cli *sheets.Service,
 			title = muzakkiName
 		}
 		var tgl *time.Time
-		if ds := sheetGet(r, "transaction_date", "tanggal"); ds != "" {
+		if ds := sheetGet(r, "transaction_date", "date", "tanggal"); ds != "" {
 			if t, err := util.ParseSheetDate(strings.TrimSpace(ds)); err == nil {
 				tgl = &t
 			}

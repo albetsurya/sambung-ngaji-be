@@ -17,12 +17,12 @@ func NewMonitoringRepo(pool *pgxpool.Pool) *MonitoringRepo {
 }
 
 const monitoringSelectCols = `
-	monitoring_id, member_id, tanggal, jenis, status, catatan,
-	tindak_lanjut, created_by, created_at, updated_at`
+	monitoring_id, member_id, date, type, status, notes,
+	follow_up, created_by, created_at, updated_at`
 
 func (r *MonitoringRepo) FindByMember(ctx context.Context, memberID string) ([]model.Monitoring, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT `+monitoringSelectCols+` FROM monitoring WHERE member_id=$1 ORDER BY tanggal DESC`,
+		`SELECT `+monitoringSelectCols+` FROM monitoring WHERE member_id=$1 ORDER BY date DESC`,
 		memberID)
 	if err != nil {
 		return nil, err
@@ -36,8 +36,8 @@ func scanMonitorings(rows rowsScanner) ([]model.Monitoring, error) {
 	for rows.Next() {
 		var m model.Monitoring
 		err := rows.Scan(
-			&m.MonitoringID, &m.MemberID, &m.Tanggal, &m.Jenis, &m.Status, &m.Catatan,
-			&m.TindakLanjut, &m.CreatedBy, &m.CreatedAt, &m.UpdatedAt,
+			&m.MonitoringID, &m.MemberID, &m.Date, &m.Type, &m.Status, &m.Notes,
+			&m.FollowUp, &m.CreatedBy, &m.CreatedAt, &m.UpdatedAt,
 		)
 		if err != nil {
 			return nil, err

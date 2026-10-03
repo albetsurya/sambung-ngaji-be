@@ -775,7 +775,7 @@ func RegisterRESTAPI(app *fiber.App, svc *Services) {
 	v1.Post("/photo", func(c *fiber.Ctx) error { return svc.Photo.Upload(c) })
 	v1.Delete("/photo", func(c *fiber.Ctx) error { return svc.Photo.Delete(c) })
 
-	// Finance (SabilKas, per-group, auth wajib + scoping kelompok)
+	// Finance (SabilKas, per-group, auth wajib + scoping group_label)
 	fin := func(action string, h fiber.Handler) []fiber.Handler {
 		return []fiber.Handler{FinanceAuthMiddleware(svc.Auth, action), h}
 	}

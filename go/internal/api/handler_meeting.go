@@ -26,7 +26,7 @@ func handleGetMeetings(c *fiber.Ctx, svc *service.MeetingService) error {
 
 func parseKategoriTarget(c *fiber.Ctx) []string {
 	body := BodyOf(c)
-	v, ok := body["kategori_target"]
+	v, ok := body["target_categories"]
 	if !ok {
 		return nil
 	}
@@ -57,15 +57,15 @@ func handleCreateMeeting(c *fiber.Ctx, svc *service.MeetingService) error {
 		return err
 	}
 	in := service.CreateMeetingInput{
-		Tanggal:        BodyString(c, "tanggal"),
-		Jam:            BodyString(c, "jam"),
-		JamStart:       BodyString(c, "jam_start"),
+		Date:        BodyString(c, "date"),
+		Time:            BodyString(c, "time"),
+		StartTime:       BodyString(c, "start_time"),
 		GroupID:        groupID,
-		Acara:          BodyString(c, "acara"),
-		Materi:         BodyString(c, "materi"),
+		Event:          BodyString(c, "event"),
+		Topic:         BodyString(c, "topic"),
 		Status:         BodyString(c, "status"),
-		Catatan:        BodyString(c, "catatan"),
-		KategoriTarget: parseKategoriTarget(c),
+		Notes:        BodyString(c, "notes"),
+		TargetCategories: parseKategoriTarget(c),
 		GenderTarget:   BodyString(c, "gender_target"),
 		CreatedBy:      createdBy,
 	}
@@ -82,26 +82,26 @@ func handleUpdateMeeting(c *fiber.Ctx, svc *service.MeetingService) error {
 	}
 	in := service.UpdateMeetingInput{
 		MeetingID: BodyString(c, "meeting_id"),
-		Tanggal:   BodyString(c, "tanggal"),
-		Jam:       BodyString(c, "jam"),
-		JamStart:  BodyString(c, "jam_start"),
+		Date:   BodyString(c, "date"),
+		Time:       BodyString(c, "time"),
+		StartTime:  BodyString(c, "start_time"),
 		GroupID:   BodyString(c, "group_id"),
-		Acara:     BodyString(c, "acara"),
-		Materi:    BodyString(c, "materi"),
+		Event:     BodyString(c, "event"),
+		Topic:    BodyString(c, "topic"),
 		Status:    BodyString(c, "status"),
-		Catatan:   BodyString(c, "catatan"),
+		Notes:   BodyString(c, "notes"),
 	}
-	if _, ok := BodyOf(c)["kategori_target"]; ok {
+	if _, ok := BodyOf(c)["target_categories"]; ok {
 		kat := parseKategoriTarget(c)
-		in.KategoriTarget = &kat
+		in.TargetCategories = &kat
 	}
 	if _, ok := BodyOf(c)["gender_target"]; ok {
 		gt := BodyString(c, "gender_target")
 		in.GenderTarget = &gt
 	}
-	if _, ok := BodyOf(c)["kategori_target"]; ok {
+	if _, ok := BodyOf(c)["target_categories"]; ok {
 		kat := parseKategoriTarget(c)
-		in.KategoriTarget = &kat
+		in.TargetCategories = &kat
 	}
 	dto, err := svc.UpdateMeeting(c.Context(), in)
 	if err != nil {

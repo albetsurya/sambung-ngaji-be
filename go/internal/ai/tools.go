@@ -13,7 +13,7 @@ func FinanceTools() []model.LLMToolDef {
 					"type": "object",
 					"properties": map[string]interface{}{
 						"cash_type": map[string]interface{}{"type": "string", "description": "main atau secondary"},
-						"group_id":  map[string]interface{}{"type": "string", "description": "group_id kelompok (opsional)"},
+						"group_id":  map[string]interface{}{"type": "string", "description": "group_id group_label (opsional)"},
 					},
 					"required": []string{},
 				},
@@ -27,7 +27,7 @@ func FinanceTools() []model.LLMToolDef {
 				Parameters: map[string]interface{}{
 					"type": "object",
 					"properties": map[string]interface{}{
-						"group_id": map[string]interface{}{"type": "string", "description": "group_id kelompok (opsional)"},
+						"group_id": map[string]interface{}{"type": "string", "description": "group_id group_label (opsional)"},
 						"month":    map[string]interface{}{"type": "string", "description": "Format YYYY-MM (contoh: 2026-09)"},
 					},
 					"required": []string{},
@@ -42,7 +42,7 @@ func FinanceTools() []model.LLMToolDef {
 				Parameters: map[string]interface{}{
 					"type": "object",
 					"properties": map[string]interface{}{
-						"group_id": map[string]interface{}{"type": "string", "description": "group_id kelompok (opsional)"},
+						"group_id": map[string]interface{}{"type": "string", "description": "group_id group_label (opsional)"},
 						"zakat_id": map[string]interface{}{"type": "string", "description": "zakat_id (opsional jika ingin detail zakat spesifik)"},
 					},
 					"required": []string{},
@@ -66,14 +66,14 @@ func AdminTools(canFinance bool) []model.LLMToolDef {
 			Type: "function",
 			Function: model.LLMToolDefFunc{
 				Name:        "get_members_list",
-				Description: "Ambil daftar jamaah. Bisa difilter berdasarkan kategori, jenis kelamin, kelompok, atau pencarian nama.",
+				Description: "Ambil daftar jamaah. Bisa difilter berdasarkan kategori, type kelamin, group_label, atau pencarian name.",
 				Parameters: map[string]interface{}{
 					"type": "object",
 					"properties": map[string]interface{}{
 						"kategori":      map[string]interface{}{"type": "string", "description": "BALITA|CABERAWIT|PRA_REMAJA|REMAJA|PRA_NIKAH|DEWASA|ISTIMEWA"},
-						"jenis_kelamin": map[string]interface{}{"type": "string", "description": "L atau P"},
-						"kelompok":      map[string]interface{}{"type": "string", "description": "group_id"},
-						"search":        map[string]interface{}{"type": "string", "description": "Kata kunci nama"},
+						"gender": map[string]interface{}{"type": "string", "description": "L atau P"},
+						"group_label":      map[string]interface{}{"type": "string", "description": "group_id"},
+						"search":        map[string]interface{}{"type": "string", "description": "Kata kunci name"},
 						"limit":         map[string]interface{}{"type": "number", "description": "Maksimal hasil, default 50"},
 					},
 					"required": []string{},
@@ -98,7 +98,7 @@ func AdminTools(canFinance bool) []model.LLMToolDef {
 			Type: "function",
 			Function: model.LLMToolDefFunc{
 				Name:        "get_groups_list",
-				Description: "Ambil daftar kelompok pengajian beserta pembina dan jadwal.",
+				Description: "Ambil daftar group_label pengajian beserta mentor dan schedule.",
 				Parameters:  map[string]interface{}{"type": "object", "properties": map[string]interface{}{}, "required": []string{}},
 			},
 		},
@@ -136,7 +136,7 @@ func AdminTools(canFinance bool) []model.LLMToolDef {
 			Type: "function",
 			Function: model.LLMToolDefFunc{
 				Name:        "get_upcoming_meetings",
-				Description: "Ambil daftar jadwal pengajian yang akan datang.",
+				Description: "Ambil daftar schedule pengajian yang akan datang.",
 				Parameters: map[string]interface{}{
 					"type": "object",
 					"properties": map[string]interface{}{
@@ -189,7 +189,7 @@ func MemberTools() []model.LLMToolDef {
 			Type: "function",
 			Function: model.LLMToolDefFunc{
 				Name:        "get_my_profile",
-				Description: "Ambil biodata diri sendiri (nama, usia, kelompok, alamat, pendidikan, dll).",
+				Description: "Ambil biodata diri sendiri (name, usia, group_label, alamat, pendidikan, dll).",
 				Parameters:  map[string]interface{}{"type": "object", "properties": map[string]interface{}{}, "required": []string{}},
 			},
 		},
@@ -197,7 +197,7 @@ func MemberTools() []model.LLMToolDef {
 			Type: "function",
 			Function: model.LLMToolDefFunc{
 				Name:        "get_my_attendance",
-				Description: "Ambil riwayat absensi pengajian diri sendiri (tanggal, acara, status).",
+				Description: "Ambil riwayat absensi pengajian diri sendiri (date, event, status).",
 				Parameters:  map[string]interface{}{"type": "object", "properties": map[string]interface{}{}, "required": []string{}},
 			},
 		},
@@ -221,7 +221,7 @@ func MemberTools() []model.LLMToolDef {
 			Type: "function",
 			Function: model.LLMToolDefFunc{
 				Name:        "get_my_upcoming_meetings",
-				Description: "Ambil jadwal pengajian yang akan datang untuk informasi pribadi.",
+				Description: "Ambil schedule pengajian yang akan datang untuk informasi pribadi.",
 				Parameters: map[string]interface{}{
 					"type": "object",
 					"properties": map[string]interface{}{

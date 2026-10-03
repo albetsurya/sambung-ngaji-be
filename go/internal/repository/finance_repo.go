@@ -21,12 +21,12 @@ func NewFinanceRepo(pool *pgxpool.Pool) *FinanceRepo {
 	return &FinanceRepo{pool: pool}
 }
 
-const cashSelectCols = `cash_id, group_id, cash_type, tanggal, account_name, description,
+const cashSelectCols = `cash_id, group_id, cash_type, date, account_name, description,
 	debit, credit, created_by, created_at, updated_at`
 
 func scanCash(row pgx.Row) (model.CashTransaction, error) {
 	var k model.CashTransaction
-	err := row.Scan(&k.CashID, &k.GroupID, &k.CashType, &k.Tanggal, &k.AccountName,
+	err := row.Scan(&k.CashID, &k.GroupID, &k.CashType, &k.Date, &k.AccountName,
 		&k.Description, &k.Debit, &k.Credit, &k.CreatedBy, &k.CreatedAt, &k.UpdatedAt)
 	return k, err
 }
@@ -35,7 +35,7 @@ func (r *FinanceRepo) CashList(ctx context.Context, groupID, kasType string) ([]
 	rows, err := r.pool.Query(ctx,
 		`SELECT `+cashSelectCols+` FROM cash_transactions
 		 WHERE group_id = $1 AND cash_type = $2
-		 ORDER BY tanggal ASC, created_at ASC, cash_id ASC`,
+		 ORDER BY date ASC, created_at ASC, cash_id ASC`,
 		groupID, kasType)
 	if err != nil {
 		return nil, err
@@ -55,20 +55,20 @@ func (r *FinanceRepo) CashList(ctx context.Context, groupID, kasType string) ([]
 func (r *FinanceRepo) CashInsert(ctx context.Context, k *model.CashTransaction) error {
 	_, err := r.pool.Exec(ctx,
 		`INSERT INTO cash_transactions
-		   (cash_id, group_id, cash_type, tanggal, account_name, description,
+		   (cash_id, group_id, cash_type, date, account_name, description,
 		    debit, credit, created_by, created_at, updated_at)
 		 VALUES ($1, $2, $3, $4::date, $5, $6, $7, $8, $9, now(), now())`,
-		k.CashID, k.GroupID, k.CashType, k.Tanggal.Format("2006-01-02"),
+		k.CashID, k.GroupID, k.CashType, k.Date.Format("2006-01-02"),
 		k.AccountName, k.Description, k.Debit, k.Credit, k.CreatedBy)
 	return err
 }
 
 func (r *FinanceRepo) CashUpdate(ctx context.Context, k *model.CashTransaction) error {
 	_, err := r.pool.Exec(ctx,
-		`UPDATE cash_transactions SET tanggal=$2::date, account_name=$3, description=$4,
+		`UPDATE cash_transactions SET date=$2::date, account_name=$3, description=$4,
 		  debit=$5, credit=$6, updated_at=now()
 		 WHERE cash_id=$1 AND group_id=$7`,
-		k.CashID, k.Tanggal.Format("2006-01-02"), k.AccountName,
+		k.CashID, k.Date.Format("2006-01-02"), k.AccountName,
 		k.Description, k.Debit, k.Credit, ptrStr(k.GroupID))
 	return err
 }

@@ -58,7 +58,7 @@ func RequireGroupCreate(c *fiber.Ctx) (string, error) {
 func RequireMeetingAccess(c *fiber.Ctx, svc *service.MeetingService, id string) error {
 	m, err := svc.GetMeeting(c.Context(), id)
 	if err != nil {
-		return Fail(c, "Jadwal tidak ditemukan")
+		return Fail(c, "Schedule tidak ditemukan")
 	}
 	return RequireGroupAccess(c, m.GroupID)
 }
