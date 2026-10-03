@@ -49,7 +49,7 @@ func toCashDTO(no int, k model.CashTransaction, balance float64) model.CashTrans
 		CashID:          k.CashID,
 		GroupID:         gid,
 		CashType:        k.CashType,
-		TransactionDate: k.Tanggal.Format("2006-01-02"),
+		TransactionDate: k.Date.Format("2006-01-02"),
 		AccountName:     k.AccountName,
 		Description:     k.Description,
 		Debit:           k.Debit,
@@ -119,7 +119,7 @@ type CashSaveInput struct {
 	CashID      string
 	GroupID     string
 	CashType    string
-	Tanggal     string
+	Date     string
 	AccountName string
 	Description string
 	Debit       float64
@@ -134,7 +134,7 @@ func (s *FinanceService) CashSave(ctx context.Context, in CashSaveInput) (*model
 	if in.Description == "" {
 		return nil, errors.New("keterangan wajib diisi")
 	}
-	tgl, err := time.Parse("2006-01-02", in.Tanggal)
+	tgl, err := time.Parse("2006-01-02", in.Date)
 	if err != nil {
 		return nil, errors.New("tanggal tidak valid (YYYY-MM-DD)")
 	}
@@ -146,7 +146,7 @@ func (s *FinanceService) CashSave(ctx context.Context, in CashSaveInput) (*model
 		CashID:      in.CashID,
 		GroupID:     &gid,
 		CashType:    normCashType(in.CashType),
-		Tanggal:     tgl,
+		Date:     tgl,
 		AccountName: in.AccountName,
 		Description: in.Description,
 		Debit:       in.Debit,
@@ -201,7 +201,7 @@ func (s *FinanceService) CashDuplicate(ctx context.Context, groupID, cashType, k
 				CashID:      util.NewID("KAS"),
 				GroupID:     &gid,
 				CashType:    k.CashType,
-				Tanggal:     k.Tanggal,
+				Date:     k.Date,
 				AccountName: k.AccountName,
 				Description: k.Description,
 				Debit:       k.Debit,
@@ -213,7 +213,7 @@ func (s *FinanceService) CashDuplicate(ctx context.Context, groupID, cashType, k
 			}
 			return s.CashSave(ctx, CashSaveInput{
 				CashID: cp.CashID, GroupID: groupID, CashType: cp.CashType,
-				Tanggal:     cp.Tanggal.Format("2006-01-02"),
+				Date:     cp.Date.Format("2006-01-02"),
 				AccountName: cp.AccountName, Description: cp.Description,
 				Debit: cp.Debit, Credit: cp.Credit, CreatedBy: createdBy,
 			})
@@ -244,7 +244,7 @@ func (s *FinanceService) CashCarryForward(ctx context.Context, groupID, cashType
 		} else {
 			balance += k.Debit - k.Credit
 		}
-		if k.Tanggal.Format("2006-01") == monthKey {
+		if k.Date.Format("2006-01") == monthKey {
 			monthEnding = balance
 			foundMonth = true
 		}
@@ -256,7 +256,7 @@ func (s *FinanceService) CashCarryForward(ctx context.Context, groupID, cashType
 	next = next.AddDate(0, 1, 0)
 	nextKey := next.Format("2006-01")
 	for _, k := range rows {
-		if isOpeningBalance(k.AccountName) && k.Tanggal.Format("2006-01") == nextKey {
+		if isOpeningBalance(k.AccountName) && k.Date.Format("2006-01") == nextKey {
 			return nil, errors.New("SALDO AWAL untuk " + nextKey + " sudah ada.")
 		}
 	}
@@ -265,7 +265,7 @@ func (s *FinanceService) CashCarryForward(ctx context.Context, groupID, cashType
 		CashID:      util.NewID("KAS"),
 		GroupID:     &gid,
 		CashType:    cashType,
-		Tanggal:     time.Date(next.Year(), next.Month(), 1, 0, 0, 0, 0, time.UTC),
+		Date:     time.Date(next.Year(), next.Month(), 1, 0, 0, 0, 0, time.UTC),
 		AccountName: "SALDO AWAL",
 		Description: "Saldo awal dari " + indonesianMonthLabel(monthKey),
 		Debit:       ending,
@@ -277,7 +277,7 @@ func (s *FinanceService) CashCarryForward(ctx context.Context, groupID, cashType
 	}
 	return s.CashSave(ctx, CashSaveInput{
 		CashID: k.CashID, GroupID: groupID, CashType: cashType,
-		Tanggal:     k.Tanggal.Format("2006-01-02"),
+		Date:     k.Date.Format("2006-01-02"),
 		AccountName: k.AccountName, Description: k.Description,
 		Debit: k.Debit, CreatedBy: createdBy,
 	})
@@ -380,7 +380,7 @@ func (s *FinanceService) DuesData(ctx context.Context, groupID, month string) (*
 
 func (s *FinanceService) DueMemberSave(ctx context.Context, groupID, memberID, name string, target float64) (*model.DueMemberDTO, error) {
 	if name == "" {
-		return nil, errors.New("nama anggota wajib diisi")
+		return nil, errors.New("name anggota wajib diisi")
 	}
 	if memberID == "" {
 		memberID = util.NewID("SHM")
@@ -495,7 +495,7 @@ func (s *FinanceService) DuePaymentSave(ctx context.Context, in DuePaymentInput)
 	}
 	tgl, err := util.ParseSheetDate(in.PaymentDate)
 	if err != nil {
-		return nil, errors.New("payment_date tidak valid (YYYY-MM-DD)")
+		return nil, errors.New("payment_tanggal tidak valid (YYYY-MM-DD)")
 	}
 	carryovers, carryIR, err := normalizeCarryovers(in.CarryoverItems, in.CarryoverMonths, in.CarryoverIR)
 	if err != nil {
@@ -615,7 +615,7 @@ func (s *FinanceService) DuePostToCash(ctx context.Context, groupID, monthKey, c
 			CashID:      util.NewID("KAS"),
 			GroupID:     &gid,
 			CashType:    "main",
-			Tanggal:     tgl,
+			Date:     tgl,
 			AccountName: pp.account,
 			Description: "Shodaqoh " + label + " - " + pp.account + " [" + marker + "]",
 			Debit:       pp.amount,

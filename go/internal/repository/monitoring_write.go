@@ -9,23 +9,23 @@ import (
 func (r *MonitoringRepo) Insert(ctx context.Context, m *model.Monitoring) error {
 	_, err := r.pool.Exec(ctx, `
 		INSERT INTO monitoring
-		(monitoring_id, member_id, tanggal, jenis, status, catatan,
-		 tindak_lanjut, created_by, created_at, updated_at)
+		(monitoring_id, member_id, date, type, status, notes,
+		 follow_up, created_by, created_at, updated_at)
 		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,now(),now())
-	`, m.MonitoringID, m.MemberID, m.Tanggal, m.Jenis, m.Status,
-		m.Catatan, m.TindakLanjut, m.CreatedBy)
+	`, m.MonitoringID, m.MemberID, m.Date, m.Type, m.Status,
+		m.Notes, m.FollowUp, m.CreatedBy)
 	return err
 }
 
 func (r *MonitoringRepo) FindByID(ctx context.Context, id string) (*model.Monitoring, error) {
 	var m model.Monitoring
 	err := r.pool.QueryRow(ctx, `
-		SELECT monitoring_id, member_id, tanggal, jenis, status, catatan,
-		       tindak_lanjut, created_by, created_at, updated_at
+		SELECT monitoring_id, member_id, date, type, status, notes,
+		       follow_up, created_by, created_at, updated_at
 		FROM monitoring WHERE monitoring_id = $1
 	`, id).Scan(
-		&m.MonitoringID, &m.MemberID, &m.Tanggal, &m.Jenis, &m.Status,
-		&m.Catatan, &m.TindakLanjut, &m.CreatedBy, &m.CreatedAt, &m.UpdatedAt,
+		&m.MonitoringID, &m.MemberID, &m.Date, &m.Type, &m.Status,
+		&m.Notes, &m.FollowUp, &m.CreatedBy, &m.CreatedAt, &m.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err

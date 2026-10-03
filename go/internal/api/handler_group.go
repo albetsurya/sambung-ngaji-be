@@ -13,7 +13,7 @@ func handleGetGroups(c *fiber.Ctx, svc *service.GroupService) error {
 	if err != nil {
 		return Fail(c, "Gagal ambil groups: "+err.Error())
 	}
-	/* Akun ber-kelompok hanya melihat kelompoknya sendiri.
+	/* Akun ber-group_label hanya melihat kelompoknya sendiri.
 	   SUPER_ADMIN / akun global tetap melihat semua (perilaku lama). */
 	if groupID, isSuper := ActorOf(c); !isSuper && groupID != "" && groupID != UnassignedGroup {
 		filtered := make([]model.GroupDTO, 0, 1)
@@ -33,12 +33,12 @@ func handleSaveGroup(c *fiber.Ctx, svc *service.GroupService) error {
 		GroupID:       BodyString(c, "group_id"),
 		GroupCode:     BodyString(c, "group_code"),
 		GroupName:     BodyString(c, "group_name"),
-		Pembina:       BodyString(c, "pembina"),
-		Penandatangan: BodyString(c, "penandatangan"),
-		Jadwal:        BodyString(c, "jadwal"),
+		Mentor:       BodyString(c, "mentor"),
+		Signatory: BodyString(c, "signatory"),
+		Schedule:        BodyString(c, "schedule"),
 	}
-	if v, ok := body["status_aktif"].(bool); ok {
-		in.StatusAktif = &v
+	if v, ok := body["is_active"].(bool); ok {
+		in.IsActive = &v
 	}
 	dto, err := svc.Save(c.Context(), in)
 	if err != nil {

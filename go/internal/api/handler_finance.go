@@ -16,7 +16,7 @@ func financeGroup(c *fiber.Ctx) (string, bool) {
 		return g, true
 	}
 	if groupID == "" {
-		_ = Fail(c, "Pilih kelompok dulu (group_id wajib diisi)")
+		_ = Fail(c, "Pilih group_label dulu (group_id wajib diisi)")
 		return "", false
 	}
 	return groupID, true
@@ -89,7 +89,7 @@ func handleCashSave(c *fiber.Ctx, svc *service.FinanceService) error {
 		CashID:      BodyString(c, "cash_id"),
 		GroupID:     groupID,
 		CashType:    BodyString(c, "cash_type"),
-		Tanggal:     BodyString(c, "tanggal"),
+		Date:     BodyString(c, "date"),
 		AccountName: BodyString(c, "account_name"),
 		Description: BodyString(c, "description"),
 		Debit:       BodyFloat(c, "debit"),

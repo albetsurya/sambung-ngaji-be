@@ -13,12 +13,12 @@ func handleSaveMood(c *fiber.Ctx, svc *service.MoodService) error {
 	}
 	body := BodyOf(c)
 	moodKey, _ := body["mood_key"].(string)
-	tanggal, _ := body["tanggal"].(string)
+	date, _ := body["date"].(string)
 
 	res, err := svc.Save(c.Context(), service.SaveMoodInput{
 		MemberID: memberID,
 		MoodKey:  moodKey,
-		Tanggal:  tanggal,
+		Date:  date,
 	})
 	if err != nil {
 		return Fail(c, err.Error())

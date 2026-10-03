@@ -51,24 +51,24 @@ func (s *ProfileService) UpdateMyProfile(ctx context.Context, memberID string, p
 	}
 
 	allowed := map[string]bool{
-		"nama_panggilan":           true,
-		"no_wa":                    true,
-		"alamat_rumah":             true,
-		"desa":                     true,
-		"daerah":                   true,
-		"pekerjaan":                true,
-		"hobi":                     true,
-		"foto_url":                 true,
-		"tinggi_badan":             true,
-		"berat_badan":              true,
-		"is_kerja":                 true,
-		"is_nikah":                 true,
-		"is_muballigh":             true,
-		"jenjang_pendidikan":       true,
-		"sekolah":                  true,
-		"jurusan":                  true,
-		"tahun_mulai_pendidikan":   true,
-		"tahun_selesai_pendidikan": true,
+		"nickname":           true,
+		"whatsapp_number":                    true,
+		"home_address":             true,
+		"village":                     true,
+		"region":                   true,
+		"occupation":                true,
+		"hobby":                     true,
+		"photo_url":                 true,
+		"height":             true,
+		"weight":              true,
+		"is_employed":                 true,
+		"is_married":                 true,
+		"is_preacher":             true,
+		"education_level":       true,
+		"school":                  true,
+		"major":                  true,
+		"education_start_year":   true,
+		"education_end_year": true,
 	}
 
 	filtered := map[string]interface{}{}
@@ -81,8 +81,8 @@ func (s *ProfileService) UpdateMyProfile(ctx context.Context, memberID string, p
 		return nil, errors.New("tidak ada perubahan")
 	}
 
-	if v, ok := filtered["no_wa"].(string); ok && v != "" {
-		filtered["no_wa"] = util.NormalizePhone(v)
+	if v, ok := filtered["whatsapp_number"].(string); ok && v != "" {
+		filtered["whatsapp_number"] = util.NormalizePhone(v)
 	}
 
 	if err := s.memberRepo.Update(ctx, memberID, filtered); err != nil {
@@ -110,11 +110,11 @@ func (s *ProfileService) GetMyAttendance(ctx context.Context, memberID string) (
 			"meeting_id":     a.MeetingID,
 			"status":         a.Status,
 			"status_meeting": mt.Status,
-			"catatan":        a.Catatan,
-			"tanggal":        mt.Tanggal.Format("2006-01-02"),
-			"hari":           mt.Hari,
-			"acara":          mt.Acara,
-			"jam":            mt.Jam,
+			"notes":        a.Notes,
+			"date":        mt.Date.Format("2006-01-02"),
+			"day":           mt.Day,
+			"event":          mt.Event,
+			"time":            mt.Time,
 			"created_at":     a.CreatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
 		})
 	}
@@ -144,18 +144,18 @@ func (s *ProfileService) GetUpcomingMeetings(ctx context.Context, memberID strin
 	if err != nil {
 		return nil, errors.New("data jamaah tidak ditemukan")
 	}
-	memberKat := util.GetMemberCategory(m.TanggalLahir, m.JenjangPendidikan, m.IsNikah)
+	memberKat := util.GetMemberCategory(m.BirthDate, m.EducationLevel, m.IsMarried)
 	today := time.Now().Format("2006-01-02")
 	meetings, _ := s.meetingRepo.FindAll(ctx, model.MeetingListFilter{})
 
 	out := []model.MeetingDTO{}
 	for _, mt := range meetings {
-		if mt.Tanggal.Format("2006-01-02") < today {
+		if mt.Date.Format("2006-01-02") < today {
 			continue
 		}
-		if len(mt.KategoriTarget) > 0 {
+		if len(mt.TargetCategories) > 0 {
 			match := false
-			for _, k := range mt.KategoriTarget {
+			for _, k := range mt.TargetCategories {
 				if k == memberKat {
 					match = true
 					break
@@ -176,34 +176,34 @@ func (s *ProfileService) GetUpcomingMeetings(ctx context.Context, memberID strin
 func profileToMap(m *model.Member) map[string]interface{} {
 	return map[string]interface{}{
 		"member_id":                m.MemberID,
-		"nama_lengkap":             m.NamaLengkap,
-		"nama_panggilan":           m.NamaPanggilan,
-		"jenis_kelamin":            strOr(m.JenisKelamin, ""),
-		"tempat_lahir":             m.TempatLahir,
-		"tanggal_lahir":            util.FormatDate(m.TanggalLahir),
-		"foto_url":                 m.FotoURL,
-		"no_wa":                    m.NoWA,
-		"alamat_rumah":             m.AlamatRumah,
-		"desa":                     m.Desa,
-		"daerah":                   m.Daerah,
-		"kelompok":                 m.Kelompok,
-		"pekerjaan":                m.Pekerjaan,
-		"hobi":                     m.Hobi,
-		"tinggi_badan":             m.TinggiBadan,
-		"berat_badan":              m.BeratBadan,
-		"is_kerja":                 m.IsKerja,
-		"is_nikah":                 m.IsNikah,
-		"is_muballigh":             m.IsMuballigh,
-		"status_pembinaan":         m.StatusPembinaan,
-		"status_aktif":             m.StatusAktif,
-		"tanggal_masuk":            util.FormatDate(m.TanggalMasuk),
-		"jenjang_pendidikan":       m.JenjangPendidikan,
-		"sekolah":                  m.Sekolah,
-		"jurusan":                  m.Jurusan,
-		"tahun_mulai_pendidikan":   m.TahunMulaiPendidikan,
-		"tahun_selesai_pendidikan": m.TahunSelesaiPendidikan,
-		"kategori":                 util.GetMemberCategory(m.TanggalLahir, m.JenjangPendidikan, m.IsNikah),
-		"usia":                     util.GetAge(m.TanggalLahir),
+		"full_name":             m.FullName,
+		"nickname":           m.Nickname,
+		"gender":            strOr(m.Gender, ""),
+		"birth_place":             m.BirthPlace,
+		"birth_date":            util.FormatDate(m.BirthDate),
+		"photo_url":                 m.PhotoURL,
+		"whatsapp_number":                    m.WhatsappNumber,
+		"home_address":             m.HomeAddress,
+		"village":                     m.Village,
+		"region":                   m.Region,
+		"group_label":                 m.GroupLabel,
+		"occupation":                m.Occupation,
+		"hobby":                     m.Hobby,
+		"height":             m.Height,
+		"weight":              m.Weight,
+		"is_employed":                 m.IsEmployed,
+		"is_married":                 m.IsMarried,
+		"is_preacher":             m.IsPreacher,
+		"mentoring_status":         m.MentoringStatus,
+		"is_active":             m.IsActive,
+		"joined_date":            util.FormatDate(m.JoinedDate),
+		"education_level":       m.EducationLevel,
+		"school":                  m.School,
+		"major":                  m.Major,
+		"education_start_year":   m.EducationStartYear,
+		"education_end_year": m.EducationEndYear,
+		"kategori":                 util.GetMemberCategory(m.BirthDate, m.EducationLevel, m.IsMarried),
+		"usia":                     util.GetAge(m.BirthDate),
 		"pendidikan":               []any{},
 	}
 }

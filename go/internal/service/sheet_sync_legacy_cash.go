@@ -14,10 +14,10 @@ import (
 //   - Transaksi -> cash_transactions (cash_type=main)
 //   - Kas_Amil  -> cash_transactions (cash_type=amil)
 //
-// Format legacy: tanggal ISO atau DD/MM/YYYY, nominal "Rp840.000,00",
+// Format legacy: date ISO atau DD/MM/YYYY, nominal "Rp840.000,00",
 // kolom balance DIABAIKAN (saldo berjalan dihitung aplikasi).
 // cash_id deterministik ("TRX<n>" / "AML<n>") agar pull idempotent.
-// Tab legacy TANPA group_id: group diisi operator (satu sheet = satu kelompok).
+// Tab legacy TANPA group_id: group diisi operator (satu sheet = satu group_label).
 const (
 	sheetTabLegacyCashMain = "Transaksi"
 	sheetTabLegacyCashAmil = "Kas_Amil"
@@ -43,10 +43,10 @@ func (s *FinanceSyncService) pullLegacyCashTab(ctx context.Context, cli *sheets.
 		if exists && !newerThan(r["updated_at"], dbTS) {
 			continue
 		}
-		dateStr := sheetGet(r, "transaction_date", "tanggal")
+		dateStr := sheetGet(r, "transaction_date", "date", "tanggal")
 		tgl, err := util.ParseSheetDate(dateStr)
 		if err != nil {
-			s.recordError(ctx, groupID, "cash", cashID, "legacy->db", "transaction_date tidak valid: "+dateStr)
+			s.recordError(ctx, groupID, "cash", cashID, "legacy->db", "transaction_tanggal tidak valid: "+dateStr)
 			continue
 		}
 		accountName := sheetGet(r, "account_name", "account")
@@ -61,7 +61,7 @@ func (s *FinanceSyncService) pullLegacyCashTab(ctx context.Context, cli *sheets.
 		gid := groupID
 		k := &model.CashTransaction{
 			CashID: cashID, GroupID: &gid, CashType: cashType,
-			Tanggal: tgl, AccountName: strings.TrimSpace(accountName),
+			Date: tgl, AccountName: strings.TrimSpace(accountName),
 			Description: sheetGet(r, "description", "notes", "keterangan"),
 			Debit:       parseNum(sheetGet(r, "debit", "debet")), Credit: parseNum(sheetGet(r, "credit", "kredit")),
 			CreatedBy: createdBy,

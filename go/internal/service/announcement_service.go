@@ -57,23 +57,23 @@ func (s *AnnouncementService) GetTemplateDetail(ctx context.Context, id string) 
 
 type CreateTemplateInput struct {
 	GroupID      string
-	NamaTemplate string
+	TemplateName string
 	Kode         string
-	IsiTemplate  string
-	StatusAktif  bool
+	TemplateBody  string
+	IsActive  bool
 }
 
 var kodeRegex = regexp.MustCompile(`^[A-Z0-9_]{3,30}$`)
 
 func (s *AnnouncementService) CreateTemplate(ctx context.Context, in CreateTemplateInput) (*model.AnnouncementTemplateDTO, error) {
-	if strings.TrimSpace(in.NamaTemplate) == "" {
-		return nil, apperrors.Wrap(apperrors.ErrValidation, "nama template wajib diisi")
+	if strings.TrimSpace(in.TemplateName) == "" {
+		return nil, apperrors.Wrap(apperrors.ErrValidation, "name template wajib diisi")
 	}
 	kode := strings.ToUpper(strings.TrimSpace(in.Kode))
 	if !kodeRegex.MatchString(kode) {
 		return nil, apperrors.Wrap(apperrors.ErrValidation, "kode harus 3-30 karakter (huruf, angka, underscore)")
 	}
-	if strings.TrimSpace(in.IsiTemplate) == "" {
+	if strings.TrimSpace(in.TemplateBody) == "" {
 		return nil, apperrors.Wrap(apperrors.ErrValidation, "isi template wajib diisi")
 	}
 
@@ -89,10 +89,10 @@ func (s *AnnouncementService) CreateTemplate(ctx context.Context, in CreateTempl
 	t := &model.AnnouncementTemplate{
 		TemplateID:   util.NewID("TPL"),
 		GroupID:      grpPtr,
-		NamaTemplate: strings.TrimSpace(in.NamaTemplate),
+		TemplateName: strings.TrimSpace(in.TemplateName),
 		Kode:         kode,
-		IsiTemplate:  in.IsiTemplate,
-		StatusAktif:  true,
+		TemplateBody:  in.TemplateBody,
+		IsActive:  true,
 	}
 	if err := s.repo.InsertTemplate(ctx, t); err != nil {
 		return nil, err
@@ -104,10 +104,10 @@ func (s *AnnouncementService) CreateTemplate(ctx context.Context, in CreateTempl
 
 type UpdateTemplateInput struct {
 	TemplateID   string
-	NamaTemplate *string
+	TemplateName *string
 	Kode         *string
-	IsiTemplate  *string
-	StatusAktif  *bool
+	TemplateBody  *string
+	IsActive  *bool
 }
 
 func (s *AnnouncementService) UpdateTemplate(ctx context.Context, in UpdateTemplateInput) (*model.AnnouncementTemplateDTO, error) {
@@ -119,8 +119,8 @@ func (s *AnnouncementService) UpdateTemplate(ctx context.Context, in UpdateTempl
 	}
 
 	patch := map[string]interface{}{}
-	if in.NamaTemplate != nil {
-		patch["nama_template"] = strings.TrimSpace(*in.NamaTemplate)
+	if in.TemplateName != nil {
+		patch["template_name"] = strings.TrimSpace(*in.TemplateName)
 	}
 	if in.Kode != nil {
 		kode := strings.ToUpper(strings.TrimSpace(*in.Kode))
@@ -132,11 +132,11 @@ func (s *AnnouncementService) UpdateTemplate(ctx context.Context, in UpdateTempl
 		}
 		patch["kode"] = kode
 	}
-	if in.IsiTemplate != nil {
-		patch["isi_template"] = *in.IsiTemplate
+	if in.TemplateBody != nil {
+		patch["template_body"] = *in.TemplateBody
 	}
-	if in.StatusAktif != nil {
-		patch["status_aktif"] = *in.StatusAktif
+	if in.IsActive != nil {
+		patch["is_active"] = *in.IsActive
 	}
 
 	if err := s.repo.UpdateTemplate(ctx, in.TemplateID, patch); err != nil {
@@ -172,34 +172,34 @@ func (s *AnnouncementService) CreateTemplateFromAnnouncement(ctx context.Context
 		return nil, apperrors.Wrap(apperrors.ErrValidation, "isi template kosong")
 	}
 	return s.CreateTemplate(ctx, CreateTemplateInput{
-		NamaTemplate: namaTemplate,
+		TemplateName: namaTemplate,
 		Kode:         kode,
-		IsiTemplate:  text,
-		StatusAktif:  true,
+		TemplateBody:  text,
+		IsActive:  true,
 	})
 }
 
 type GenerateAnnouncementInput struct {
 	TemplateID    string
 	GroupID       string
-	Tanggal       string
-	Jam           string
-	Acara         string
-	Materi        string
-	Catatan       string
-	Penandatangan string
+	Date       string
+	Time           string
+	Event         string
+	Topic        string
+	Notes       string
+	Signatory string
 }
 
 type GenerateAnnouncementResult struct {
 	GeneratedText string                 `json:"generated_text"`
 	Warning       string                 `json:"warning"`
-	Hari          string                 `json:"hari"`
+	Day          string                 `json:"day"`
 	Data          map[string]interface{} `json:"data"`
 }
 
 func (s *AnnouncementService) Generate(ctx context.Context, in GenerateAnnouncementInput) (*GenerateAnnouncementResult, error) {
-	if in.TemplateID == "" || in.GroupID == "" || in.Tanggal == "" {
-		return nil, errors.New("template_id, group_id, dan tanggal wajib diisi")
+	if in.TemplateID == "" || in.GroupID == "" || in.Date == "" {
+		return nil, errors.New("template_id, group_id, dan date wajib diisi")
 	}
 
 	tpl, err := s.repo.FindTemplateByID(ctx, in.TemplateID)
@@ -211,39 +211,47 @@ func (s *AnnouncementService) Generate(ctx context.Context, in GenerateAnnouncem
 		return nil, errors.New("kelompok tidak ditemukan")
 	}
 
-	tgl, err := time.Parse("2006-01-02", in.Tanggal)
+	tgl, err := time.Parse("2006-01-02", in.Date)
 	if err != nil {
 		return nil, errors.New("tanggal tidak valid")
 	}
-	hari := util.GetHariFromDate(&tgl)
+	day := util.GetHariFromDate(&tgl)
 
 	warning := ""
-	if !containsString(jadwalRutin, hari) {
-		warning = "Tanggal ini bukan jadwal rutin pengajian (" + strings.Join(jadwalRutin, "/") + ")."
+	if !containsString(jadwalRutin, day) {
+		warning = "Date ini bukan schedule rutin pengajian (" + strings.Join(jadwalRutin, "/") + ")."
 	}
 
-	penandatangan := in.Penandatangan
-	if penandatangan == "" {
-		penandatangan = group.Penandatangan
+	signatory := in.Signatory
+	if signatory == "" {
+		signatory = group.Signatory
 	}
 
 	data := map[string]interface{}{
 		"nama_kelompok": group.GroupName,
-		"hari":          hari,
+		"day":          day,
+		"date":       formatDateShort(tgl),
+		"time":           in.Time,
+		"event":         in.Event,
+		"topic":        in.Topic,
+		"notes":       in.Notes,
+		"signatory": signatory,
+		// Alias kompatibel untuk template lama yang masih memakai placeholder Indonesia.
+		"hari":          day,
 		"tanggal":       formatDateShort(tgl),
-		"jam":           in.Jam,
-		"acara":         in.Acara,
-		"materi":        in.Materi,
-		"catatan":       in.Catatan,
-		"penandatangan": penandatangan,
+		"jam":           in.Time,
+		"acara":         in.Event,
+		"materi":        in.Topic,
+		"catatan":       in.Notes,
+		"penandatangan": signatory,
 	}
 
-	text := renderTemplate(tpl.IsiTemplate, data)
+	text := renderTemplate(tpl.TemplateBody, data)
 
 	return &GenerateAnnouncementResult{
 		GeneratedText: text,
 		Warning:       warning,
-		Hari:          hari,
+		Day:          day,
 		Data:          data,
 	}, nil
 }
@@ -252,11 +260,11 @@ type CreateAnnouncementInput struct {
 	TemplateID string
 	MeetingID  string
 	GroupID    string
-	Tanggal    string
-	Jam        string
-	Acara      string
-	Materi     string
-	Catatan    string
+	Date    string
+	Time        string
+	Event      string
+	Topic     string
+	Notes    string
 	UserID     string
 }
 
@@ -264,25 +272,25 @@ func (s *AnnouncementService) Create(ctx context.Context, in CreateAnnouncementI
 	gen, err := s.Generate(ctx, GenerateAnnouncementInput{
 		TemplateID: in.TemplateID,
 		GroupID:    in.GroupID,
-		Tanggal:    in.Tanggal,
-		Jam:        in.Jam,
-		Acara:      in.Acara,
-		Materi:     in.Materi,
-		Catatan:    in.Catatan,
+		Date:    in.Date,
+		Time:        in.Time,
+		Event:      in.Event,
+		Topic:     in.Topic,
+		Notes:    in.Notes,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	tgl, _ := time.Parse("2006-01-02", in.Tanggal)
+	tgl, _ := time.Parse("2006-01-02", in.Date)
 	a := &model.Announcement{
 		AnnouncementID: util.NewID("ANN"),
-		Tanggal:        tgl,
-		Hari:           gen.Hari,
-		Jam:            in.Jam,
-		Acara:          in.Acara,
-		Materi:         in.Materi,
-		Catatan:        in.Catatan,
+		Date:        tgl,
+		Day:           gen.Day,
+		Time:            in.Time,
+		Event:          in.Event,
+		Topic:         in.Topic,
+		Notes:        in.Notes,
 		GeneratedText:  gen.GeneratedText,
 		Status:         "DRAFT",
 	}
@@ -311,10 +319,10 @@ type UpdateAnnouncementInput struct {
 	AnnouncementID string
 	GeneratedText  *string
 	Status         *string
-	Jam            *string
-	Acara          *string
-	Materi         *string
-	Catatan        *string
+	Time            *string
+	Event          *string
+	Topic         *string
+	Notes        *string
 }
 
 func (s *AnnouncementService) Update(ctx context.Context, in UpdateAnnouncementInput) (*model.AnnouncementDTO, error) {
@@ -332,17 +340,17 @@ func (s *AnnouncementService) Update(ctx context.Context, in UpdateAnnouncementI
 	if in.Status != nil {
 		patch["status"] = *in.Status
 	}
-	if in.Jam != nil {
-		patch["jam"] = *in.Jam
+	if in.Time != nil {
+		patch["time"] = *in.Time
 	}
-	if in.Acara != nil {
-		patch["acara"] = *in.Acara
+	if in.Event != nil {
+		patch["event"] = *in.Event
 	}
-	if in.Materi != nil {
-		patch["materi"] = *in.Materi
+	if in.Topic != nil {
+		patch["topic"] = *in.Topic
 	}
-	if in.Catatan != nil {
-		patch["catatan"] = *in.Catatan
+	if in.Notes != nil {
+		patch["notes"] = *in.Notes
 	}
 
 	if err := s.repo.UpdateAnnouncement(ctx, in.AnnouncementID, patch); err != nil {
@@ -375,11 +383,11 @@ func (s *AnnouncementService) GetRecipientSummary(ctx context.Context, groupID s
 	}
 	total, withWA := 0, 0
 	for _, m := range members {
-		if m.Kelompok != groupID || !m.StatusAktif {
+		if m.GroupLabel != groupID || !m.IsActive {
 			continue
 		}
 		total++
-		if m.NoWA != "" {
+		if m.WhatsappNumber != "" {
 			withWA++
 		}
 	}
@@ -398,10 +406,10 @@ func toTemplateDTO(t model.AnnouncementTemplate) model.AnnouncementTemplateDTO {
 	return model.AnnouncementTemplateDTO{
 		TemplateID:   t.TemplateID,
 		GroupID:      gid,
-		NamaTemplate: t.NamaTemplate,
+		TemplateName: t.TemplateName,
 		Kode:         t.Kode,
-		IsiTemplate:  t.IsiTemplate,
-		StatusAktif:  t.StatusAktif,
+		TemplateBody:  t.TemplateBody,
+		IsActive:  t.IsActive,
 		CreatedAt:    t.CreatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
 		UpdatedAt:    t.UpdatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
 	}
@@ -426,12 +434,12 @@ func toAnnouncementDTO(a model.Announcement) model.AnnouncementDTO {
 		TemplateID:     tid,
 		MeetingID:      mid,
 		GroupID:        gid,
-		Tanggal:        a.Tanggal.Format("2006-01-02"),
-		Hari:           a.Hari,
-		Jam:            a.Jam,
-		Acara:          a.Acara,
-		Materi:         a.Materi,
-		Catatan:        a.Catatan,
+		Date:        a.Date.Format("2006-01-02"),
+		Day:           a.Day,
+		Time:            a.Time,
+		Event:          a.Event,
+		Topic:         a.Topic,
+		Notes:        a.Notes,
 		GeneratedText:  a.GeneratedText,
 		Status:         a.Status,
 		CreatedBy:      cby,
@@ -489,16 +497,16 @@ type WeeklyGenerateInput struct {
 	TemplateID    string
 	GroupID       string
 	WeekStart     string
-	Jam           string
-	Acara         string
-	Materi        string
-	Catatan       string
-	Penandatangan string
+	Time           string
+	Event         string
+	Topic        string
+	Notes       string
+	Signatory string
 }
 
 type WeeklyGenerateResult struct {
-	Hari          string                 `json:"hari"`
-	Tanggal       string                 `json:"tanggal"`
+	Day          string                 `json:"day"`
+	Date       string                 `json:"date"`
 	GeneratedText string                 `json:"generated_text"`
 	Warning       string                 `json:"warning"`
 	Data          map[string]interface{} `json:"data"`
@@ -515,7 +523,7 @@ func (s *AnnouncementService) GenerateWeekly(ctx context.Context, in WeeklyGener
 	}
 
 	dayOffsets := []struct {
-		Hari  string
+		Day  string
 		Delta int
 	}{
 		{"Minggu", 0},
@@ -525,23 +533,23 @@ func (s *AnnouncementService) GenerateWeekly(ctx context.Context, in WeeklyGener
 
 	out := make([]WeeklyGenerateResult, 0, len(dayOffsets))
 	for _, d := range dayOffsets {
-		tanggal := base.AddDate(0, 0, d.Delta)
+		date := base.AddDate(0, 0, d.Delta)
 		res, err := s.Generate(ctx, GenerateAnnouncementInput{
 			TemplateID:    in.TemplateID,
 			GroupID:       in.GroupID,
-			Tanggal:       tanggal.Format("2006-01-02"),
-			Jam:           in.Jam,
-			Acara:         in.Acara,
-			Materi:        in.Materi,
-			Catatan:       in.Catatan,
-			Penandatangan: in.Penandatangan,
+			Date:       date.Format("2006-01-02"),
+			Time:           in.Time,
+			Event:         in.Event,
+			Topic:        in.Topic,
+			Notes:       in.Notes,
+			Signatory: in.Signatory,
 		})
 		if err != nil {
 			return nil, err
 		}
 		out = append(out, WeeklyGenerateResult{
-			Hari:          d.Hari,
-			Tanggal:       tanggal.Format("2006-01-02"),
+			Day:          d.Day,
+			Date:       date.Format("2006-01-02"),
 			GeneratedText: res.GeneratedText,
 			Warning:       res.Warning,
 			Data:          res.Data,

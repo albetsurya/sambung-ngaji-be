@@ -56,7 +56,7 @@ func (s *AttendanceService) GetAttendancePage(ctx context.Context, meetingID str
 	if err != nil {
 		return nil, errors.New("meeting tidak ditemukan")
 	}
-	/* Peserta wajib = jamaah yang kelompoknya sama dengan kelompok meeting.
+	/* Peserta wajib = jamaah yang kelompoknya sama dengan group_label meeting.
 	   Meeting tanpa group (legacy) tetap menampilkan semua jamaah. */
 	groupID := ""
 	if meeting.GroupID != nil {
@@ -81,7 +81,7 @@ type SaveAttendanceInput struct {
 	MeetingID string
 	MemberID  string
 	Status    string
-	Catatan   string
+	Notes   string
 	UserID    string
 }
 
@@ -98,16 +98,16 @@ func (s *AttendanceService) SaveAttendance(ctx context.Context, in SaveAttendanc
 		return nil, errors.New("meeting tidak ditemukan")
 	}
 	if util.IsLiburMeeting(*meeting) {
-		return nil, errors.New("jadwal libur tidak bisa diisi absensi")
+		return nil, errors.New("schedule libur tidak bisa diisi absensi")
 	}
 
 	existing, err := s.repo.FindByMeetingAndMember(ctx, in.MeetingID, in.MemberID)
 	if err == nil && existing != nil {
-		catatan := in.Catatan
-		if catatan == "" {
-			catatan = existing.Catatan
+		notes := in.Notes
+		if notes == "" {
+			notes = existing.Notes
 		}
-		if err := s.repo.Update(ctx, existing.AttendanceID, in.Status, catatan); err != nil {
+		if err := s.repo.Update(ctx, existing.AttendanceID, in.Status, notes); err != nil {
 			return nil, err
 		}
 		fresh, _ := s.repo.FindByMeetingAndMember(ctx, in.MeetingID, in.MemberID)
@@ -122,7 +122,7 @@ func (s *AttendanceService) SaveAttendance(ctx context.Context, in SaveAttendanc
 		MeetingID:    in.MeetingID,
 		MemberID:     in.MemberID,
 		Status:       in.Status,
-		Catatan:      in.Catatan,
+		Notes:      in.Notes,
 	}
 	if in.UserID != "" {
 		a.CreatedBy = &in.UserID
@@ -162,7 +162,7 @@ func (s *AttendanceService) BulkSave(ctx context.Context, in BulkSaveInput) (*Bu
 		return nil, errors.New("meeting tidak ditemukan")
 	}
 	if util.IsLiburMeeting(*meeting) {
-		return nil, errors.New("jadwal libur tidak bisa diisi absensi")
+		return nil, errors.New("schedule libur tidak bisa diisi absensi")
 	}
 
 	validItems := make([]repository.BulkItem, 0, len(in.Items))
@@ -225,7 +225,7 @@ func toAttendanceDTO(a model.Attendance) model.AttendanceDTO {
 		MeetingID:    a.MeetingID,
 		MemberID:     a.MemberID,
 		Status:       a.Status,
-		Catatan:      a.Catatan,
+		Notes:      a.Notes,
 		CreatedBy:    cby,
 		CreatedAt:    a.CreatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
 		UpdatedAt:    a.UpdatedAt.Format("2006-01-02T15:04:05.000Z07:00"),

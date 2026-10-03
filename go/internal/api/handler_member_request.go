@@ -20,7 +20,7 @@ func handleRequestBecomeMember(c *fiber.Ctx, svc *service.MemberRequestService) 
 
 func handleListMemberRequests(c *fiber.Ctx, svc *service.MemberRequestService) error {
 	status := BodyString(c, "status")
-	/* Akun ber-kelompok hanya melihat request user kelompoknya. */
+	/* Akun ber-group_label hanya melihat request user kelompoknya. */
 	groupID := ""
 	if g, isSuper := ActorOf(c); !isSuper && g != "" && g != UnassignedGroup {
 		groupID = g

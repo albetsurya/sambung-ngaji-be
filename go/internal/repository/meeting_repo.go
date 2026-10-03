@@ -18,8 +18,8 @@ func NewMeetingRepo(pool *pgxpool.Pool) *MeetingRepo {
 }
 
 const meetingSelectCols = `
-	meeting_id, tanggal, hari, jam, jam_start, group_id, acara, materi,
-	status, catatan, kategori_target, gender_target, created_by, created_at, updated_at`
+	meeting_id, date, day, time, start_time, group_id, event, topic,
+	status, notes, target_categories, gender_target, created_by, created_at, updated_at`
 
 func (r *MeetingRepo) FindAll(ctx context.Context, f model.MeetingListFilter) ([]model.Meeting, error) {
 	q := `SELECT ` + meetingSelectCols + ` FROM meetings WHERE 1=1`
@@ -27,12 +27,12 @@ func (r *MeetingRepo) FindAll(ctx context.Context, f model.MeetingListFilter) ([
 	n := 1
 
 	if f.From != "" {
-		q += ` AND tanggal >= $` + itoa(n)
+		q += ` AND date >= $` + itoa(n)
 		args = append(args, f.From)
 		n++
 	}
 	if f.To != "" {
-		q += ` AND tanggal <= $` + itoa(n)
+		q += ` AND date <= $` + itoa(n)
 		args = append(args, f.To)
 		n++
 	}
@@ -40,7 +40,7 @@ func (r *MeetingRepo) FindAll(ctx context.Context, f model.MeetingListFilter) ([
 		q += ` AND group_id = $` + itoa(n)
 		args = append(args, f.GroupID)
 	}
-	q += ` ORDER BY tanggal DESC`
+	q += ` ORDER BY date DESC`
 
 	rows, err := r.pool.Query(ctx, q, args...)
 	if err != nil {
@@ -60,14 +60,14 @@ func scanMeeting(s rowScanner) (*model.Meeting, error) {
 	var m model.Meeting
 	var kat string
 	err := s.Scan(
-		&m.MeetingID, &m.Tanggal, &m.Hari, &m.Jam, &m.JamStart, &m.GroupID,
-		&m.Acara, &m.Materi, &m.Status, &m.Catatan, &kat, &m.GenderTarget,
+		&m.MeetingID, &m.Date, &m.Day, &m.Time, &m.StartTime, &m.GroupID,
+		&m.Event, &m.Topic, &m.Status, &m.Notes, &kat, &m.GenderTarget,
 		&m.CreatedBy, &m.CreatedAt, &m.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err
 	}
-	m.KategoriTarget = parseJSONArray(kat)
+	m.TargetCategories = parseJSONArray(kat)
 	return &m, nil
 }
 
@@ -77,42 +77,42 @@ func scanMeetings(rows rowsScanner) ([]model.Meeting, error) {
 		var m model.Meeting
 		var kat string
 		err := rows.Scan(
-			&m.MeetingID, &m.Tanggal, &m.Hari, &m.Jam, &m.JamStart, &m.GroupID,
-			&m.Acara, &m.Materi, &m.Status, &m.Catatan, &kat, &m.GenderTarget,
+			&m.MeetingID, &m.Date, &m.Day, &m.Time, &m.StartTime, &m.GroupID,
+			&m.Event, &m.Topic, &m.Status, &m.Notes, &kat, &m.GenderTarget,
 			&m.CreatedBy, &m.CreatedAt, &m.UpdatedAt,
 		)
 		if err != nil {
 			return nil, err
 		}
-		m.KategoriTarget = parseJSONArray(kat)
+		m.TargetCategories = parseJSONArray(kat)
 		out = append(out, m)
 	}
 	return out, rows.Err()
 }
 
 func (r *MeetingRepo) Create(ctx context.Context, m *model.Meeting) error {
-	kat := marshalJSONArray(m.KategoriTarget)
+	kat := marshalJSONArray(m.TargetCategories)
 	_, err := r.pool.Exec(ctx, `
 		INSERT INTO meetings
-		(meeting_id, tanggal, hari, jam, jam_start, group_id, acara, materi,
-		 status, catatan, kategori_target, gender_target, created_by, created_at, updated_at)
+		(meeting_id, date, day, time, start_time, group_id, event, topic,
+		 status, notes, target_categories, gender_target, created_by, created_at, updated_at)
 		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb,$12,$13,now(),now())
-	`, m.MeetingID, m.Tanggal, m.Hari, m.Jam, m.JamStart, m.GroupID,
-		m.Acara, m.Materi, m.Status, m.Catatan, kat, m.GenderTarget, m.CreatedBy)
+	`, m.MeetingID, m.Date, m.Day, m.Time, m.StartTime, m.GroupID,
+		m.Event, m.Topic, m.Status, m.Notes, kat, m.GenderTarget, m.CreatedBy)
 	return err
 }
 
 type MeetingPatch struct {
-	Tanggal        *string
-	Hari           *string
-	Jam            *string
-	JamStart       *string
+	Date        *string
+	Day           *string
+	Time            *string
+	StartTime       *string
 	GroupID        *string
-	Acara          *string
-	Materi         *string
+	Event          *string
+	Topic         *string
 	Status         *string
-	Catatan        *string
-	KategoriTarget *[]string
+	Notes        *string
+	TargetCategories *[]string
 	GenderTarget   *string
 }
 
@@ -128,15 +128,15 @@ func (r *MeetingRepo) Update(ctx context.Context, id string, p MeetingPatch) err
 			n++
 		}
 	}
-	addStr("tanggal", p.Tanggal)
-	addStr("hari", p.Hari)
-	addStr("jam", p.Jam)
-	addStr("jam_start", p.JamStart)
+	addStr("date", p.Date)
+	addStr("day", p.Day)
+	addStr("time", p.Time)
+	addStr("start_time", p.StartTime)
 	addStr("group_id", p.GroupID)
-	addStr("acara", p.Acara)
-	addStr("materi", p.Materi)
+	addStr("event", p.Event)
+	addStr("topic", p.Topic)
 	addStr("status", p.Status)
-	addStr("catatan", p.Catatan)
+	addStr("notes", p.Notes)
 	if p.GenderTarget != nil {
 		/* "" / null = Semua -> tulis NULL agar lolos CHECK
 		   (hanya 'L'/'P'/NULL yang valid). */
@@ -149,9 +149,9 @@ func (r *MeetingRepo) Update(ctx context.Context, id string, p MeetingPatch) err
 		}
 	}
 
-	if p.KategoriTarget != nil {
-		q += `, kategori_target = $` + itoa(n) + `::jsonb`
-		args = append(args, marshalJSONArray(*p.KategoriTarget))
+	if p.TargetCategories != nil {
+		q += `, target_categories = $` + itoa(n) + `::jsonb`
+		args = append(args, marshalJSONArray(*p.TargetCategories))
 		n++
 	}
 
@@ -190,23 +190,23 @@ func (r *MeetingRepo) DeleteMany(ctx context.Context, ids []string) (int64, erro
 
 type ReminderMeetingRow struct {
 	MeetingID string
-	Acara     string
-	Tanggal   string
-	Jam       string
+	Event     string
+	Date   string
+	Time       string
 }
 
 func (r *MeetingRepo) FindPendingReminder(ctx context.Context, from, to time.Time) ([]ReminderMeetingRow, error) {
 	rows, err := r.pool.Query(ctx, `
-		SELECT meeting_id, COALESCE(acara, ''),
-		       TO_CHAR(tanggal, 'YYYY-MM-DD'),
-		       COALESCE(jam, '')
+		SELECT meeting_id, COALESCE(event, ''),
+		       TO_CHAR(date, 'YYYY-MM-DD'),
+		       COALESCE(time, '')
 		FROM meetings
 		WHERE reminder_sent_at IS NULL
 		  AND status != 'LIBUR'
 		  AND send_reminder = true
 		  AND (
-		    (tanggal::date + CASE
-		       WHEN jam ~ '^[0-9]{1,2}:[0-9]{2}' THEN jam::time
+		    (date::date + CASE
+		       WHEN time ~ '^[0-9]{1,2}:[0-9]{2}' THEN time::time
 		       ELSE TIME '19:00'
 		     END)::timestamptz
 		  ) BETWEEN $1 AND $2
@@ -219,7 +219,7 @@ func (r *MeetingRepo) FindPendingReminder(ctx context.Context, from, to time.Tim
 	var out []ReminderMeetingRow
 	for rows.Next() {
 		var row ReminderMeetingRow
-		if err := rows.Scan(&row.MeetingID, &row.Acara, &row.Tanggal, &row.Jam); err != nil {
+		if err := rows.Scan(&row.MeetingID, &row.Event, &row.Date, &row.Time); err != nil {
 			return nil, err
 		}
 		out = append(out, row)

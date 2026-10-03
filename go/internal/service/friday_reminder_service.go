@@ -135,14 +135,14 @@ func (s *FridayReminderService) RunOnce(ctx context.Context) error {
 
 	msg := buildFridayReminderMessage(f)
 	if err := s.fonnte.SendText(ctx, s.groupID, msg); err != nil {
-		log.Error().Err(err).Str("tanggal", target).Msg("gagal kirim reminder jumat")
+		log.Error().Err(err).Str("date", target).Msg("gagal kirim reminder jumat")
 		return err
 	}
 	if err := s.repo.MarkReminderSent(ctx, target); err != nil {
-		log.Error().Err(err).Str("tanggal", target).Msg("gagal tandai reminder jumat")
+		log.Error().Err(err).Str("date", target).Msg("gagal tandai reminder jumat")
 		return err
 	}
-	log.Info().Str("tanggal", target).Msg("reminder jumat terkirim")
+	log.Info().Str("date", target).Msg("reminder jumat terkirim")
 	return nil
 }
 
@@ -156,8 +156,8 @@ func orBelumDiisi(v string) string {
 func formatTanggalPanjang(t time.Time) string {
 	bulan := []string{"Januari", "Februari", "Maret", "April", "Mei", "Juni",
 		"Juli", "Agustus", "September", "Oktober", "November", "Desember"}
-	hari := []string{"Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"}
-	return hari[int(t.Weekday())] + ", " + strconv.Itoa(t.Day()) + " " +
+	day := []string{"Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"}
+	return day[int(t.Weekday())] + ", " + strconv.Itoa(t.Day()) + " " +
 		bulan[int(t.Month())-1] + " " + strconv.Itoa(t.Year())
 }
 
@@ -165,14 +165,14 @@ func buildFridayReminderMessage(f *model.FridaySchedule) string {
 	var b strings.Builder
 	b.WriteString("╔════════════════════╗\n")
 	b.WriteString("🕌 JADWAL PETUGAS SHALAT JUMAT\n")
-	b.WriteString("🗓️ " + formatTanggalPanjang(f.Tanggal) + "\n")
+	b.WriteString("🗓️ " + formatTanggalPanjang(f.Date) + "\n")
 	b.WriteString("╚════════════════════╝\n")
 	b.WriteString("\n")
-	b.WriteString("👤 Khatib & Imam : " + orBelumDiisi(f.KhatibImam) + "\n")
+	b.WriteString("👤 Khatib & Imam : " + orBelumDiisi(f.SermonLeader) + "\n")
 	b.WriteString("🎙️ Muadzin          : " + orBelumDiisi(f.Muadzin) + "\n")
-	b.WriteString("📖 Penasihat        : " + orBelumDiisi(f.Penasihat) + "\n")
-	b.WriteString("🚗 Petugas Parkir : " + orBelumDiisi(f.PetugasParkir) + "\n")
-	b.WriteString("👞 Penata Sandal : " + orBelumDiisi(f.PenataSandal) + "\n")
+	b.WriteString("📖 Advisor        : " + orBelumDiisi(f.Advisor) + "\n")
+	b.WriteString("🚗 Petugas Parkir : " + orBelumDiisi(f.ParkingAttendant) + "\n")
+	b.WriteString("👞 Penata Sandal : " + orBelumDiisi(f.FootwearAttendant) + "\n")
 	b.WriteString("\n")
 	b.WriteString("Semoga Allah ﷻ memberikan pahala dan kebarokahan.\n")
 	b.WriteString("\n")
@@ -180,15 +180,15 @@ func buildFridayReminderMessage(f *model.FridaySchedule) string {
 	return b.String()
 }
 
-func (s *FridayReminderService) MarkSent(ctx context.Context, tanggal string) error {
-	if tanggal == "" {
-		return errors.New("tanggal wajib diisi (YYYY-MM-DD)")
+func (s *FridayReminderService) MarkSent(ctx context.Context, date string) error {
+	if date == "" {
+		return errors.New("date wajib diisi (YYYY-MM-DD)")
 	}
-	if _, err := time.Parse("2006-01-02", tanggal); err != nil {
+	if _, err := time.Parse("2006-01-02", date); err != nil {
 		return errors.New("tanggal tidak valid (YYYY-MM-DD)")
 	}
-	if _, err := s.repo.FindByDate(ctx, "", tanggal); err != nil {
+	if _, err := s.repo.FindByDate(ctx, "", date); err != nil {
 		return errors.New("jadwal tidak ditemukan")
 	}
-	return s.repo.MarkReminderSent(ctx, tanggal)
+	return s.repo.MarkReminderSent(ctx, date)
 }

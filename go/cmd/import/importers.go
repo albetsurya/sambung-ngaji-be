@@ -30,7 +30,7 @@ func importSettings(ctx context.Context, pool *pgxpool.Pool, rows []map[string]s
 
 func importAnnouncementTemplates(ctx context.Context, pool *pgxpool.Pool, rows []map[string]string) error {
 	sql := `INSERT INTO announcement_templates
-	        (template_id, nama_template, kode, isi_template, status_aktif, created_at, updated_at)
+	        (template_id, template_name, kode, template_body, is_active, created_at, updated_at)
 	        VALUES ($1,$2,$3,$4,$5,$6,$7)
 	        ON CONFLICT (template_id) DO NOTHING`
 	for i, r := range rows {
@@ -59,14 +59,14 @@ func importAnnouncementTemplates(ctx context.Context, pool *pgxpool.Pool, rows [
 
 func importMembers(ctx context.Context, pool *pgxpool.Pool, rows []map[string]string) error {
 	sql := `INSERT INTO members (
-	  member_id, nama_lengkap, nama_panggilan, jenis_kelamin,
-	  tempat_lahir, tanggal_lahir, foto_url, no_wa,
-	  alamat_rumah, desa, daerah, kelompok,
-	  is_muballigh, is_kerja, is_nikah, tinggi_badan, berat_badan,
-	  hobi, pekerjaan, status_pembinaan, status_aktif,
-	  tanggal_masuk, tanggal_keluar,
-	  jenjang_pendidikan, sekolah, jurusan,
-	  tahun_mulai_pendidikan, tahun_selesai_pendidikan,
+	  member_id, full_name, nickname, gender,
+	  birth_place, birth_date, photo_url, whatsapp_number,
+	  home_address, village, region, group_label,
+	  is_preacher, is_employed, is_married, height, weight,
+	  hobby, occupation, mentoring_status, is_active,
+	  joined_date, left_date,
+	  education_level, school, major,
+	  education_start_year, education_end_year,
 	  created_at, updated_at
 	) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30)
 	ON CONFLICT (member_id) DO NOTHING`
@@ -124,7 +124,7 @@ func importMembers(ctx context.Context, pool *pgxpool.Pool, rows []map[string]st
 
 func importGroups(ctx context.Context, pool *pgxpool.Pool, rows []map[string]string) error {
 	sql := `INSERT INTO groups
-	        (group_id, group_code, group_name, pembina, penandatangan, jadwal, status_aktif, created_at, updated_at)
+	        (group_id, group_code, group_name, mentor, signatory, schedule, is_active, created_at, updated_at)
 	        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
 	        ON CONFLICT (group_id) DO NOTHING`
 	for i, r := range rows {
@@ -166,7 +166,7 @@ func importUsers(ctx context.Context, pool *pgxpool.Pool, rows []map[string]stri
 	rs.Close()
 
 	sql := `INSERT INTO users
-	        (user_id, username, password_hash, nama, role, member_id, status_aktif, created_at, updated_at, last_login_at)
+	        (user_id, username, password_hash, name, role, member_id, is_active, created_at, updated_at, last_login_at)
 	        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
 	        ON CONFLICT (user_id) DO NOTHING`
 
@@ -210,7 +210,7 @@ func importUsers(ctx context.Context, pool *pgxpool.Pool, rows []map[string]stri
 
 func importMeetings(ctx context.Context, pool *pgxpool.Pool, rows []map[string]string) error {
 	sql := `INSERT INTO meetings
-	        (meeting_id, tanggal, hari, jam, jam_start, group_id, acara, materi, status, catatan, kategori_target, created_by, created_at, updated_at)
+	        (meeting_id, date, day, time, start_time, group_id, event, topic, status, notes, target_categories, created_by, created_at, updated_at)
 	        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb,$12,$13,$14)
 	        ON CONFLICT (meeting_id) DO NOTHING`
 	for i, r := range rows {
@@ -259,7 +259,7 @@ func importMeetings(ctx context.Context, pool *pgxpool.Pool, rows []map[string]s
 
 func importAttendance(ctx context.Context, pool *pgxpool.Pool, rows []map[string]string) error {
 	sql := `INSERT INTO attendance
-	        (attendance_id, meeting_id, member_id, status, catatan, created_by, created_at, updated_at)
+	        (attendance_id, meeting_id, member_id, status, notes, created_by, created_at, updated_at)
 	        VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
 	        ON CONFLICT (attendance_id) DO NOTHING`
 	for i, r := range rows {
@@ -289,7 +289,7 @@ func importAttendance(ctx context.Context, pool *pgxpool.Pool, rows []map[string
 
 func importMonitoring(ctx context.Context, pool *pgxpool.Pool, rows []map[string]string) error {
 	sql := `INSERT INTO monitoring
-	        (monitoring_id, member_id, tanggal, jenis, status, catatan, tindak_lanjut, created_by, created_at, updated_at)
+	        (monitoring_id, member_id, date, type, status, notes, follow_up, created_by, created_at, updated_at)
 	        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
 	        ON CONFLICT (monitoring_id) DO NOTHING`
 	for i, r := range rows {
@@ -323,7 +323,7 @@ func importMonitoring(ctx context.Context, pool *pgxpool.Pool, rows []map[string
 
 func importAnnouncements(ctx context.Context, pool *pgxpool.Pool, rows []map[string]string) error {
 	sql := `INSERT INTO announcements
-	        (announcement_id, template_id, meeting_id, group_id, tanggal, hari, jam, acara, materi, catatan, generated_text, status, created_by, created_at, updated_at)
+	        (announcement_id, template_id, meeting_id, group_id, date, day, time, event, topic, notes, generated_text, status, created_by, created_at, updated_at)
 	        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
 	        ON CONFLICT (announcement_id) DO NOTHING`
 	for i, r := range rows {
@@ -357,9 +357,9 @@ func importAnnouncements(ctx context.Context, pool *pgxpool.Pool, rows []map[str
 
 func importPendingMembers(ctx context.Context, pool *pgxpool.Pool, rows []map[string]string) error {
 	sql := `INSERT INTO pending_members
-	        (submission_id, nama_lengkap, nama_panggilan, jenis_kelamin, tempat_lahir, tanggal_lahir,
-	         no_wa, alamat_rumah, desa, daerah, pekerjaan, hobi, is_nikah, jenjang_pendidikan, sekolah, jurusan,
-	         tahun_mulai_pendidikan, tahun_selesai_pendidikan, foto_url, username, password_hash, status,
+	        (submission_id, full_name, nickname, gender, birth_place, birth_date,
+	         whatsapp_number, home_address, village, region, occupation, hobby, is_married, education_level, school, major,
+	         education_start_year, education_end_year, photo_url, username, password_hash, status,
 	         submitted_at, submitted_ip, reviewed_by, reviewed_at, rejection_reason, created_member_id)
 	        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28)
 	        ON CONFLICT (submission_id) DO NOTHING`
@@ -419,7 +419,7 @@ func importPendingMembers(ctx context.Context, pool *pgxpool.Pool, rows []map[st
 
 func importAuditLogs(ctx context.Context, pool *pgxpool.Pool, rows []map[string]string) error {
 	sql := `INSERT INTO audit_logs
-	        (log_id, user_id, user_nama, action, target_type, target_id, timestamp)
+	        (log_id, user_id, user_name, action, target_type, target_id, timestamp)
 	        VALUES ($1,$2,$3,$4,$5,$6,$7)
 	        ON CONFLICT (log_id) DO NOTHING`
 	for i, r := range rows {
@@ -449,7 +449,7 @@ func importAuditLogs(ctx context.Context, pool *pgxpool.Pool, rows []map[string]
 
 func importAiUsage(ctx context.Context, pool *pgxpool.Pool, rows []map[string]string) error {
 	sql := `INSERT INTO ai_usage
-	        (usage_id, user_id, user_nama, role, provider, input_tokens, output_tokens, total_tokens, timestamp)
+	        (usage_id, user_id, user_name, role, provider, input_tokens, output_tokens, total_tokens, timestamp)
 	        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
 	        ON CONFLICT (usage_id) DO NOTHING`
 	for i, r := range rows {
@@ -490,7 +490,7 @@ func atoi(s string) int {
 
 func importWaQueue(ctx context.Context, pool *pgxpool.Pool, rows []map[string]string) error {
 	sql := `INSERT INTO wa_queue
-	        (queue_id, meeting_id, meeting_date, jam_start, send_at, status, template_id, member_count, sent_count, failed_count, error_log, sent_at, created_at, updated_at)
+	        (queue_id, meeting_id, meeting_date, start_time, send_at, status, template_id, member_count, sent_count, failed_count, error_log, sent_at, created_at, updated_at)
 	        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
 	        ON CONFLICT (queue_id) DO NOTHING`
 	for i, r := range rows {

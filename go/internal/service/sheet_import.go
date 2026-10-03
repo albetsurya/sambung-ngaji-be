@@ -91,13 +91,13 @@ func (s *FinanceSyncService) ImportFromGAS(ctx context.Context, groupID string) 
 			if !ok {
 				continue
 			}
-			tgl, err := util.ParseSheetDate(str(m, "tanggal", "transaction_date"))
+			tgl, err := util.ParseSheetDate(str(m, "date", "transaction_date", "tanggal"))
 			if err != nil {
 				continue
 			}
 			k := &model.CashTransaction{
 				CashID: util.NewID("KAS"), GroupID: &gid, CashType: normCashType(kt),
-				Tanggal:     tgl,
+				Date:     tgl,
 				AccountName: str(m, "account", "account_name"),
 				Description: str(m, "keterangan", "description"),
 				Debit:       num(m, "debet", "debit"),
@@ -124,7 +124,7 @@ func (s *FinanceSyncService) ImportFromGAS(ctx context.Context, groupID string) 
 					continue
 				}
 				id := str(m, "member_id", "memberId")
-				name := str(m, "member_name", "nama")
+				name := str(m, "member_name", "name", "nama", "nama_lengkap")
 				if id == "" || name == "" {
 					continue
 				}
@@ -152,7 +152,7 @@ func (s *FinanceSyncService) ImportFromGAS(ctx context.Context, groupID string) 
 				if id == "" || mid == "" {
 					continue
 				}
-				tgl, err := util.ParseSheetDate(str(m, "payment_date", "tanggal"))
+				tgl, err := util.ParseSheetDate(str(m, "payment_date", "date", "tanggal"))
 				if err != nil {
 					continue
 				}

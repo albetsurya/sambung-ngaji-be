@@ -39,7 +39,7 @@ func (s *MemberRequestService) Request(ctx context.Context, user *model.User) (*
 	}
 
 	if user.Role == "ADMIN" || user.Role == "SUPER_ADMIN" {
-		memberID, err := s.autoCreateMember(ctx, user.UserID, user.Nama)
+		memberID, err := s.autoCreateMember(ctx, user.UserID, user.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -60,7 +60,7 @@ func (s *MemberRequestService) Request(ctx context.Context, user *model.User) (*
 	req := &model.MemberRequest{
 		RequestID: util.NewID("REQ"),
 		UserID:    user.UserID,
-		Nama:      user.Nama,
+		Name:      user.Name,
 		Status:    "PENDING",
 	}
 	if err := s.requestRepo.Insert(ctx, req); err != nil {
@@ -72,13 +72,13 @@ func (s *MemberRequestService) Request(ctx context.Context, user *model.User) (*
 	}, nil
 }
 
-func (s *MemberRequestService) autoCreateMember(ctx context.Context, userID, nama string) (string, error) {
+func (s *MemberRequestService) autoCreateMember(ctx context.Context, userID, name string) (string, error) {
 	memberID := util.NewID("MBR")
 	in := repository.NewMemberInput{
 		MemberID:        memberID,
-		NamaLengkap:     util.TitleCaseID(strings.TrimSpace(nama)),
-		NamaPanggilan:   util.TitleCaseID(strings.TrimSpace(nama)),
-		StatusPembinaan: "AKTIF",
+		FullName:     util.TitleCaseID(strings.TrimSpace(name)),
+		Nickname:   util.TitleCaseID(strings.TrimSpace(name)),
+		MentoringStatus: "AKTIF",
 	}
 	if err := s.memberRepo.Insert(ctx, in); err != nil {
 		return "", err
@@ -125,7 +125,7 @@ func (s *MemberRequestService) Approve(ctx context.Context, in ApproveMemberRequ
 		return nil, errors.New("User ini sudah memiliki data member")
 	}
 
-	memberID, err := s.autoCreateMember(ctx, user.UserID, req.Nama)
+	memberID, err := s.autoCreateMember(ctx, user.UserID, req.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +161,7 @@ func toMemberRequestDTO(m model.MemberRequest) model.MemberRequestDTO {
 	dto := model.MemberRequestDTO{
 		RequestID: m.RequestID,
 		UserID:    m.UserID,
-		Nama:      m.Nama,
+		Name:      m.Name,
 		Status:    m.Status,
 		Reason:    m.Reason,
 		CreatedAt: m.CreatedAt.Format("2006-01-02T15:04:05.000Z07:00"),

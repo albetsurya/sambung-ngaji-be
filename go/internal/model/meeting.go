@@ -4,16 +4,16 @@ import "time"
 
 type Meeting struct {
 	MeetingID      string
-	Tanggal        time.Time
-	Hari           string
-	Jam            string
-	JamStart       string
+	Date        time.Time
+	Day           string
+	Time            string
+	StartTime       string
 	GroupID        *string
-	Acara          string
-	Materi         string
+	Event          string
+	Topic         string
 	Status         string
-	Catatan        string
-	KategoriTarget []string
+	Notes        string
+	TargetCategories []string
 	GenderTarget   *string
 	CreatedBy      *string
 	CreatedAt      time.Time
@@ -22,16 +22,16 @@ type Meeting struct {
 
 type MeetingDTO struct {
 	MeetingID      string   `json:"meeting_id"`
-	Tanggal        string   `json:"tanggal"`
-	Hari           string   `json:"hari"`
-	Jam            string   `json:"jam"`
-	JamStart       string   `json:"jam_start"`
+	Date        string   `json:"date"`
+	Day           string   `json:"day"`
+	Time            string   `json:"time"`
+	StartTime       string   `json:"start_time"`
 	GroupID        string   `json:"group_id"`
-	Acara          string   `json:"acara"`
-	Materi         string   `json:"materi"`
+	Event          string   `json:"event"`
+	Topic         string   `json:"topic"`
 	Status         string   `json:"status"`
-	Catatan        string   `json:"catatan"`
-	KategoriTarget []string `json:"kategori_target"`
+	Notes        string   `json:"notes"`
+	TargetCategories []string `json:"target_categories"`
 	GenderTarget   string   `json:"gender_target"`
 	CreatedBy      string   `json:"created_by"`
 	CreatedAt      string   `json:"created_at"`

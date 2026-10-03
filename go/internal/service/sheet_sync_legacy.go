@@ -23,7 +23,7 @@ import (
 //   - total_amount sheet DIPERTAHANKAN apa adanya (tidak dihitung ulang).
 //   - status ACTIVE/INACTIVE dipertahankan (INACTIVE = riwayat nonaktif).
 //   - Tab legacy TIDAK punya group_id: group diisi dari parameter (satu
-//     sheet = satu kelompok, ditentukan operator saat import/sync).
+//     sheet = satu group_label, ditentukan operator saat import/sync).
 const (
 	sheetTabLegacyMembers  = "Shodaqoh_Members"
 	sheetTabLegacyPayments = "Shodaqoh_Payments"
@@ -90,10 +90,10 @@ func (s *FinanceSyncService) pullLegacyPayments(ctx context.Context, cli *sheets
 		if exists && !newerThan(r["updated_at"], dbTS) {
 			continue
 		}
-		dateStr := sheetGet(r, "payment_date", "transaction_date", "tanggal")
+		dateStr := sheetGet(r, "payment_date", "transaction_date", "date", "tanggal")
 		tgl, err := util.ParseSheetDate(dateStr)
 		if err != nil {
-			s.recordError(ctx, groupID, "due_payments", r["payment_id"], "legacy->db", "transaction_date tidak valid: "+dateStr)
+			s.recordError(ctx, groupID, "due_payments", r["payment_id"], "legacy->db", "transaction_tanggal tidak valid: "+dateStr)
 			continue
 		}
 		// Rincian susulan: breakdown JSON (eksak) > teks bulan (bagi rata).

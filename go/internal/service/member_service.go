@@ -110,10 +110,10 @@ func (s *MemberService) GetAttendanceMembers(ctx context.Context, f model.Member
 		out = append(out, model.AttendanceMemberDTO{
 			MemberID:     m.MemberID,
 			GroupID:      gid,
-			NamaLengkap:  m.NamaLengkap,
-			Kelompok:     m.Kelompok,
+			FullName:  m.FullName,
+			GroupLabel:     m.GroupLabel,
 			Kategori:     s.kategori(m),
-			JenisKelamin: strOr(m.JenisKelamin, ""),
+			Gender: strOr(m.Gender, ""),
 		})
 	}
 	return out, nil
@@ -136,29 +136,29 @@ func (s *MemberService) GetMemberDetail(ctx context.Context, id string) (*model.
 func (s *MemberService) applyFilters(in []model.Member, f model.MemberListFilter) []model.Member {
 	out := make([]model.Member, 0, len(in))
 	search := strings.ToLower(strings.TrimSpace(f.Search))
-	kelompok := strings.TrimSpace(f.Kelompok)
-	jk := strings.TrimSpace(f.JenisKelamin)
-	desa := strings.TrimSpace(f.Desa)
+	group_label := strings.TrimSpace(f.GroupLabel)
+	jk := strings.TrimSpace(f.Gender)
+	village := strings.TrimSpace(f.Village)
 	kategori := strings.TrimSpace(f.Kategori)
 
 	for _, m := range in {
-		if !f.IncludeInactive && !m.StatusAktif {
+		if !f.IncludeInactive && !m.IsActive {
 			continue
 		}
-		if kelompok != "" && m.Kelompok != kelompok && (m.GroupID == nil || *m.GroupID != kelompok) {
+		if group_label != "" && m.GroupLabel != group_label && (m.GroupID == nil || *m.GroupID != group_label) {
 			continue
 		}
-		if jk != "" && strOr(m.JenisKelamin, "") != jk {
+		if jk != "" && strOr(m.Gender, "") != jk {
 			continue
 		}
-		if desa != "" && m.Desa != desa {
+		if village != "" && m.Village != village {
 			continue
 		}
 		if kategori != "" && s.kategori(m) != kategori {
 			continue
 		}
 		if search != "" {
-			hay := strings.ToLower(m.NamaLengkap) + " " + strings.ToLower(m.NamaPanggilan)
+			hay := strings.ToLower(m.FullName) + " " + strings.ToLower(m.Nickname)
 			if !strings.Contains(hay, search) {
 				continue
 			}
@@ -169,7 +169,7 @@ func (s *MemberService) applyFilters(in []model.Member, f model.MemberListFilter
 }
 
 func (s *MemberService) kategori(m model.Member) string {
-	return util.GetMemberCategory(m.TanggalLahir, m.JenjangPendidikan, m.IsNikah)
+	return util.GetMemberCategory(m.BirthDate, m.EducationLevel, m.IsMarried)
 }
 
 func (s *MemberService) toListDTO(m model.Member, hasUser bool) model.MemberListDTO {
@@ -180,13 +180,13 @@ func (s *MemberService) toListDTO(m model.Member, hasUser bool) model.MemberList
 	return model.MemberListDTO{
 		MemberID:      m.MemberID,
 		GroupID:       gid,
-		NamaLengkap:   m.NamaLengkap,
-		NamaPanggilan: m.NamaPanggilan,
-		JenisKelamin:  strOr(m.JenisKelamin, ""),
-		Kelompok:      m.Kelompok,
-		GroupName:     m.Kelompok,
+		FullName:   m.FullName,
+		Nickname: m.Nickname,
+		Gender:  strOr(m.Gender, ""),
+		GroupLabel:      m.GroupLabel,
+		GroupName:     m.GroupLabel,
 		Kategori:      s.kategori(m),
-		FotoURL:       m.FotoURL,
+		PhotoURL:       m.PhotoURL,
 		HasUser:       hasUser,
 	}
 }
@@ -199,38 +199,38 @@ func (s *MemberService) toDetailDTO(m *model.Member) model.MemberDetailDTO {
 	return model.MemberDetailDTO{
 		MemberID:               m.MemberID,
 		GroupID:                gid,
-		NamaLengkap:            m.NamaLengkap,
-		NamaPanggilan:          m.NamaPanggilan,
-		JenisKelamin:           strOr(m.JenisKelamin, ""),
-		TempatLahir:            m.TempatLahir,
-		TanggalLahir:           util.FormatDate(m.TanggalLahir),
-		FotoURL:                m.FotoURL,
-		NoWA:                   m.NoWA,
-		AlamatRumah:            m.AlamatRumah,
-		Desa:                   m.Desa,
-		Daerah:                 m.Daerah,
-		Kelompok:               m.Kelompok,
-		GroupName:              m.Kelompok,
-		IsMuballigh:            m.IsMuballigh,
-		IsKerja:                m.IsKerja,
-		IsNikah:                m.IsNikah,
-		TinggiBadan:            m.TinggiBadan,
-		BeratBadan:             m.BeratBadan,
-		Hobi:                   m.Hobi,
-		Pekerjaan:              m.Pekerjaan,
-		StatusPembinaan:        m.StatusPembinaan,
-		StatusAktif:            m.StatusAktif,
-		TanggalMasuk:           util.FormatDate(m.TanggalMasuk),
-		TanggalKeluar:          util.FormatDate(m.TanggalKeluar),
-		JenjangPendidikan:      m.JenjangPendidikan,
-		Sekolah:                m.Sekolah,
-		Jurusan:                m.Jurusan,
-		TahunMulaiPendidikan:   m.TahunMulaiPendidikan,
-		TahunSelesaiPendidikan: m.TahunSelesaiPendidikan,
+		FullName:            m.FullName,
+		Nickname:          m.Nickname,
+		Gender:           strOr(m.Gender, ""),
+		BirthPlace:            m.BirthPlace,
+		BirthDate:           util.FormatDate(m.BirthDate),
+		PhotoURL:                m.PhotoURL,
+		WhatsappNumber:                   m.WhatsappNumber,
+		HomeAddress:            m.HomeAddress,
+		Village:                   m.Village,
+		Region:                 m.Region,
+		GroupLabel:               m.GroupLabel,
+		GroupName:              m.GroupLabel,
+		IsPreacher:            m.IsPreacher,
+		IsEmployed:                m.IsEmployed,
+		IsMarried:                m.IsMarried,
+		Height:            m.Height,
+		Weight:             m.Weight,
+		Hobby:                   m.Hobby,
+		Occupation:              m.Occupation,
+		MentoringStatus:        m.MentoringStatus,
+		IsActive:            m.IsActive,
+		JoinedDate:           util.FormatDate(m.JoinedDate),
+		LeftDate:          util.FormatDate(m.LeftDate),
+		EducationLevel:      m.EducationLevel,
+		School:                m.School,
+		Major:                m.Major,
+		EducationStartYear:   m.EducationStartYear,
+		EducationEndYear: m.EducationEndYear,
 		CreatedAt:              m.CreatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
 		UpdatedAt:              m.UpdatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
 		Kategori:               s.kategori(*m),
-		Usia:                   util.GetAge(m.TanggalLahir),
+		Usia:                   util.GetAge(m.BirthDate),
 		Pendidikan:             []any{},
 	}
 }

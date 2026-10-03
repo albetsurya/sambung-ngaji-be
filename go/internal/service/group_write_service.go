@@ -15,10 +15,10 @@ type SaveGroupInput struct {
 	GroupID       string
 	GroupCode     string
 	GroupName     string
-	Pembina       string
-	Penandatangan string
-	Jadwal        string
-	StatusAktif   *bool
+	Mentor       string
+	Signatory string
+	Schedule        string
+	IsActive   *bool
 }
 
 func (s *GroupService) Save(ctx context.Context, in SaveGroupInput) (*model.GroupDTO, error) {
@@ -34,17 +34,17 @@ func (s *GroupService) Save(ctx context.Context, in SaveGroupInput) (*model.Grou
 		if in.GroupName != "" {
 			patch["group_name"] = in.GroupName
 		}
-		if in.Pembina != "" {
-			patch["pembina"] = in.Pembina
+		if in.Mentor != "" {
+			patch["mentor"] = in.Mentor
 		}
-		if in.Penandatangan != "" {
-			patch["penandatangan"] = in.Penandatangan
+		if in.Signatory != "" {
+			patch["signatory"] = in.Signatory
 		}
-		if in.Jadwal != "" {
-			patch["jadwal"] = in.Jadwal
+		if in.Schedule != "" {
+			patch["schedule"] = in.Schedule
 		}
-		if in.StatusAktif != nil {
-			patch["status_aktif"] = *in.StatusAktif
+		if in.IsActive != nil {
+			patch["is_active"] = *in.IsActive
 		}
 		if len(patch) == 0 {
 			return nil, errors.New("tidak ada perubahan")
@@ -62,17 +62,17 @@ func (s *GroupService) Save(ctx context.Context, in SaveGroupInput) (*model.Grou
 	}
 	groupID := util.NewID("GRP")
 	status := true
-	if in.StatusAktif != nil {
-		status = *in.StatusAktif
+	if in.IsActive != nil {
+		status = *in.IsActive
 	}
 	g := &model.Group{
 		GroupID:       groupID,
 		GroupCode:     in.GroupCode,
 		GroupName:     in.GroupName,
-		Pembina:       in.Pembina,
-		Penandatangan: in.Penandatangan,
-		Jadwal:        in.Jadwal,
-		StatusAktif:   status,
+		Mentor:       in.Mentor,
+		Signatory: in.Signatory,
+		Schedule:        in.Schedule,
+		IsActive:   status,
 		CreatedAt:     time.Now(),
 		UpdatedAt:     time.Now(),
 	}

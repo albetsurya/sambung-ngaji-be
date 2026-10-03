@@ -18,7 +18,7 @@ import (
 //   - Master_Muzaki / Master_Mustahik -> master_payers / master_recipients
 //
 // Tab legacy TANPA group_id: group diisi dari parameter (satu spreadsheet
-// = satu kelompok, ditentukan operator saat import/sync).
+// = satu group_label, ditentukan operator saat import/sync).
 // Semua pembacaan toleran header lama/baru via sheetGet; tidak ada tulis
 // ke tab legacy dalam file ini.
 
@@ -31,7 +31,7 @@ func normZakatCategory(v string) string {
 func (s *FinanceSyncService) pullLegacyMasters(ctx context.Context, cli *sheets.Service, groupID string) error {
 	if rows, err := s.readTab(ctx, cli, sheetTabLegacyMasterMuzaki); err == nil {
 		for _, r := range rows {
-			name := sheetGet(r, "muzakki_name", "nama", "full_name", "member_name")
+			name := sheetGet(r, "muzakki_name", "name", "full_name", "member_name", "nama", "nama_lengkap")
 			if strings.TrimSpace(name) == "" {
 				continue
 			}
@@ -40,7 +40,7 @@ func (s *FinanceSyncService) pullLegacyMasters(ctx context.Context, cli *sheets.
 	}
 	if rows, err := s.readTab(ctx, cli, sheetTabLegacyMasterMustahik); err == nil {
 		for _, r := range rows {
-			name := sheetGet(r, "mustahik_name", "nama", "full_name", "member_name")
+			name := sheetGet(r, "mustahik_name", "name", "full_name", "member_name", "nama", "nama_lengkap")
 			if strings.TrimSpace(name) == "" {
 				continue
 			}
@@ -51,7 +51,7 @@ func (s *FinanceSyncService) pullLegacyMasters(ctx context.Context, cli *sheets.
 }
 
 func (s *FinanceSyncService) pullLegacyZakat(ctx context.Context, cli *sheets.Service, groupID string) error {
-	// Master dulu agar MasterUpsert idempotent berjalan sebelum anak me-referensi nama.
+	// Master dulu agar MasterUpsert idempotent berjalan sebelum anak me-referensi name.
 	_ = s.pullLegacyMasters(ctx, cli, groupID)
 
 	headerRows, err := s.readTab(ctx, cli, sheetTabLegacyZakat)
@@ -71,7 +71,7 @@ func (s *FinanceSyncService) pullLegacyZakat(ctx context.Context, cli *sheets.Se
 		if strings.ToUpper(strings.TrimSpace(r["status"])) == "DELETED" {
 			continue
 		}
-		name := sheetGet(r, "muzakki_name", "nama", "full_name")
+		name := sheetGet(r, "muzakki_name", "name", "full_name", "nama", "nama_lengkap")
 		if strings.TrimSpace(name) == "" {
 			continue
 		}
@@ -96,7 +96,7 @@ func (s *FinanceSyncService) pullLegacyZakat(ctx context.Context, cli *sheets.Se
 		if strings.ToUpper(strings.TrimSpace(r["status"])) == "DELETED" {
 			continue
 		}
-		name := sheetGet(r, "mustahik_name", "nama", "full_name")
+		name := sheetGet(r, "mustahik_name", "name", "full_name", "nama", "nama_lengkap")
 		if strings.TrimSpace(name) == "" {
 			continue
 		}
@@ -130,7 +130,7 @@ func (s *FinanceSyncService) pullLegacyZakat(ctx context.Context, cli *sheets.Se
 			continue
 		}
 		var tgl *time.Time
-		if ds := sheetGet(r, "transaction_date", "tanggal"); ds != "" {
+		if ds := sheetGet(r, "transaction_date", "date", "tanggal"); ds != "" {
 			if t, err := util.ParseSheetDate(strings.TrimSpace(ds)); err == nil {
 				tgl = &t
 			}

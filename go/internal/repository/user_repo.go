@@ -25,7 +25,7 @@ func (r *UserRepo) UsernameExists(ctx context.Context, username string) (bool, e
 func (r *UserRepo) MemberHasActiveUser(ctx context.Context, memberID string) (bool, error) {
 	var exists bool
 	err := r.pool.QueryRow(ctx,
-		`SELECT EXISTS(SELECT 1 FROM users WHERE member_id = $1 AND status_aktif = true)`, memberID,
+		`SELECT EXISTS(SELECT 1 FROM users WHERE member_id = $1 AND is_active = true)`, memberID,
 	).Scan(&exists)
 	return exists, err
 }
@@ -34,7 +34,7 @@ type NewUserInput struct {
 	UserID       string
 	Username     string
 	PasswordHash string
-	Nama         string
+	Name         string
 	Role         string
 	MemberID     string
 	GroupID      *string
@@ -43,8 +43,8 @@ type NewUserInput struct {
 func (r *UserRepo) Insert(ctx context.Context, in NewUserInput) error {
 	_, err := r.pool.Exec(ctx, `
 		INSERT INTO users
-		(user_id, username, password_hash, nama, role, member_id, group_id, status_aktif, created_at, updated_at)
+		(user_id, username, password_hash, name, role, member_id, group_id, is_active, created_at, updated_at)
 		VALUES ($1,$2,$3,$4,$5,$6,$7,true,now(),now())
-	`, in.UserID, in.Username, in.PasswordHash, in.Nama, in.Role, in.MemberID, in.GroupID)
+	`, in.UserID, in.Username, in.PasswordHash, in.Name, in.Role, in.MemberID, in.GroupID)
 	return err
 }

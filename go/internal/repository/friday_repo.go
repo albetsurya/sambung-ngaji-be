@@ -17,18 +17,18 @@ func NewFridayRepo(pool *pgxpool.Pool) *FridayRepo {
 	return &FridayRepo{pool: pool}
 }
 
-const fridaySelectCols = `friday_id, group_id, tanggal, khatib_imam, muadzin, penasihat,
-	petugas_parkir, penata_sandal, catatan, created_by, created_at, updated_at`
+const fridaySelectCols = `friday_id, group_id, date, sermon_leader, muadzin, advisor,
+	parking_attendant, footwear_attendant, notes, created_by, created_at, updated_at`
 
 func (r *FridayRepo) FindByRange(ctx context.Context, groupID, from, to string) ([]model.FridaySchedule, error) {
 	q := `SELECT ` + fridaySelectCols + ` FROM friday_schedules
-		 WHERE ($1 = '' OR tanggal >= $1::date) AND ($2 = '' OR tanggal <= $2::date)`
+		 WHERE ($1 = '' OR date >= $1::date) AND ($2 = '' OR date <= $2::date)`
 	args := []interface{}{from, to}
 	if groupID != "" {
 		q += ` AND (group_id = $3 OR group_id IS NULL)`
 		args = append(args, groupID)
 	}
-	q += ` ORDER BY tanggal ASC`
+	q += ` ORDER BY date ASC`
 
 	rows, err := r.pool.Query(ctx, q, args...)
 	if err != nil {
@@ -38,9 +38,9 @@ func (r *FridayRepo) FindByRange(ctx context.Context, groupID, from, to string) 
 	return scanFridays(rows)
 }
 
-func (r *FridayRepo) FindByDate(ctx context.Context, groupID, tanggal string) (*model.FridaySchedule, error) {
-	q := `SELECT ` + fridaySelectCols + ` FROM friday_schedules WHERE tanggal=$1::date`
-	args := []interface{}{tanggal}
+func (r *FridayRepo) FindByDate(ctx context.Context, groupID, date string) (*model.FridaySchedule, error) {
+	q := `SELECT ` + fridaySelectCols + ` FROM friday_schedules WHERE date=$1::date`
+	args := []interface{}{date}
 	if groupID != "" {
 		q += ` AND (group_id = $2 OR group_id IS NULL)`
 		args = append(args, groupID)
@@ -56,27 +56,27 @@ func (r *FridayRepo) FindByDate(ctx context.Context, groupID, tanggal string) (*
 func (r *FridayRepo) Upsert(ctx context.Context, f *model.FridaySchedule) error {
 	_, err := r.pool.Exec(ctx,
 		`INSERT INTO friday_schedules
-		   (friday_id, group_id, tanggal, khatib_imam, muadzin, penasihat,
-		    petugas_parkir, penata_sandal, catatan, created_by, created_at, updated_at)
+		   (friday_id, group_id, date, sermon_leader, muadzin, advisor,
+		    parking_attendant, footwear_attendant, notes, created_by, created_at, updated_at)
 		 VALUES ($1, $2, $3::date, $4, $5, $6, $7, $8, $9, $10, now(), now())
-		 ON CONFLICT (tanggal)
+		 ON CONFLICT (date)
 		 DO UPDATE SET group_id       = EXCLUDED.group_id,
-		               khatib_imam    = EXCLUDED.khatib_imam,
+		               sermon_leader    = EXCLUDED.sermon_leader,
 		               muadzin        = EXCLUDED.muadzin,
-		               penasihat      = EXCLUDED.penasihat,
-		               petugas_parkir = EXCLUDED.petugas_parkir,
-		               penata_sandal  = EXCLUDED.penata_sandal,
-		               catatan        = EXCLUDED.catatan,
+		               advisor      = EXCLUDED.advisor,
+		               parking_attendant = EXCLUDED.parking_attendant,
+		               footwear_attendant  = EXCLUDED.footwear_attendant,
+		               notes        = EXCLUDED.notes,
 		               created_by     = EXCLUDED.created_by,
 		               updated_at     = now()`,
-		f.FridayID, f.GroupID, f.Tanggal, f.KhatibImam, f.Muadzin, f.Penasihat,
-		f.PetugasParkir, f.PenataSandal, f.Catatan, f.CreatedBy)
+		f.FridayID, f.GroupID, f.Date, f.SermonLeader, f.Muadzin, f.Advisor,
+		f.ParkingAttendant, f.FootwearAttendant, f.Notes, f.CreatedBy)
 	return err
 }
 
-func (r *FridayRepo) Delete(ctx context.Context, groupID, tanggal string) error {
-	q := `DELETE FROM friday_schedules WHERE tanggal=$1::date`
-	args := []interface{}{tanggal}
+func (r *FridayRepo) Delete(ctx context.Context, groupID, date string) error {
+	q := `DELETE FROM friday_schedules WHERE date=$1::date`
+	args := []interface{}{date}
 	if groupID != "" {
 		q += ` AND (group_id = $2 OR group_id IS NULL)`
 		args = append(args, groupID)
@@ -85,10 +85,10 @@ func (r *FridayRepo) Delete(ctx context.Context, groupID, tanggal string) error 
 	return err
 }
 
-func (r *FridayRepo) FindUnsentByDate(ctx context.Context, tanggal string) (*model.FridaySchedule, error) {
+func (r *FridayRepo) FindUnsentByDate(ctx context.Context, date string) (*model.FridaySchedule, error) {
 	row := r.pool.QueryRow(ctx,
 		`SELECT `+fridaySelectCols+` FROM friday_schedules
-		 WHERE tanggal=$1::date AND reminder_sent_at IS NULL`, tanggal)
+		 WHERE date=$1::date AND reminder_sent_at IS NULL`, date)
 	f, err := scanFriday(row)
 	if err != nil {
 		return nil, err
@@ -96,17 +96,17 @@ func (r *FridayRepo) FindUnsentByDate(ctx context.Context, tanggal string) (*mod
 	return &f, nil
 }
 
-func (r *FridayRepo) MarkReminderSent(ctx context.Context, tanggal string) error {
+func (r *FridayRepo) MarkReminderSent(ctx context.Context, date string) error {
 	_, err := r.pool.Exec(ctx,
 		`UPDATE friday_schedules SET reminder_sent_at=now(), updated_at=now()
-		 WHERE tanggal=$1::date`, tanggal)
+		 WHERE date=$1::date`, date)
 	return err
 }
 
 func scanFriday(row pgx.Row) (model.FridaySchedule, error) {
 	var f model.FridaySchedule
-	err := row.Scan(&f.FridayID, &f.GroupID, &f.Tanggal, &f.KhatibImam, &f.Muadzin,
-		&f.Penasihat, &f.PetugasParkir, &f.PenataSandal, &f.Catatan,
+	err := row.Scan(&f.FridayID, &f.GroupID, &f.Date, &f.SermonLeader, &f.Muadzin,
+		&f.Advisor, &f.ParkingAttendant, &f.FootwearAttendant, &f.Notes,
 		&f.CreatedBy, &f.CreatedAt, &f.UpdatedAt)
 	return f, err
 }
@@ -115,8 +115,8 @@ func scanFridays(rows rowsScanner) ([]model.FridaySchedule, error) {
 	var out []model.FridaySchedule
 	for rows.Next() {
 		var f model.FridaySchedule
-		if err := rows.Scan(&f.FridayID, &f.GroupID, &f.Tanggal, &f.KhatibImam, &f.Muadzin,
-			&f.Penasihat, &f.PetugasParkir, &f.PenataSandal, &f.Catatan,
+		if err := rows.Scan(&f.FridayID, &f.GroupID, &f.Date, &f.SermonLeader, &f.Muadzin,
+			&f.Advisor, &f.ParkingAttendant, &f.FootwearAttendant, &f.Notes,
 			&f.CreatedBy, &f.CreatedAt, &f.UpdatedAt); err != nil {
 			return nil, err
 		}
@@ -139,7 +139,7 @@ func (r *FridayRepo) FindUpcoming(ctx context.Context, limit int) ([]model.Frida
 	}
 	rows, err := r.pool.Query(ctx,
 		`SELECT `+fridaySelectCols+` FROM friday_schedules
-		 WHERE tanggal >= CURRENT_DATE ORDER BY tanggal ASC LIMIT $1`, limit)
+		 WHERE date >= CURRENT_DATE ORDER BY date ASC LIMIT $1`, limit)
 	if err != nil {
 		return nil, err
 	}

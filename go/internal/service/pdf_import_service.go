@@ -12,9 +12,9 @@ import (
 )
 
 type ParsedPdfMeeting struct {
-	Tanggal string          `json:"tanggal"`
-	Hari    string          `json:"hari"`
-	Acara   string          `json:"acara"`
+	Date string          `json:"date"`
+	Day    string          `json:"day"`
+	Event   string          `json:"event"`
 	Tempat  string          `json:"tempat"`
 	Peserta []ParsedPeserta `json:"peserta"`
 	Agenda  []string        `json:"agenda"`
@@ -22,7 +22,7 @@ type ParsedPdfMeeting struct {
 }
 
 type ParsedPeserta struct {
-	Nama    string `json:"nama"`
+	Name    string `json:"name"`
 	Jabatan string `json:"jabatan"`
 	Alamat  string `json:"alamat"`
 	Hadir   bool   `json:"hadir"`
@@ -44,20 +44,20 @@ OUTPUT WAJIB: JSON murni tanpa markdown code block, tanpa penjelasan, tanpa prea
 
 SCHEMA:
 {
-  "tanggal": "YYYY-MM-DD",
-  "hari": "Minggu|Senin|Selasa|Rabu|Kamis|Jumat|Sabtu",
-  "acara": "judul rapat/pengajian",
+  "date": "YYYY-MM-DD",
+  "day": "Minggu|Senin|Selasa|Rabu|Kamis|Jumat|Sabtu",
+  "event": "judul rapat/pengajian",
   "tempat": "lokasi kalau ada",
   "peserta": [
-    { "nama": "...", "jabatan": "...", "alamat": "...", "hadir": true }
+    { "name": "...", "jabatan": "...", "alamat": "...", "hadir": true }
   ],
   "agenda": ["poin 1", "poin 2"]
 }
 
 ATURAN:
-- Kalau tanggal tidak ada, pakai "".
+- Kalau date tidak ada, pakai "".
 - Kalau tahun tidak tertulis, asumsikan tahun sekarang.
-- Format tanggal di PDF bisa "14-09-2026", "14 September 2026", atau "Senin, 14/09/2026" — konversi ke YYYY-MM-DD.
+- Format date di PDF bisa "14-09-2026", "14 September 2026", atau "Senin, 14/09/2026" - konversi ke YYYY-MM-DD.
 - Untuk peserta, "HADIR/TIDAK HADIR" atau status apapun → boolean hadir (true kalau hadir).
 - Kalau ada kolom "IZIN" → hadir: false.
 - Agenda: ambil dari bagian bernomor/bulleted list kalau ada.
@@ -97,23 +97,23 @@ func (s *PDFImportService) ParsePDF(ctx context.Context, rawText string) (*Parse
 		return nil, fmt.Errorf("AI tidak mengembalikan JSON valid: %w\nraw: %s", err, truncateStr(content, 300))
 	}
 
-	if parsed.Tanggal != "" {
-		if t, err := util.ParseFlexibleDate(parsed.Tanggal); err == nil {
-			parsed.Tanggal = t.Format("2006-01-02")
-			if parsed.Hari == "" {
-				parsed.Hari = util.GetHariFromDate(t)
+	if parsed.Date != "" {
+		if t, err := util.ParseFlexibleDate(parsed.Date); err == nil {
+			parsed.Date = t.Format("2006-01-02")
+			if parsed.Day == "" {
+				parsed.Day = util.GetHariFromDate(t)
 			}
 		}
 	}
 
-	if parsed.Tanggal == "" {
-		parsed.Warning = appendWarning(parsed.Warning, "Tanggal tidak terdeteksi — perlu diisi manual")
+	if parsed.Date == "" {
+		parsed.Warning = appendWarning(parsed.Warning, "Date tidak terdeteksi - perlu diisi manual")
 	}
 	if len(parsed.Peserta) == 0 {
 		parsed.Warning = appendWarning(parsed.Warning, "Tidak ada peserta terdeteksi")
 	}
-	if parsed.Acara == "" {
-		parsed.Warning = appendWarning(parsed.Warning, "Acara kosong — perlu diisi manual")
+	if parsed.Event == "" {
+		parsed.Warning = appendWarning(parsed.Warning, "Event kosong - perlu diisi manual")
 	}
 
 	return &parsed, nil

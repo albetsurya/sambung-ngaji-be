@@ -47,7 +47,7 @@ func (h *PhotoHandler) Upload(c *fiber.Ctx) error {
 		return Fail(c, "File foto wajib diisi")
 	}
 
-	if old, ok := body["_old_foto_url"].(string); ok && old != "" {
+	if old, ok := body["_old_photo_url"].(string); ok && old != "" {
 		_ = h.storage.DeletePhoto(c.Context(), old)
 	}
 
@@ -60,7 +60,7 @@ func (h *PhotoHandler) Upload(c *fiber.Ctx) error {
 		return Fail(c, "Gagal simpan URL foto: "+err.Error())
 	}
 
-	return Ok(c, fiber.Map{"foto_url": url})
+	return Ok(c, fiber.Map{"photo_url": url})
 }
 
 func (h *PhotoHandler) Delete(c *fiber.Ctx) error {

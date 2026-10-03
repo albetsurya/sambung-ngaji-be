@@ -5,10 +5,10 @@ import "time"
 type AnnouncementTemplate struct {
 	TemplateID   string
 	GroupID      *string
-	NamaTemplate string
+	TemplateName string
 	Kode         string
-	IsiTemplate  string
-	StatusAktif  bool
+	TemplateBody  string
+	IsActive  bool
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }
@@ -16,10 +16,10 @@ type AnnouncementTemplate struct {
 type AnnouncementTemplateDTO struct {
 	TemplateID   string `json:"template_id"`
 	GroupID      string `json:"group_id"`
-	NamaTemplate string `json:"nama_template"`
+	TemplateName string `json:"template_name"`
 	Kode         string `json:"kode"`
-	IsiTemplate  string `json:"isi_template"`
-	StatusAktif  bool   `json:"status_aktif"`
+	TemplateBody  string `json:"template_body"`
+	IsActive  bool   `json:"is_active"`
 	CreatedAt    string `json:"created_at"`
 	UpdatedAt    string `json:"updated_at"`
 }
@@ -29,12 +29,12 @@ type Announcement struct {
 	TemplateID     *string
 	MeetingID      *string
 	GroupID        *string
-	Tanggal        time.Time
-	Hari           string
-	Jam            string
-	Acara          string
-	Materi         string
-	Catatan        string
+	Date        time.Time
+	Day           string
+	Time            string
+	Event          string
+	Topic         string
+	Notes        string
 	GeneratedText  string
 	Status         string
 	CreatedBy      *string
@@ -47,12 +47,12 @@ type AnnouncementDTO struct {
 	TemplateID     string `json:"template_id"`
 	MeetingID      string `json:"meeting_id"`
 	GroupID        string `json:"group_id"`
-	Tanggal        string `json:"tanggal"`
-	Hari           string `json:"hari"`
-	Jam            string `json:"jam"`
-	Acara          string `json:"acara"`
-	Materi         string `json:"materi"`
-	Catatan        string `json:"catatan"`
+	Date        string `json:"date"`
+	Day           string `json:"day"`
+	Time            string `json:"time"`
+	Event          string `json:"event"`
+	Topic         string `json:"topic"`
+	Notes        string `json:"notes"`
 	GeneratedText  string `json:"generated_text"`
 	Status         string `json:"status"`
 	CreatedBy      string `json:"created_by"`

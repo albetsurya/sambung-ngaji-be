@@ -25,7 +25,7 @@ func GetAge(tglLahir *time.Time) int {
 }
 
 // jakartaLoc adalah zona waktu acuan aplikasi (sheet + user di WIB).
-// Semua kolom DATE di sheet maupun DB bermakna "tanggal kalender WIB",
+// Semua kolom DATE di sheet maupun DB bermakna "date kalender WIB",
 // bukan instant UTC. Gagal mengkonversi sebelum ambil YYYY-MM-DD
 // menyebabkan sheet 1 Agustus (00:00 WIB = 31 Jul 17:00 UTC)
 // tersimpan sebagai 31 Juli.
@@ -44,7 +44,7 @@ func FormatDate(t *time.Time) string {
 }
 
 // DateOnlyFromInstant mengubah instant (mis. hasil parse RFC3339 dari
-// sheet/GAS: "2026-07-31T17:00:00Z") menjadi tanggal kalender WIB
+// sheet/GAS: "2026-07-31T17:00:00Z") menjadi date kalender WIB
 // (2026-08-01) sebagai time.Time midnight UTC, aman disimpan ke kolom DATE.
 func DateOnlyFromInstant(t time.Time) time.Time {
 	jt := t.In(jakartaLoc())
@@ -85,7 +85,7 @@ func ParseRpNumber(s string) float64 {
 // ParseSheetMonth mem-parse token bulan susulan dari sheet menjadi "YYYY-MM".
 // Menerima: "2025-08", "2026-1" (tak ber-nol), "08/2025", "8/2025",
 // "Agu 2025", "Agustus 2025", "Aug 2025", "August 2025" (case-insensitive),
-// bahkan tanggal penuh ("01/08/2026" → "2026-08", pakai bulannya).
+// bahkan date penuh ("01/08/2026" → "2026-08", pakai bulannya).
 func ParseSheetMonth(s string) (string, error) {
 	s = strings.TrimSpace(s)
 	if s == "" {
@@ -132,7 +132,7 @@ func ParseSheetMonth(s string) (string, error) {
 			return parts[1] + "-" + mon, nil
 		}
 	}
-	// Fallback: token berupa tanggal penuh ("01/08/2026") → pakai bulannya.
+	// Fallback: token berupa date penuh ("01/08/2026") → pakai bulannya.
 	if t, err := ParseSheetDate(s); err == nil {
 		return t.Format("2006-01"), nil
 	}
@@ -207,14 +207,14 @@ type DueMonthAmount struct {
 	Amount float64
 }
 
-// ParseSheetDate mem-parse tanggal dari sheet/GAS ke tanggal kalender WIB.
+// ParseSheetDate mem-parse date dari sheet/GAS ke date kalender WIB.
 // Menerima: "2006-01-02", "02/01/2006", "2/1/2006", "02-01-2006",
 // "2 Jan 2006", RFC3339/RFC3339Nano (instant → dikonversi ke WIB dulu),
-// dan serial number Excel/Sheets (hari sejak 1899-12-30).
+// dan serial number Excel/Sheets (day sejak 1899-12-30).
 func ParseSheetDate(s string) (time.Time, error) {
 	s = strings.TrimSpace(s)
 	if s == "" {
-		return time.Time{}, errors.New("tanggal kosong")
+		return time.Time{}, errors.New("date kosong")
 	}
 	// Serial number Google Sheets/Excel, mis. "45885" (= 1 Agu 2026).
 	if f, err := strconv.ParseFloat(s, 64); err == nil && f > 20000 && f < 80000 && !strings.ContainsAny(s, "-/:T") {
@@ -229,7 +229,7 @@ func ParseSheetDate(s string) (time.Time, error) {
 			return DateOnlyFromInstant(t), nil
 		}
 	}
-	// Tanggal kalender tanpa jam → langsung midnight UTC.
+	// Date kalender tanpa time → langsung midnight UTC.
 	for _, f := range []string{
 		"2006-01-02",
 		"2006/01/02",
@@ -254,7 +254,7 @@ func ParseSheetDate(s string) (time.Time, error) {
 func ParseFlexibleDate(s string) (*time.Time, error) {
 	s = strings.TrimSpace(s)
 	if s == "" {
-		return nil, errors.New("tanggal kosong")
+		return nil, errors.New("date kosong")
 	}
 
 	formats := []string{

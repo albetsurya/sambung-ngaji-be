@@ -12,25 +12,25 @@ func parseBulkParams(c *fiber.Ctx) service.BulkParams {
 	p := service.BulkParams{
 		Tahun:   int(BodyFloat(c, "tahun")),
 		Bulan:   int(BodyFloat(c, "bulan")),
-		Jam:     BodyString(c, "jam"),
-		Acara:   BodyString(c, "acara"),
+		Time:     BodyString(c, "time"),
+		Event:   BodyString(c, "event"),
 		GroupID: BodyString(c, "group_id"),
-		Materi:  BodyString(c, "materi"),
-		Catatan: BodyString(c, "catatan"),
+		Topic:  BodyString(c, "topic"),
+		Notes: BodyString(c, "notes"),
 	}
 
-	if v, ok := body["hari"].([]interface{}); ok {
+	if v, ok := body["day"].([]interface{}); ok {
 		for _, x := range v {
 			if s, ok := x.(string); ok && s != "" {
-				p.Hari = append(p.Hari, s)
+				p.Day = append(p.Day, s)
 			}
 		}
 	}
 
-	if v, ok := body["kategori_target"].([]interface{}); ok {
+	if v, ok := body["target_categories"].([]interface{}); ok {
 		for _, x := range v {
 			if s, ok := x.(string); ok && s != "" {
-				p.KategoriTarget = append(p.KategoriTarget, s)
+				p.TargetCategories = append(p.TargetCategories, s)
 			}
 		}
 	}

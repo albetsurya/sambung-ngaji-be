@@ -17,7 +17,7 @@ func NewAttendanceRepo(pool *pgxpool.Pool) *AttendanceRepo {
 }
 
 const attendanceSelectCols = `
-	attendance_id, meeting_id, member_id, status, catatan,
+	attendance_id, meeting_id, member_id, status, notes,
 	created_by, created_at, updated_at`
 
 func (r *AttendanceRepo) FindByMeeting(ctx context.Context, meetingID string) ([]model.Attendance, error) {
@@ -50,7 +50,7 @@ func (r *AttendanceRepo) FindByMeetingAndMember(ctx context.Context, meetingID, 
 func scanAttendance(s rowScanner) (*model.Attendance, error) {
 	var a model.Attendance
 	err := s.Scan(
-		&a.AttendanceID, &a.MeetingID, &a.MemberID, &a.Status, &a.Catatan,
+		&a.AttendanceID, &a.MeetingID, &a.MemberID, &a.Status, &a.Notes,
 		&a.CreatedBy, &a.CreatedAt, &a.UpdatedAt,
 	)
 	if err != nil {
@@ -64,7 +64,7 @@ func scanAttendances(rows rowsScanner) ([]model.Attendance, error) {
 	for rows.Next() {
 		var a model.Attendance
 		err := rows.Scan(
-			&a.AttendanceID, &a.MeetingID, &a.MemberID, &a.Status, &a.Catatan,
+			&a.AttendanceID, &a.MeetingID, &a.MemberID, &a.Status, &a.Notes,
 			&a.CreatedBy, &a.CreatedAt, &a.UpdatedAt,
 		)
 		if err != nil {
@@ -78,17 +78,17 @@ func scanAttendances(rows rowsScanner) ([]model.Attendance, error) {
 func (r *AttendanceRepo) Insert(ctx context.Context, a *model.Attendance) error {
 	_, err := r.pool.Exec(ctx, `
 		INSERT INTO attendance
-		(attendance_id, meeting_id, member_id, status, catatan, created_by, created_at, updated_at)
+		(attendance_id, meeting_id, member_id, status, notes, created_by, created_at, updated_at)
 		VALUES ($1,$2,$3,$4,$5,$6,now(),now())
-	`, a.AttendanceID, a.MeetingID, a.MemberID, a.Status, a.Catatan, a.CreatedBy)
+	`, a.AttendanceID, a.MeetingID, a.MemberID, a.Status, a.Notes, a.CreatedBy)
 	return err
 }
 
-func (r *AttendanceRepo) Update(ctx context.Context, id, status, catatan string) error {
+func (r *AttendanceRepo) Update(ctx context.Context, id, status, notes string) error {
 	_, err := r.pool.Exec(ctx, `
-		UPDATE attendance SET status=$1, catatan=$2, updated_at=now()
+		UPDATE attendance SET status=$1, notes=$2, updated_at=now()
 		WHERE attendance_id=$3
-	`, status, catatan, id)
+	`, status, notes, id)
 	return err
 }
 
@@ -116,7 +116,7 @@ func (r *AttendanceRepo) DeleteByMember(ctx context.Context, memberID string) (i
 type BulkItem struct {
 	MemberID string
 	Status   string
-	Catatan  string
+	Notes  string
 }
 
 func (r *AttendanceRepo) BulkUpsert(ctx context.Context, meetingID string, items []BulkItem, createdBy string) (inserted, updated int, err error) {
@@ -137,9 +137,9 @@ func (r *AttendanceRepo) BulkUpsert(ctx context.Context, meetingID string, items
 		).Scan(&existingID)
 		if err == nil {
 			_, err = tx.Exec(ctx, `
-				UPDATE attendance SET status=$1, catatan=$2, updated_at=now()
+				UPDATE attendance SET status=$1, notes=$2, updated_at=now()
 				WHERE attendance_id=$3
-			`, item.Status, item.Catatan, existingID)
+			`, item.Status, item.Notes, existingID)
 			if err != nil {
 				return 0, 0, err
 			}
@@ -148,9 +148,9 @@ func (r *AttendanceRepo) BulkUpsert(ctx context.Context, meetingID string, items
 			newID := generateAttendanceID()
 			_, err = tx.Exec(ctx, `
 				INSERT INTO attendance
-				(attendance_id, meeting_id, member_id, status, catatan, created_by, created_at, updated_at)
+				(attendance_id, meeting_id, member_id, status, notes, created_by, created_at, updated_at)
 				VALUES ($1,$2,$3,$4,$5,$6,now(),now())
-			`, newID, meetingID, item.MemberID, item.Status, item.Catatan, createdBy)
+			`, newID, meetingID, item.MemberID, item.Status, item.Notes, createdBy)
 			if err != nil {
 				return 0, 0, err
 			}

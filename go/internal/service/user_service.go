@@ -57,7 +57,7 @@ type CreateUserInput struct {
 	Username string
 	Password string
 	Role     string
-	Nama     string
+	Name     string
 	MemberID string
 	AdminID  string
 }
@@ -100,16 +100,16 @@ func (s *UserService) CreateUser(ctx context.Context, in CreateUserInput) (*mode
 	}
 
 	userID := util.NewID("USR")
-	nama := in.Nama
-	if nama == "" {
-		nama = in.Username
+	name := in.Name
+	if name == "" {
+		name = in.Username
 	}
 
 	if err := s.authRepo.Insert(ctx, repository.NewUserInput{
 		UserID:       userID,
 		Username:     in.Username,
 		PasswordHash: hash,
-		Nama:         nama,
+		Name:         name,
 		Role:         in.Role,
 		MemberID:     in.MemberID,
 		GroupID:      member.GroupID,
@@ -124,9 +124,9 @@ func (s *UserService) CreateUser(ctx context.Context, in CreateUserInput) (*mode
 
 type UpdateUserInput struct {
 	UserID      string
-	Nama        *string
+	Name        *string
 	Role        *string
-	StatusAktif *bool
+	IsActive *bool
 	Password    *string
 	AdminID     string
 }
@@ -150,7 +150,7 @@ func (s *UserService) UpdateUser(ctx context.Context, in UpdateUserInput) (*mode
 			return nil, errors.New("tidak bisa mengubah role SUPER_ADMIN terakhir")
 		}
 	}
-	if in.StatusAktif != nil && !*in.StatusAktif && existing.Role == "SUPER_ADMIN" {
+	if in.IsActive != nil && !*in.IsActive && existing.Role == "SUPER_ADMIN" {
 		n, _ := s.repo.CountActiveSuperAdminsExcept(ctx, in.UserID)
 		if n == 0 {
 			return nil, errors.New("tidak bisa menonaktifkan SUPER_ADMIN terakhir")
@@ -160,15 +160,15 @@ func (s *UserService) UpdateUser(ctx context.Context, in UpdateUserInput) (*mode
 	patch := map[string]interface{}{}
 	shouldInvalidate := false
 
-	if in.Nama != nil {
-		patch["nama"] = *in.Nama
+	if in.Name != nil {
+		patch["name"] = *in.Name
 	}
 	if in.Role != nil && *in.Role != existing.Role {
 		patch["role"] = *in.Role
 		shouldInvalidate = true
 	}
-	if in.StatusAktif != nil && *in.StatusAktif != existing.StatusAktif {
-		patch["status_aktif"] = *in.StatusAktif
+	if in.IsActive != nil && *in.IsActive != existing.IsActive {
+		patch["is_active"] = *in.IsActive
 		shouldInvalidate = true
 	}
 	if in.Password != nil && *in.Password != "" {
@@ -400,11 +400,11 @@ func toUserDTO(u model.User) model.UserDTO {
 	return model.UserDTO{
 		UserID:      u.UserID,
 		Username:    u.Username,
-		Nama:        u.Nama,
+		Name:        u.Name,
 		Role:        u.Role,
 		MemberID:    mid,
 		GroupID:     gid,
-		StatusAktif: u.StatusAktif,
+		IsActive: u.IsActive,
 		CreatedAt:   u.CreatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
 		UpdatedAt:   u.UpdatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
 		LastLoginAt: lla,

@@ -52,7 +52,7 @@ type LLMToolDefFunc struct {
 type AIUsageLog struct {
 	UsageID      string
 	UserID       *string
-	UserNama     string
+	UserName     string
 	Role         string
 	Provider     string
 	InputTokens  int
@@ -83,7 +83,7 @@ type AIUsageByField struct {
 
 type AIUsageByUser struct {
 	UserID      string `json:"user_id"`
-	UserNama    string `json:"user_nama"`
+	UserName    string `json:"user_name"`
 	Role        string `json:"role"`
 	ChatCount   int    `json:"chat_count"`
 	TotalTokens int    `json:"total_tokens"`

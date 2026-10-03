@@ -11,11 +11,11 @@ import (
 
 type CreateMonitoringInput struct {
 	MemberID     string
-	Tanggal      string
-	Jenis        string
+	Date      string
+	Type        string
 	Status       string
-	Catatan      string
-	TindakLanjut string
+	Notes      string
+	FollowUp string
 	UserID       string
 }
 
@@ -38,8 +38,8 @@ func (s *MonitoringService) Create(ctx context.Context, in CreateMonitoringInput
 	}
 
 	var tgl time.Time
-	if in.Tanggal != "" {
-		t, err := time.Parse("2006-01-02", in.Tanggal)
+	if in.Date != "" {
+		t, err := time.Parse("2006-01-02", in.Date)
 		if err != nil {
 			return nil, errors.New("tanggal tidak valid (YYYY-MM-DD)")
 		}
@@ -48,19 +48,19 @@ func (s *MonitoringService) Create(ctx context.Context, in CreateMonitoringInput
 		tgl = time.Now()
 	}
 
-	jenis := in.Jenis
-	if jenis == "" {
-		jenis = "UMUM"
+	mtype := in.Type
+	if mtype == "" {
+		mtype = "UMUM"
 	}
 
 	m := &model.Monitoring{
 		MonitoringID: util.NewID("MON"),
 		MemberID:     in.MemberID,
-		Tanggal:      tgl,
-		Jenis:        jenis,
+		Date:      tgl,
+		Type:        mtype,
 		Status:       in.Status,
-		Catatan:      in.Catatan,
-		TindakLanjut: in.TindakLanjut,
+		Notes:      in.Notes,
+		FollowUp: in.FollowUp,
 	}
 	if in.UserID != "" {
 		m.CreatedBy = &in.UserID
@@ -71,7 +71,7 @@ func (s *MonitoringService) Create(ctx context.Context, in CreateMonitoringInput
 	}
 
 	if err := s.memberRepo.Update(ctx, in.MemberID, map[string]interface{}{
-		"status_pembinaan": in.Status,
+		"mentoring_status": in.Status,
 	}); err != nil {
 		_ = err
 	}
@@ -86,8 +86,8 @@ func (s *MonitoringService) Create(ctx context.Context, in CreateMonitoringInput
 
 type UpdateMonitoringInput struct {
 	MonitoringID string
-	Catatan      *string
-	TindakLanjut *string
+	Notes      *string
+	FollowUp *string
 }
 
 func (s *MonitoringService) UpdateEntry(ctx context.Context, in UpdateMonitoringInput) (*model.MonitoringDTO, error) {
@@ -100,11 +100,11 @@ func (s *MonitoringService) UpdateEntry(ctx context.Context, in UpdateMonitoring
 	}
 
 	patch := map[string]interface{}{}
-	if in.Catatan != nil {
-		patch["catatan"] = *in.Catatan
+	if in.Notes != nil {
+		patch["notes"] = *in.Notes
 	}
-	if in.TindakLanjut != nil {
-		patch["tindak_lanjut"] = *in.TindakLanjut
+	if in.FollowUp != nil {
+		patch["follow_up"] = *in.FollowUp
 	}
 	if len(patch) == 0 {
 		return nil, errors.New("tidak ada perubahan")

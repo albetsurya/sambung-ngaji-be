@@ -37,10 +37,10 @@ func handleGetAnnouncementTemplateDetail(c *fiber.Ctx, svc *service.Announcement
 func handleCreateAnnouncementTemplate(c *fiber.Ctx, svc *service.AnnouncementService) error {
 	in := service.CreateTemplateInput{
 		GroupID:      BodyString(c, "group_id"),
-		NamaTemplate: BodyString(c, "nama_template"),
+		TemplateName: BodyString(c, "template_name"),
 		Kode:         BodyString(c, "kode"),
-		IsiTemplate:  BodyString(c, "isi_template"),
-		StatusAktif:  true,
+		TemplateBody:  BodyString(c, "template_body"),
+		IsActive:  true,
 	}
 	dto, err := svc.CreateTemplate(c.Context(), in)
 	if err != nil {
@@ -54,17 +54,17 @@ func handleUpdateAnnouncementTemplate(c *fiber.Ctx, svc *service.AnnouncementSer
 	in := service.UpdateTemplateInput{
 		TemplateID: BodyString(c, "template_id"),
 	}
-	if v, ok := body["nama_template"].(string); ok {
-		in.NamaTemplate = &v
+	if v, ok := body["template_name"].(string); ok {
+		in.TemplateName = &v
 	}
 	if v, ok := body["kode"].(string); ok {
 		in.Kode = &v
 	}
-	if v, ok := body["isi_template"].(string); ok {
-		in.IsiTemplate = &v
+	if v, ok := body["template_body"].(string); ok {
+		in.TemplateBody = &v
 	}
-	if v, ok := body["status_aktif"].(bool); ok {
-		in.StatusAktif = &v
+	if v, ok := body["is_active"].(bool); ok {
+		in.IsActive = &v
 	}
 	dto, err := svc.UpdateTemplate(c.Context(), in)
 	if err != nil {
@@ -84,10 +84,10 @@ func handleDeleteAnnouncementTemplate(c *fiber.Ctx, svc *service.AnnouncementSer
 func handleCreateTemplateFromAnnouncement(c *fiber.Ctx, svc *service.AnnouncementService) error {
 	dto, err := svc.CreateTemplateFromAnnouncement(
 		c.Context(),
-		BodyString(c, "nama_template"),
+		BodyString(c, "template_name"),
 		BodyString(c, "kode"),
 		BodyString(c, "source_announcement_id"),
-		BodyString(c, "isi_template"),
+		BodyString(c, "template_body"),
 	)
 	if err != nil {
 		return Fail(c, err.Error())
@@ -99,12 +99,12 @@ func handleGenerateAnnouncement(c *fiber.Ctx, svc *service.AnnouncementService) 
 	in := service.GenerateAnnouncementInput{
 		TemplateID:    BodyString(c, "template_id"),
 		GroupID:       BodyString(c, "group_id"),
-		Tanggal:       BodyString(c, "tanggal"),
-		Jam:           BodyString(c, "jam"),
-		Acara:         BodyString(c, "acara"),
-		Materi:        BodyString(c, "materi"),
-		Catatan:       BodyString(c, "catatan"),
-		Penandatangan: BodyString(c, "penandatangan"),
+		Date:       BodyString(c, "date"),
+		Time:           BodyString(c, "time"),
+		Event:         BodyString(c, "event"),
+		Topic:        BodyString(c, "topic"),
+		Notes:       BodyString(c, "notes"),
+		Signatory: BodyString(c, "signatory"),
 	}
 	res, err := svc.Generate(c.Context(), in)
 	if err != nil {
@@ -123,11 +123,11 @@ func handleCreateAnnouncement(c *fiber.Ctx, svc *service.AnnouncementService) er
 		TemplateID: BodyString(c, "template_id"),
 		MeetingID:  BodyString(c, "meeting_id"),
 		GroupID:    BodyString(c, "group_id"),
-		Tanggal:    BodyString(c, "tanggal"),
-		Jam:        BodyString(c, "jam"),
-		Acara:      BodyString(c, "acara"),
-		Materi:     BodyString(c, "materi"),
-		Catatan:    BodyString(c, "catatan"),
+		Date:    BodyString(c, "date"),
+		Time:        BodyString(c, "time"),
+		Event:      BodyString(c, "event"),
+		Topic:     BodyString(c, "topic"),
+		Notes:    BodyString(c, "notes"),
 		UserID:     userID,
 	}
 	dto, err := svc.Create(c.Context(), in)
@@ -148,17 +148,17 @@ func handleUpdateAnnouncement(c *fiber.Ctx, svc *service.AnnouncementService) er
 	if v, ok := body["status"].(string); ok {
 		in.Status = &v
 	}
-	if v, ok := body["jam"].(string); ok {
-		in.Jam = &v
+	if v, ok := body["time"].(string); ok {
+		in.Time = &v
 	}
-	if v, ok := body["acara"].(string); ok {
-		in.Acara = &v
+	if v, ok := body["event"].(string); ok {
+		in.Event = &v
 	}
-	if v, ok := body["materi"].(string); ok {
-		in.Materi = &v
+	if v, ok := body["topic"].(string); ok {
+		in.Topic = &v
 	}
-	if v, ok := body["catatan"].(string); ok {
-		in.Catatan = &v
+	if v, ok := body["notes"].(string); ok {
+		in.Notes = &v
 	}
 	dto, err := svc.Update(c.Context(), in)
 	if err != nil {
@@ -192,11 +192,11 @@ func handleGenerateWeeklyAnnouncements(c *fiber.Ctx, svc *service.AnnouncementSe
 		TemplateID:    BodyString(c, "template_id"),
 		GroupID:       BodyString(c, "group_id"),
 		WeekStart:     BodyString(c, "week_start"),
-		Jam:           BodyString(c, "jam"),
-		Acara:         BodyString(c, "acara"),
-		Materi:        BodyString(c, "materi"),
-		Catatan:       BodyString(c, "catatan"),
-		Penandatangan: BodyString(c, "penandatangan"),
+		Time:           BodyString(c, "time"),
+		Event:         BodyString(c, "event"),
+		Topic:        BodyString(c, "topic"),
+		Notes:       BodyString(c, "notes"),
+		Signatory: BodyString(c, "signatory"),
 	}
 	res, err := svc.GenerateWeekly(c.Context(), in)
 	if err != nil {

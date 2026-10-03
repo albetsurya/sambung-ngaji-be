@@ -35,7 +35,7 @@ func (s *AuditService) Log(ctx context.Context, userID, action, targetType, targ
 	if userID != "" {
 		uidPtr = &userID
 		if u, err := s.userRepo.FindByID(ctx, userID); err == nil {
-			userNama = u.Nama
+			userNama = u.Name
 		}
 	}
 	_ = s.repo.Insert(ctx, util.NewID("LOG"), uidPtr, userNama, action, targetType, targetID)
@@ -49,7 +49,7 @@ func toAuditDTO(a model.AuditLog) model.AuditLogDTO {
 	return model.AuditLogDTO{
 		LogID:      a.LogID,
 		UserID:     uid,
-		UserNama:   a.UserNama,
+		UserName:   a.UserName,
 		Action:     a.Action,
 		TargetType: a.TargetType,
 		TargetID:   a.TargetID,

@@ -39,42 +39,42 @@ func (s *MeetingService) GetMeetings(ctx context.Context, f model.MeetingListFil
 }
 
 type CreateMeetingInput struct {
-	Tanggal        string
-	Jam            string
-	JamStart       string
+	Date        string
+	Time            string
+	StartTime       string
 	GroupID        string
-	Acara          string
-	Materi         string
+	Event          string
+	Topic         string
 	Status         string
-	Catatan        string
-	KategoriTarget []string
+	Notes        string
+	TargetCategories []string
 	GenderTarget   string
 	CreatedBy      string
 }
 
 func (s *MeetingService) CreateMeeting(ctx context.Context, in CreateMeetingInput) (*model.MeetingDTO, error) {
-	if in.Tanggal == "" {
-		return nil, errors.New("tanggal wajib diisi")
+	if in.Date == "" {
+		return nil, errors.New("date wajib diisi")
 	}
-	if in.Acara == "" {
-		return nil, errors.New("acara wajib diisi")
+	if in.Event == "" {
+		return nil, errors.New("event wajib diisi")
 	}
-	tgl, err := time.Parse("2006-01-02", in.Tanggal)
+	tgl, err := time.Parse("2006-01-02", in.Date)
 	if err != nil {
 		return nil, errors.New("tanggal tidak valid (YYYY-MM-DD)")
 	}
 
 	m := &model.Meeting{
 		MeetingID:      util.NewID("MTG"),
-		Tanggal:        tgl,
-		Hari:           util.GetHariFromDate(&tgl),
-		Jam:            in.Jam,
-		JamStart:       in.JamStart,
-		Acara:          in.Acara,
-		Materi:         in.Materi,
+		Date:        tgl,
+		Day:           util.GetHariFromDate(&tgl),
+		Time:            in.Time,
+		StartTime:       in.StartTime,
+		Event:          in.Event,
+		Topic:         in.Topic,
 		Status:         strDef(in.Status, "SCHEDULED"),
-		Catatan:        in.Catatan,
-		KategoriTarget: in.KategoriTarget,
+		Notes:        in.Notes,
+		TargetCategories: in.TargetCategories,
 	}
 	if in.GenderTarget == "L" || in.GenderTarget == "P" {
 		gt := in.GenderTarget
@@ -86,8 +86,8 @@ func (s *MeetingService) CreateMeeting(ctx context.Context, in CreateMeetingInpu
 	if in.CreatedBy != "" {
 		m.CreatedBy = &in.CreatedBy
 	}
-	if m.KategoriTarget == nil {
-		m.KategoriTarget = []string{}
+	if m.TargetCategories == nil {
+		m.TargetCategories = []string{}
 	}
 
 	if err := s.repo.Create(ctx, m); err != nil {
@@ -104,15 +104,15 @@ func (s *MeetingService) CreateMeeting(ctx context.Context, in CreateMeetingInpu
 
 type UpdateMeetingInput struct {
 	MeetingID      string
-	Tanggal        string
-	Jam            string
-	JamStart       string
+	Date        string
+	Time            string
+	StartTime       string
 	GroupID        string
-	Acara          string
-	Materi         string
+	Event          string
+	Topic         string
 	Status         string
-	Catatan        string
-	KategoriTarget *[]string
+	Notes        string
+	TargetCategories *[]string
 	GenderTarget   *string
 }
 
@@ -128,38 +128,38 @@ func (s *MeetingService) UpdateMeeting(ctx context.Context, in UpdateMeetingInpu
 	}
 
 	var patch repository.MeetingPatch
-	if in.Tanggal != "" {
-		tgl, err := time.Parse("2006-01-02", in.Tanggal)
+	if in.Date != "" {
+		tgl, err := time.Parse("2006-01-02", in.Date)
 		if err != nil {
 			return nil, errors.New("tanggal tidak valid")
 		}
 		tglStr := tgl.Format("2006-01-02")
 		hariStr := util.GetHariFromDate(&tgl)
-		patch.Tanggal = &tglStr
-		patch.Hari = &hariStr
+		patch.Date = &tglStr
+		patch.Day = &hariStr
 	}
-	if in.Jam != "" {
-		patch.Jam = &in.Jam
+	if in.Time != "" {
+		patch.Time = &in.Time
 	}
-	if in.JamStart != "" {
-		patch.JamStart = &in.JamStart
+	if in.StartTime != "" {
+		patch.StartTime = &in.StartTime
 	}
 	if in.GroupID != "" {
 		patch.GroupID = &in.GroupID
 	}
-	if in.Acara != "" {
-		patch.Acara = &in.Acara
+	if in.Event != "" {
+		patch.Event = &in.Event
 	}
-	if in.Materi != "" {
-		patch.Materi = &in.Materi
+	if in.Topic != "" {
+		patch.Topic = &in.Topic
 	}
 	if in.Status != "" {
 		patch.Status = &in.Status
 	}
-	if in.Catatan != "" {
-		patch.Catatan = &in.Catatan
+	if in.Notes != "" {
+		patch.Notes = &in.Notes
 	}
-	patch.KategoriTarget = in.KategoriTarget
+	patch.TargetCategories = in.TargetCategories
 	if in.GenderTarget != nil {
 		val := *in.GenderTarget
 		if val == "L" || val == "P" || val == "" {
@@ -250,22 +250,22 @@ func toMeetingDTO(m model.Meeting) model.MeetingDTO {
 	if m.GenderTarget != nil {
 		gt = *m.GenderTarget
 	}
-	kat := m.KategoriTarget
+	kat := m.TargetCategories
 	if kat == nil {
 		kat = []string{}
 	}
 	return model.MeetingDTO{
 		MeetingID:      m.MeetingID,
-		Tanggal:        m.Tanggal.Format("2006-01-02"),
-		Hari:           m.Hari,
-		Jam:            m.Jam,
-		JamStart:       m.JamStart,
+		Date:        m.Date.Format("2006-01-02"),
+		Day:           m.Day,
+		Time:            m.Time,
+		StartTime:       m.StartTime,
 		GroupID:        gid,
-		Acara:          m.Acara,
-		Materi:         m.Materi,
+		Event:          m.Event,
+		Topic:         m.Topic,
 		Status:         m.Status,
-		Catatan:        m.Catatan,
-		KategoriTarget: kat,
+		Notes:        m.Notes,
+		TargetCategories: kat,
 		GenderTarget:   gt,
 		CreatedBy:      cby,
 		CreatedAt:      m.CreatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
