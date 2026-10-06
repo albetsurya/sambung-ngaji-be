@@ -297,13 +297,13 @@ func (r *FinanceRepo) ZakatListWithCounts(ctx context.Context, groupID string) (
 			}
 		}
 		out = append(out, model.ZakatRecordDTO{
-			ZakatID:     z.ZakatID,
-			GroupID:     ptrStr(z.GroupID),
-			Title:       z.Title,
-			Description: z.Description,
-			Location:    z.Location,
-			Categories:  categories,
-			SoulCount:   z.SoulCount,
+			ZakatID:         z.ZakatID,
+			GroupID:         ptrStr(z.GroupID),
+			Title:           z.Title,
+			Description:     z.Description,
+			Location:        z.Location,
+			Categories:      categories,
+			SoulCount:       z.SoulCount,
 			TotalRiceKg:     z.TotalRiceKg,
 			TotalMoneyRp:    z.TotalMoneyRp,
 			Status:          z.Status,
@@ -431,16 +431,22 @@ func (r *FinanceRepo) ZakatDetail(ctx context.Context, groupID, zakatID string) 
 
 func (r *FinanceRepo) ReplaceZakatPayers(ctx context.Context, zakatID string, items []model.ZakatPayer) error {
 	tx, err := r.pool.Begin(ctx)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	defer tx.Rollback(ctx)
 
 	if _, err := tx.Exec(ctx, `DELETE FROM zakat_payers WHERE zakat_id = $1`, zakatID); err != nil {
 		return err
 	}
 	for i, p := range items {
-		if p.PayerID == "" { p.PayerID = util.NewID("PYR") }
+		if p.PayerID == "" {
+			p.PayerID = util.NewID("PYR")
+		}
 		var masterID *string
-		if p.MasterID != nil && *p.MasterID != "" { masterID = p.MasterID }
+		if p.MasterID != nil && *p.MasterID != "" {
+			masterID = p.MasterID
+		}
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO zakat_payers
 			  (payer_id, zakat_id, master_id, name, amount, zakat_category,
@@ -456,16 +462,22 @@ func (r *FinanceRepo) ReplaceZakatPayers(ctx context.Context, zakatID string, it
 
 func (r *FinanceRepo) ReplaceZakatRecipients(ctx context.Context, zakatID string, items []model.ZakatRecipient) error {
 	tx, err := r.pool.Begin(ctx)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	defer tx.Rollback(ctx)
 
 	if _, err := tx.Exec(ctx, `DELETE FROM zakat_recipients WHERE zakat_id = $1`, zakatID); err != nil {
 		return err
 	}
 	for i, p := range items {
-		if p.RecipientID == "" { p.RecipientID = util.NewID("RCP") }
+		if p.RecipientID == "" {
+			p.RecipientID = util.NewID("RCP")
+		}
 		var masterID *string
-		if p.MasterID != nil && *p.MasterID != "" { masterID = p.MasterID }
+		if p.MasterID != nil && *p.MasterID != "" {
+			masterID = p.MasterID
+		}
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO zakat_recipients
 			  (recipient_id, zakat_id, master_id, name, amount, zakat_category, sort_order)
@@ -479,7 +491,9 @@ func (r *FinanceRepo) ReplaceZakatRecipients(ctx context.Context, zakatID string
 
 func (r *FinanceRepo) ReplaceZakatAllocations(ctx context.Context, zakatID string, items []model.ZakatAllocation) error {
 	tx, err := r.pool.Begin(ctx)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	defer tx.Rollback(ctx)
 
 	if _, err := tx.Exec(ctx, `DELETE FROM zakat_allocations WHERE zakat_id = $1`, zakatID); err != nil {
@@ -499,32 +513,40 @@ func (r *FinanceRepo) ReplaceZakatAllocations(ctx context.Context, zakatID strin
 
 func (r *FinanceRepo) MastersList(ctx context.Context, groupID string) ([]model.MasterEntry, []model.MasterEntry, error) {
 	payersRows, err := r.pool.Query(ctx, `SELECT master_id, group_id, name, status FROM master_payers WHERE group_id = $1 ORDER BY name ASC`, groupID)
-	if err != nil { return nil, nil, err }
+	if err != nil {
+		return nil, nil, err
+	}
 	defer payersRows.Close()
 	var payers []model.MasterEntry
 	for payersRows.Next() {
 		var e model.MasterEntry
-		if err := payersRows.Scan(&e.MasterID, &e.GroupID, &e.Name, &e.Status); err != nil { return nil, nil, err }
+		if err := payersRows.Scan(&e.MasterID, &e.GroupID, &e.Name, &e.Status); err != nil {
+			return nil, nil, err
+		}
 		payers = append(payers, e)
 	}
 
 	recipRows, err := r.pool.Query(ctx, `SELECT master_id, group_id, name, status FROM master_recipients WHERE group_id = $1 ORDER BY name ASC`, groupID)
-	if err != nil { return nil, nil, err }
+	if err != nil {
+		return nil, nil, err
+	}
 	defer recipRows.Close()
 	var recipients []model.MasterEntry
 	for recipRows.Next() {
 		var e model.MasterEntry
-		if err := recipRows.Scan(&e.MasterID, &e.GroupID, &e.Name, &e.Status); err != nil { return nil, nil, err }
+		if err := recipRows.Scan(&e.MasterID, &e.GroupID, &e.Name, &e.Status); err != nil {
+			return nil, nil, err
+		}
 		recipients = append(recipients, e)
 	}
 	return payers, recipients, nil
 }
 
 func (r *FinanceRepo) MasterUpsert(ctx context.Context, kind, groupID, name string) (string, error) {
-	table  := "master_payers"
+	table := "master_payers"
 	prefix := "MPY"
 	if kind == "recipient" {
-		table  = "master_recipients"
+		table = "master_recipients"
 		prefix = "MRS"
 	}
 	var id string

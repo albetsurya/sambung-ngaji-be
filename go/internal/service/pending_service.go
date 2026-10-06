@@ -71,33 +71,33 @@ func (s *PendingService) CheckUsername(ctx context.Context, username string) (*C
 }
 
 type SubmitRegistrationInput struct {
-	GroupID                string
-	FullName            string
-	Nickname          string
-	Gender           string
-	BirthPlace            string
-	BirthDate           string
-	WhatsappNumber                   string
-	HomeAddress            string
-	Village                   string
-	Region                 string
-	Occupation              string
-	Hobby                   string
-	IsMarried                bool
-	EducationLevel      string
-	School                string
-	Major                string
-	EducationStartYear   string
-	EducationEndYear string
-	PhotoURL                string
-	Username               string
-	Password               string
-	ClientIP               string
+	GroupID            string
+	FullName           string
+	Nickname           string
+	Gender             string
+	BirthPlace         string
+	BirthDate          string
+	WhatsappNumber     string
+	HomeAddress        string
+	Village            string
+	Region             string
+	Occupation         string
+	Hobby              string
+	IsMarried          bool
+	EducationLevel     string
+	School             string
+	Major              string
+	EducationStartYear string
+	EducationEndYear   string
+	PhotoURL           string
+	Username           string
+	Password           string
+	ClientIP           string
 }
 
 type SubmitRegistrationResult struct {
 	SubmissionID string `json:"submission_id"`
-	FullName  string `json:"full_name"`
+	FullName     string `json:"full_name"`
 	SubmittedAt  string `json:"submitted_at"`
 }
 
@@ -208,30 +208,30 @@ func (s *PendingService) SubmitRegistration(ctx context.Context, in SubmitRegist
 	}
 
 	p := &model.PendingMember{
-		SubmissionID:           util.NewID("SUB"),
-		GroupID:                groupIDPtr,
-		FullName:            name,
-		Nickname:          strings.TrimSpace(in.Nickname),
-		Gender:           jkPtr,
-		BirthPlace:            strings.TrimSpace(in.BirthPlace),
-		BirthDate:           tglLahir,
-		WhatsappNumber:                   normalizedWA,
-		HomeAddress:            strings.TrimSpace(in.HomeAddress),
-		Village:                   strings.TrimSpace(in.Village),
-		Region:                 strings.TrimSpace(in.Region),
-		Occupation:              strings.TrimSpace(in.Occupation),
-		Hobby:                   strings.TrimSpace(in.Hobby),
-		IsMarried:                in.IsMarried,
-		EducationLevel:      strings.TrimSpace(in.EducationLevel),
-		School:                strings.TrimSpace(in.School),
-		Major:                strings.TrimSpace(in.Major),
-		EducationStartYear:   strings.TrimSpace(in.EducationStartYear),
-		EducationEndYear: strings.TrimSpace(in.EducationEndYear),
-		PhotoURL:                strings.TrimSpace(in.PhotoURL),
-		Username:               username,
-		PasswordHash:           hash,
-		Status:                 "PENDING",
-		SubmittedIP:            clientIP,
+		SubmissionID:       util.NewID("SUB"),
+		GroupID:            groupIDPtr,
+		FullName:           name,
+		Nickname:           strings.TrimSpace(in.Nickname),
+		Gender:             jkPtr,
+		BirthPlace:         strings.TrimSpace(in.BirthPlace),
+		BirthDate:          tglLahir,
+		WhatsappNumber:     normalizedWA,
+		HomeAddress:        strings.TrimSpace(in.HomeAddress),
+		Village:            strings.TrimSpace(in.Village),
+		Region:             strings.TrimSpace(in.Region),
+		Occupation:         strings.TrimSpace(in.Occupation),
+		Hobby:              strings.TrimSpace(in.Hobby),
+		IsMarried:          in.IsMarried,
+		EducationLevel:     strings.TrimSpace(in.EducationLevel),
+		School:             strings.TrimSpace(in.School),
+		Major:              strings.TrimSpace(in.Major),
+		EducationStartYear: strings.TrimSpace(in.EducationStartYear),
+		EducationEndYear:   strings.TrimSpace(in.EducationEndYear),
+		PhotoURL:           strings.TrimSpace(in.PhotoURL),
+		Username:           username,
+		PasswordHash:       hash,
+		Status:             "PENDING",
+		SubmittedIP:        clientIP,
 	}
 
 	if err := s.repo.Insert(ctx, p); err != nil {
@@ -240,7 +240,7 @@ func (s *PendingService) SubmitRegistration(ctx context.Context, in SubmitRegist
 
 	return &SubmitRegistrationResult{
 		SubmissionID: p.SubmissionID,
-		FullName:  p.FullName,
+		FullName:     p.FullName,
 		SubmittedAt:  time.Now().Format(time.RFC3339),
 	}, nil
 }
@@ -341,30 +341,30 @@ func (s *PendingService) ApproveWithGroup(ctx context.Context, submissionID, gro
 		return nil, errors.New("kelompok wajib dipilih saat approve")
 	}
 	memberIn := repository.NewMemberInput{
-		MemberID:               memberID,
-		GroupID:                groupIDPtr,
-		FullName:            p.FullName,
-		Nickname:          p.Nickname,
-		Gender:           p.Gender,
-		BirthPlace:            p.BirthPlace,
-		BirthDate:           p.BirthDate,
-		PhotoURL:                p.PhotoURL,
-		WhatsappNumber:                   p.WhatsappNumber,
-		HomeAddress:            p.HomeAddress,
-		Village:                   p.Village,
-		Region:                 p.Region,
-		GroupLabel:               resolvedKelompok,
-		IsPreacher:            false,
-		IsEmployed:                false,
-		IsMarried:                p.IsMarried,
-		Hobby:                   p.Hobby,
-		Occupation:              p.Occupation,
-		MentoringStatus:        "AKTIF",
-		EducationLevel:      p.EducationLevel,
-		School:                p.School,
-		Major:                p.Major,
-		EducationStartYear:   p.EducationStartYear,
-		EducationEndYear: p.EducationEndYear,
+		MemberID:           memberID,
+		GroupID:            groupIDPtr,
+		FullName:           p.FullName,
+		Nickname:           p.Nickname,
+		Gender:             p.Gender,
+		BirthPlace:         p.BirthPlace,
+		BirthDate:          p.BirthDate,
+		PhotoURL:           p.PhotoURL,
+		WhatsappNumber:     p.WhatsappNumber,
+		HomeAddress:        p.HomeAddress,
+		Village:            p.Village,
+		Region:             p.Region,
+		GroupLabel:         resolvedKelompok,
+		IsPreacher:         false,
+		IsEmployed:         false,
+		IsMarried:          p.IsMarried,
+		Hobby:              p.Hobby,
+		Occupation:         p.Occupation,
+		MentoringStatus:    "AKTIF",
+		EducationLevel:     p.EducationLevel,
+		School:             p.School,
+		Major:              p.Major,
+		EducationStartYear: p.EducationStartYear,
+		EducationEndYear:   p.EducationEndYear,
 	}
 	if err := s.memberRepo.Insert(ctx, memberIn); err != nil {
 		return nil, err
@@ -443,34 +443,34 @@ func toPendingDTO(p model.PendingMember) model.PendingMemberDTO {
 		grpID = *p.GroupID
 	}
 	return model.PendingMemberDTO{
-		SubmissionID:           p.SubmissionID,
-		GroupID:                grpID,
-		FullName:            p.FullName,
-		Nickname:          p.Nickname,
-		Gender:           jk,
-		BirthPlace:            p.BirthPlace,
-		BirthDate:           tgl,
-		WhatsappNumber:                   p.WhatsappNumber,
-		HomeAddress:            p.HomeAddress,
-		Village:                   p.Village,
-		Region:                 p.Region,
-		Occupation:              p.Occupation,
-		Hobby:                   p.Hobby,
-		IsMarried:                p.IsMarried,
-		EducationLevel:      p.EducationLevel,
-		School:                p.School,
-		Major:                p.Major,
-		EducationStartYear:   p.EducationStartYear,
-		EducationEndYear: p.EducationEndYear,
-		PhotoURL:                p.PhotoURL,
-		Username:               p.Username,
-		Status:                 p.Status,
-		SubmittedAt:            p.SubmittedAt.Format("2006-01-02T15:04:05.000Z07:00"),
-		SubmittedIP:            p.SubmittedIP,
-		ReviewedBy:             rvBy,
-		ReviewedAt:             rvAt,
-		RejectionReason:        p.RejectionReason,
-		CreatedMemberID:        cmid,
+		SubmissionID:       p.SubmissionID,
+		GroupID:            grpID,
+		FullName:           p.FullName,
+		Nickname:           p.Nickname,
+		Gender:             jk,
+		BirthPlace:         p.BirthPlace,
+		BirthDate:          tgl,
+		WhatsappNumber:     p.WhatsappNumber,
+		HomeAddress:        p.HomeAddress,
+		Village:            p.Village,
+		Region:             p.Region,
+		Occupation:         p.Occupation,
+		Hobby:              p.Hobby,
+		IsMarried:          p.IsMarried,
+		EducationLevel:     p.EducationLevel,
+		School:             p.School,
+		Major:              p.Major,
+		EducationStartYear: p.EducationStartYear,
+		EducationEndYear:   p.EducationEndYear,
+		PhotoURL:           p.PhotoURL,
+		Username:           p.Username,
+		Status:             p.Status,
+		SubmittedAt:        p.SubmittedAt.Format("2006-01-02T15:04:05.000Z07:00"),
+		SubmittedIP:        p.SubmittedIP,
+		ReviewedBy:         rvBy,
+		ReviewedAt:         rvAt,
+		RejectionReason:    p.RejectionReason,
+		CreatedMemberID:    cmid,
 	}
 }
 

@@ -33,10 +33,10 @@ func NewDashboardService(
 }
 
 type AttentionItem struct {
-	MemberID    string   `json:"member_id"`
+	MemberID string   `json:"member_id"`
 	FullName string   `json:"full_name"`
-	PhotoURL     string   `json:"photo_url"`
-	Reasons     []string `json:"reasons"`
+	PhotoURL string   `json:"photo_url"`
+	Reasons  []string `json:"reasons"`
 }
 
 type GeneralDashboard struct {
@@ -141,10 +141,10 @@ func (s *DashboardService) GetGeneral(ctx context.Context, groupID string) (*Gen
 	var terdekat map[string]interface{}
 	if upcoming != nil {
 		terdekat = map[string]interface{}{
-			"meeting_id":      upcoming.MeetingID,
-			"date":         upcoming.Date.Format("2006-01-02"),
-			"day":            upcoming.Day,
-			"event":           upcoming.Event,
+			"meeting_id":        upcoming.MeetingID,
+			"date":              upcoming.Date.Format("2006-01-02"),
+			"day":               upcoming.Day,
+			"event":             upcoming.Event,
 			"target_categories": upcoming.TargetCategories,
 		}
 	}
@@ -217,10 +217,10 @@ func (s *DashboardService) buildAttentionList(
 
 		if len(reasons) > 0 {
 			out = append(out, AttentionItem{
-				MemberID:    m.MemberID,
+				MemberID: m.MemberID,
 				FullName: m.FullName,
-				PhotoURL:     m.PhotoURL,
-				Reasons:     reasons,
+				PhotoURL: m.PhotoURL,
+				Reasons:  reasons,
 			})
 		}
 		if len(out) >= 10 {
@@ -259,36 +259,36 @@ func (s *DashboardService) GetMyDashboard(ctx context.Context, memberID string) 
 	}
 
 	profile := map[string]interface{}{
-		"member_id":                m.MemberID,
-		"full_name":             m.FullName,
-		"nickname":           m.Nickname,
-		"gender":            strOr(m.Gender, ""),
-		"birth_place":             m.BirthPlace,
-		"birth_date":            util.FormatDate(m.BirthDate),
-		"photo_url":                 m.PhotoURL,
-		"group_label":                 m.GroupLabel,
-		"village":                     m.Village,
-		"region":                   m.Region,
-		"home_address":             m.HomeAddress,
-		"whatsapp_number":                    m.WhatsappNumber,
-		"occupation":                m.Occupation,
-		"hobby":                     m.Hobby,
-		"height":             m.Height,
-		"weight":              m.Weight,
-		"is_employed":                 m.IsEmployed,
-		"is_married":                 m.IsMarried,
-		"is_preacher":             m.IsPreacher,
-		"joined_date":            util.FormatDate(m.JoinedDate),
-		"mentoring_status":         m.MentoringStatus,
-		"is_active":             m.IsActive,
-		"education_level":       m.EducationLevel,
-		"school":                  m.School,
-		"major":                  m.Major,
-		"education_start_year":   m.EducationStartYear,
-		"education_end_year": m.EducationEndYear,
-		"kategori":                 util.GetMemberCategory(m.BirthDate, m.EducationLevel, m.IsMarried),
-		"usia":                     util.GetAge(m.BirthDate),
-		"pendidikan":               []any{},
+		"member_id":            m.MemberID,
+		"full_name":            m.FullName,
+		"nickname":             m.Nickname,
+		"gender":               strOr(m.Gender, ""),
+		"birth_place":          m.BirthPlace,
+		"birth_date":           util.FormatDate(m.BirthDate),
+		"photo_url":            m.PhotoURL,
+		"group_label":          m.GroupLabel,
+		"village":              m.Village,
+		"region":               m.Region,
+		"home_address":         m.HomeAddress,
+		"whatsapp_number":      m.WhatsappNumber,
+		"occupation":           m.Occupation,
+		"hobby":                m.Hobby,
+		"height":               m.Height,
+		"weight":               m.Weight,
+		"is_employed":          m.IsEmployed,
+		"is_married":           m.IsMarried,
+		"is_preacher":          m.IsPreacher,
+		"joined_date":          util.FormatDate(m.JoinedDate),
+		"mentoring_status":     m.MentoringStatus,
+		"is_active":            m.IsActive,
+		"education_level":      m.EducationLevel,
+		"school":               m.School,
+		"major":                m.Major,
+		"education_start_year": m.EducationStartYear,
+		"education_end_year":   m.EducationEndYear,
+		"kategori":             util.GetMemberCategory(m.BirthDate, m.EducationLevel, m.IsMarried),
+		"usia":                 util.GetAge(m.BirthDate),
+		"pendidikan":           []any{},
 	}
 
 	attRows, _ := s.attendanceRepo.FindByMember(ctx, memberID)
@@ -309,11 +309,11 @@ func (s *DashboardService) GetMyDashboard(ctx context.Context, memberID string) 
 			"meeting_id":     a.MeetingID,
 			"status":         a.Status,
 			"status_meeting": mt.Status,
-			"notes":        a.Notes,
-			"date":        mt.Date.Format("2006-01-02"),
-			"day":           mt.Day,
+			"notes":          a.Notes,
+			"date":           mt.Date.Format("2006-01-02"),
+			"day":            mt.Day,
 			"event":          mt.Event,
-			"time":            mt.Time,
+			"time":           mt.Time,
 			"created_at":     a.CreatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
 		})
 	}

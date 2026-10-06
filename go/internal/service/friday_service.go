@@ -19,15 +19,15 @@ func NewFridayService(repo *repository.FridayRepo) *FridayService {
 }
 
 type SaveFridayInput struct {
-	GroupID       string
-	Date       string
-	SermonLeader    string
-	Muadzin       string
-	Advisor     string
-	ParkingAttendant string
-	FootwearAttendant  string
-	Notes       string
-	CreatedBy     string
+	GroupID           string
+	Date              string
+	SermonLeader      string
+	Muadzin           string
+	Advisor           string
+	ParkingAttendant  string
+	FootwearAttendant string
+	Notes             string
+	CreatedBy         string
 }
 
 func (s *FridayService) Save(ctx context.Context, in SaveFridayInput) (*model.FridayScheduleDTO, error) {
@@ -52,16 +52,16 @@ func (s *FridayService) Save(ctx context.Context, in SaveFridayInput) (*model.Fr
 	}
 
 	f := &model.FridaySchedule{
-		FridayID:      util.NewID("JMT"),
-		GroupID:       groupIDPtr,
-		Date:       tgl,
-		SermonLeader:    util.TitleCaseID(in.SermonLeader),
-		Muadzin:       util.TitleCaseID(in.Muadzin),
-		Advisor:     util.TitleCaseID(in.Advisor),
-		ParkingAttendant: util.TitleCaseID(in.ParkingAttendant),
-		FootwearAttendant:  util.TitleCaseID(in.FootwearAttendant),
-		Notes:       in.Notes,
-		CreatedBy:     in.CreatedBy,
+		FridayID:          util.NewID("JMT"),
+		GroupID:           groupIDPtr,
+		Date:              tgl,
+		SermonLeader:      util.TitleCaseID(in.SermonLeader),
+		Muadzin:           util.TitleCaseID(in.Muadzin),
+		Advisor:           util.TitleCaseID(in.Advisor),
+		ParkingAttendant:  util.TitleCaseID(in.ParkingAttendant),
+		FootwearAttendant: util.TitleCaseID(in.FootwearAttendant),
+		Notes:             in.Notes,
+		CreatedBy:         in.CreatedBy,
 	}
 	if err := s.repo.Upsert(ctx, f); err != nil {
 		return nil, err
@@ -103,18 +103,18 @@ func toFridayDTO(f model.FridaySchedule) model.FridayScheduleDTO {
 		grpID = *f.GroupID
 	}
 	return model.FridayScheduleDTO{
-		FridayID:      f.FridayID,
-		GroupID:       grpID,
-		Date:       f.Date.Format("2006-01-02"),
-		Day:          util.GetHariFromDate(&f.Date),
-		SermonLeader:    f.SermonLeader,
-		Muadzin:       f.Muadzin,
-		Advisor:     f.Advisor,
-		ParkingAttendant: f.ParkingAttendant,
-		FootwearAttendant:  f.FootwearAttendant,
-		Notes:       f.Notes,
-		CreatedBy:     f.CreatedBy,
-		CreatedAt:     f.CreatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
-		UpdatedAt:     f.UpdatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
+		FridayID:          f.FridayID,
+		GroupID:           grpID,
+		Date:              f.Date.Format("2006-01-02"),
+		Day:               util.GetHariFromDate(&f.Date),
+		SermonLeader:      f.SermonLeader,
+		Muadzin:           f.Muadzin,
+		Advisor:           f.Advisor,
+		ParkingAttendant:  f.ParkingAttendant,
+		FootwearAttendant: f.FootwearAttendant,
+		Notes:             f.Notes,
+		CreatedBy:         f.CreatedBy,
+		CreatedAt:         f.CreatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
+		UpdatedAt:         f.UpdatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
 	}
 }

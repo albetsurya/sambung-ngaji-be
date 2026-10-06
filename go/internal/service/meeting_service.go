@@ -39,17 +39,17 @@ func (s *MeetingService) GetMeetings(ctx context.Context, f model.MeetingListFil
 }
 
 type CreateMeetingInput struct {
-	Date        string
-	Time            string
-	StartTime       string
-	GroupID        string
-	Event          string
-	Topic         string
-	Status         string
-	Notes        string
+	Date             string
+	Time             string
+	StartTime        string
+	GroupID          string
+	Event            string
+	Topic            string
+	Status           string
+	Notes            string
 	TargetCategories []string
-	GenderTarget   string
-	CreatedBy      string
+	GenderTarget     string
+	CreatedBy        string
 }
 
 func (s *MeetingService) CreateMeeting(ctx context.Context, in CreateMeetingInput) (*model.MeetingDTO, error) {
@@ -65,15 +65,15 @@ func (s *MeetingService) CreateMeeting(ctx context.Context, in CreateMeetingInpu
 	}
 
 	m := &model.Meeting{
-		MeetingID:      util.NewID("MTG"),
-		Date:        tgl,
-		Day:           util.GetHariFromDate(&tgl),
-		Time:            in.Time,
-		StartTime:       in.StartTime,
-		Event:          in.Event,
-		Topic:         in.Topic,
-		Status:         strDef(in.Status, "SCHEDULED"),
-		Notes:        in.Notes,
+		MeetingID:        util.NewID("MTG"),
+		Date:             tgl,
+		Day:              util.GetHariFromDate(&tgl),
+		Time:             in.Time,
+		StartTime:        in.StartTime,
+		Event:            in.Event,
+		Topic:            in.Topic,
+		Status:           strDef(in.Status, "SCHEDULED"),
+		Notes:            in.Notes,
 		TargetCategories: in.TargetCategories,
 	}
 	if in.GenderTarget == "L" || in.GenderTarget == "P" {
@@ -103,17 +103,17 @@ func (s *MeetingService) CreateMeeting(ctx context.Context, in CreateMeetingInpu
 }
 
 type UpdateMeetingInput struct {
-	MeetingID      string
-	Date        string
-	Time            string
-	StartTime       string
-	GroupID        string
-	Event          string
-	Topic         string
-	Status         string
-	Notes        string
+	MeetingID        string
+	Date             string
+	Time             string
+	StartTime        string
+	GroupID          string
+	Event            string
+	Topic            string
+	Status           string
+	Notes            string
 	TargetCategories *[]string
-	GenderTarget   *string
+	GenderTarget     *string
 }
 
 func (s *MeetingService) UpdateMeeting(ctx context.Context, in UpdateMeetingInput) (*model.MeetingDTO, error) {
@@ -255,21 +255,21 @@ func toMeetingDTO(m model.Meeting) model.MeetingDTO {
 		kat = []string{}
 	}
 	return model.MeetingDTO{
-		MeetingID:      m.MeetingID,
-		Date:        m.Date.Format("2006-01-02"),
-		Day:           m.Day,
-		Time:            m.Time,
-		StartTime:       m.StartTime,
-		GroupID:        gid,
-		Event:          m.Event,
-		Topic:         m.Topic,
-		Status:         m.Status,
-		Notes:        m.Notes,
+		MeetingID:        m.MeetingID,
+		Date:             m.Date.Format("2006-01-02"),
+		Day:              m.Day,
+		Time:             m.Time,
+		StartTime:        m.StartTime,
+		GroupID:          gid,
+		Event:            m.Event,
+		Topic:            m.Topic,
+		Status:           m.Status,
+		Notes:            m.Notes,
 		TargetCategories: kat,
-		GenderTarget:   gt,
-		CreatedBy:      cby,
-		CreatedAt:      m.CreatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
-		UpdatedAt:      m.UpdatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
+		GenderTarget:     gt,
+		CreatedBy:        cby,
+		CreatedAt:        m.CreatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
+		UpdatedAt:        m.UpdatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
 	}
 }
 

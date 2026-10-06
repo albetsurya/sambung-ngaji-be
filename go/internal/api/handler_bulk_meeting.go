@@ -12,11 +12,11 @@ func parseBulkParams(c *fiber.Ctx) service.BulkParams {
 	p := service.BulkParams{
 		Tahun:   int(BodyFloat(c, "tahun")),
 		Bulan:   int(BodyFloat(c, "bulan")),
-		Time:     BodyString(c, "time"),
+		Time:    BodyString(c, "time"),
 		Event:   BodyString(c, "event"),
 		GroupID: BodyString(c, "group_id"),
-		Topic:  BodyString(c, "topic"),
-		Notes: BodyString(c, "notes"),
+		Topic:   BodyString(c, "topic"),
+		Notes:   BodyString(c, "notes"),
 	}
 
 	if v, ok := body["day"].([]interface{}); ok {

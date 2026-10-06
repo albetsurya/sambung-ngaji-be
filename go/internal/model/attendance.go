@@ -7,7 +7,7 @@ type Attendance struct {
 	MeetingID    string
 	MemberID     string
 	Status       string
-	Notes      string
+	Notes        string
 	CreatedBy    *string
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
@@ -18,7 +18,7 @@ type AttendanceDTO struct {
 	MeetingID    string `json:"meeting_id"`
 	MemberID     string `json:"member_id"`
 	Status       string `json:"status"`
-	Notes      string `json:"notes"`
+	Notes        string `json:"notes"`
 	CreatedBy    string `json:"created_by"`
 	CreatedAt    string `json:"created_at"`
 	UpdatedAt    string `json:"updated_at"`

@@ -89,7 +89,7 @@ func handleCashSave(c *fiber.Ctx, svc *service.FinanceService) error {
 		CashID:      BodyString(c, "cash_id"),
 		GroupID:     groupID,
 		CashType:    BodyString(c, "cash_type"),
-		Date:     BodyString(c, "date"),
+		Date:        BodyString(c, "date"),
 		AccountName: BodyString(c, "account_name"),
 		Description: BodyString(c, "description"),
 		Debit:       BodyFloat(c, "debit"),
@@ -262,15 +262,21 @@ func handleZakatList(c *fiber.Ctx, svc *service.FinanceService) error {
 
 func handleZakatDetail(c *fiber.Ctx, svc *service.FinanceService) error {
 	groupID, ok := financeGroup(c)
-	if !ok { return nil }
+	if !ok {
+		return nil
+	}
 	res, err := svc.ZakatDetail(c.Context(), groupID, BodyString(c, "zakat_id"))
-	if err != nil { return Fail(c, err.Error()) }
+	if err != nil {
+		return Fail(c, err.Error())
+	}
 	return Ok(c, res)
 }
 
 func handleZakatSave(c *fiber.Ctx, svc *service.FinanceService) error {
 	groupID, ok := financeGroup(c)
-	if !ok { return nil }
+	if !ok {
+		return nil
+	}
 	body := BodyOf(c)
 	res, err := svc.ZakatSave(c.Context(), groupID, service.ZakatHeaderInput{
 		ZakatID:         BodyString(c, "zakat_id"),
@@ -282,7 +288,9 @@ func handleZakatSave(c *fiber.Ctx, svc *service.FinanceService) error {
 		TotalMoneyRp:    numOr(body["total_money_rp"]),
 		TransactionDate: BodyString(c, "transaction_date"),
 	}, financeUser(c))
-	if err != nil { return Fail(c, err.Error()) }
+	if err != nil {
+		return Fail(c, err.Error())
+	}
 	return Ok(c, res)
 }
 
@@ -292,7 +300,9 @@ func bodyZakatPayers(c *fiber.Ctx) []service.ZakatPayerInput {
 	out := make([]service.ZakatPayerInput, 0, len(raw))
 	for _, it := range raw {
 		m, ok := it.(map[string]interface{})
-		if !ok { continue }
+		if !ok {
+			continue
+		}
 		out = append(out, service.ZakatPayerInput{
 			PayerID:            strOr(m["payer_id"]),
 			MasterID:           strOr(m["master_id"]),
@@ -307,7 +317,9 @@ func bodyZakatPayers(c *fiber.Ctx) []service.ZakatPayerInput {
 
 func handleZakatSavePayers(c *fiber.Ctx, svc *service.FinanceService) error {
 	groupID, ok := financeGroup(c)
-	if !ok { return nil }
+	if !ok {
+		return nil
+	}
 	if err := svc.ZakatSavePayers(c.Context(), groupID, BodyString(c, "zakat_id"), bodyZakatPayers(c)); err != nil {
 		return Fail(c, err.Error())
 	}
@@ -320,7 +332,9 @@ func bodyZakatRecipients(c *fiber.Ctx) []service.ZakatRecipientInput {
 	out := make([]service.ZakatRecipientInput, 0, len(raw))
 	for _, it := range raw {
 		m, ok := it.(map[string]interface{})
-		if !ok { continue }
+		if !ok {
+			continue
+		}
 		out = append(out, service.ZakatRecipientInput{
 			RecipientID:   strOr(m["recipient_id"]),
 			MasterID:      strOr(m["master_id"]),
@@ -334,7 +348,9 @@ func bodyZakatRecipients(c *fiber.Ctx) []service.ZakatRecipientInput {
 
 func handleZakatSaveRecipients(c *fiber.Ctx, svc *service.FinanceService) error {
 	groupID, ok := financeGroup(c)
-	if !ok { return nil }
+	if !ok {
+		return nil
+	}
 	if err := svc.ZakatSaveRecipients(c.Context(), groupID, BodyString(c, "zakat_id"), bodyZakatRecipients(c)); err != nil {
 		return Fail(c, err.Error())
 	}
@@ -347,7 +363,9 @@ func bodyZakatAllocations(c *fiber.Ctx) []service.ZakatAllocationInput {
 	out := make([]service.ZakatAllocationInput, 0, len(raw))
 	for _, it := range raw {
 		m, ok := it.(map[string]interface{})
-		if !ok { continue }
+		if !ok {
+			continue
+		}
 		out = append(out, service.ZakatAllocationInput{
 			Category:               strOr(m["category"]),
 			RecipientPercent:       int(numOr(m["recipient_percent"])),
@@ -373,7 +391,9 @@ func bodyZakatAllocations(c *fiber.Ctx) []service.ZakatAllocationInput {
 
 func handleZakatSaveAllocations(c *fiber.Ctx, svc *service.FinanceService) error {
 	groupID, ok := financeGroup(c)
-	if !ok { return nil }
+	if !ok {
+		return nil
+	}
 	if err := svc.ZakatSaveAllocations(c.Context(), groupID, BodyString(c, "zakat_id"), bodyZakatAllocations(c)); err != nil {
 		return Fail(c, err.Error())
 	}
@@ -382,17 +402,25 @@ func handleZakatSaveAllocations(c *fiber.Ctx, svc *service.FinanceService) error
 
 func handleZakatMasters(c *fiber.Ctx, svc *service.FinanceService) error {
 	groupID, ok := financeGroup(c)
-	if !ok { return nil }
+	if !ok {
+		return nil
+	}
 	res, err := svc.ZakatMasters(c.Context(), groupID)
-	if err != nil { return Fail(c, err.Error()) }
+	if err != nil {
+		return Fail(c, err.Error())
+	}
 	return Ok(c, res)
 }
 
 func handleZakatAddMaster(c *fiber.Ctx, svc *service.FinanceService) error {
 	groupID, ok := financeGroup(c)
-	if !ok { return nil }
+	if !ok {
+		return nil
+	}
 	id, err := svc.ZakatAddMaster(c.Context(), groupID, BodyString(c, "kind"), BodyString(c, "name"))
-	if err != nil { return Fail(c, err.Error()) }
+	if err != nil {
+		return Fail(c, err.Error())
+	}
 	return Ok(c, fiber.Map{"master_id": id})
 }
 
@@ -425,11 +453,16 @@ func strOr(v interface{}) string {
 
 func numOr(v interface{}) float64 {
 	switch n := v.(type) {
-	case float64: return n
-	case float32: return float64(n)
-	case int: return float64(n)
-	case int64: return float64(n)
-	default: return 0
+	case float64:
+		return n
+	case float32:
+		return float64(n)
+	case int:
+		return float64(n)
+	case int64:
+		return float64(n)
+	default:
+		return 0
 	}
 }
 

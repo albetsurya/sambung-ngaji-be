@@ -30,12 +30,12 @@ func handleGetGroups(c *fiber.Ctx, svc *service.GroupService) error {
 func handleSaveGroup(c *fiber.Ctx, svc *service.GroupService) error {
 	body := BodyOf(c)
 	in := service.SaveGroupInput{
-		GroupID:       BodyString(c, "group_id"),
-		GroupCode:     BodyString(c, "group_code"),
-		GroupName:     BodyString(c, "group_name"),
-		Mentor:       BodyString(c, "mentor"),
+		GroupID:   BodyString(c, "group_id"),
+		GroupCode: BodyString(c, "group_code"),
+		GroupName: BodyString(c, "group_name"),
+		Mentor:    BodyString(c, "mentor"),
 		Signatory: BodyString(c, "signatory"),
-		Schedule:        BodyString(c, "schedule"),
+		Schedule:  BodyString(c, "schedule"),
 	}
 	if v, ok := body["is_active"].(bool); ok {
 		in.IsActive = &v

@@ -54,7 +54,7 @@ func (s *FinanceSyncService) pullCash(ctx context.Context, cli *sheets.Service, 
 			CashID: r["cash_id"], GroupID: &gid, CashType: normCashType(r["cash_type"]),
 			Date: tgl, AccountName: sheetGet(r, "account_name", "account"),
 			Description: sheetGet(r, "description", "notes", "keterangan"),
-			Debit: parseNum(sheetGet(r, "debit", "debet")), Credit: parseNum(sheetGet(r, "credit", "kredit")),
+			Debit:       parseNum(sheetGet(r, "debit", "debet")), Credit: parseNum(sheetGet(r, "credit", "kredit")),
 			CreatedBy: r["created_by"],
 		}
 		if !exists {
@@ -224,8 +224,8 @@ func (s *FinanceSyncService) pullZakat(ctx context.Context, cli *sheets.Service,
 		z := &model.ZakatRecord{
 			ZakatID: r["zakat_id"], GroupID: &gid,
 			Title: title, Description: sheetGet(r, "description", "notes", "keterangan"),
-			Location: sheetGet(r, "location", "tempat"),
-			SoulCount: atoi(sheetGet(r, "soul_count", "jumlah_anggota_keluarga"), 0),
+			Location:    sheetGet(r, "location", "tempat"),
+			SoulCount:   atoi(sheetGet(r, "soul_count", "jumlah_anggota_keluarga"), 0),
 			TotalRiceKg: parseNum(r["total_rice_kg"]), TotalMoneyRp: parseNum(sheetGet(r, "total_money_rp", "total_amount", "total", "nominal")),
 			Status: status, TransactionDate: tgl,
 		}

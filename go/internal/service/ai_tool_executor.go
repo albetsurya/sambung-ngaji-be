@@ -112,11 +112,11 @@ func (e *AIToolExecutor) Execute(ctx context.Context, name string, args map[stri
 
 	case "get_members_list":
 		f := model.MemberListFilter{
-			Kategori:     getStringArg(args, "kategori"),
-			Gender: getStringArg(args, "gender"),
-			GroupLabel:     getStringArg(args, "group_label"),
-			Search:       getStringArg(args, "search"),
-			Limit:        getIntArg(args, "limit", 50),
+			Kategori:   getStringArg(args, "kategori"),
+			Gender:     getStringArg(args, "gender"),
+			GroupLabel: getStringArg(args, "group_label"),
+			Search:     getStringArg(args, "search"),
+			Limit:      getIntArg(args, "limit", 50),
 		}
 		items, err := e.member.GetMembers(ctx, f, "")
 		if err != nil {

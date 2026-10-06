@@ -41,32 +41,32 @@ func (s *MemberService) resolveGroup(ctx context.Context, groupID, group_label s
 }
 
 type CreateMemberInput struct {
-	GroupID                string
-	FullName            string
-	Nickname          string
-	Gender           string
-	BirthPlace            string
-	BirthDate           string
-	GroupLabel               string
-	Village                   string
-	Region                 string
-	HomeAddress            string
-	WhatsappNumber                   string
-	IsPreacher            bool
-	IsEmployed                bool
-	IsMarried                bool
-	Height            string
+	GroupID            string
+	FullName           string
+	Nickname           string
+	Gender             string
+	BirthPlace         string
+	BirthDate          string
+	GroupLabel         string
+	Village            string
+	Region             string
+	HomeAddress        string
+	WhatsappNumber     string
+	IsPreacher         bool
+	IsEmployed         bool
+	IsMarried          bool
+	Height             string
 	Weight             string
-	Hobby                   string
-	Occupation              string
-	PhotoURL                string
-	MentoringStatus        string
-	JoinedDate           string
-	EducationLevel      string
-	School                string
-	Major                string
-	EducationStartYear   string
-	EducationEndYear string
+	Hobby              string
+	Occupation         string
+	PhotoURL           string
+	MentoringStatus    string
+	JoinedDate         string
+	EducationLevel     string
+	School             string
+	Major              string
+	EducationStartYear string
+	EducationEndYear   string
 }
 
 func (s *MemberService) Create(ctx context.Context, in CreateMemberInput) (*model.MemberDetailDTO, error) {
@@ -147,34 +147,34 @@ func (s *MemberService) Create(ctx context.Context, in CreateMemberInput) (*mode
 }
 
 type UpdateMemberInput struct {
-	MemberID               string
-	GroupID                *string
-	FullName            *string
-	Nickname          *string
-	Gender           *string
-	BirthPlace            *string
-	BirthDate           *string
-	GroupLabel               *string
-	Village                   *string
-	Region                 *string
-	HomeAddress            *string
-	WhatsappNumber                   *string
-	IsPreacher            *bool
-	IsEmployed                *bool
-	IsMarried                *bool
-	Height            *string
+	MemberID           string
+	GroupID            *string
+	FullName           *string
+	Nickname           *string
+	Gender             *string
+	BirthPlace         *string
+	BirthDate          *string
+	GroupLabel         *string
+	Village            *string
+	Region             *string
+	HomeAddress        *string
+	WhatsappNumber     *string
+	IsPreacher         *bool
+	IsEmployed         *bool
+	IsMarried          *bool
+	Height             *string
 	Weight             *string
-	Hobby                   *string
-	Occupation              *string
-	PhotoURL                *string
-	MentoringStatus        *string
-	JoinedDate           *string
-	LeftDate          *string
-	EducationLevel      *string
-	School                *string
-	Major                *string
-	EducationStartYear   *string
-	EducationEndYear *string
+	Hobby              *string
+	Occupation         *string
+	PhotoURL           *string
+	MentoringStatus    *string
+	JoinedDate         *string
+	LeftDate           *string
+	EducationLevel     *string
+	School             *string
+	Major              *string
+	EducationStartYear *string
+	EducationEndYear   *string
 }
 
 func (s *MemberService) UpdateFull(ctx context.Context, in UpdateMemberInput) (*model.MemberDetailDTO, error) {
@@ -327,20 +327,20 @@ func (s *MemberService) FindForExport(ctx context.Context) ([]map[string]interfa
 			tgl = r.BirthDate.Format("2006-01-02")
 		}
 		out = append(out, map[string]interface{}{
-			"full_name":     r.FullName,
-			"nickname":   r.Nickname,
-			"gender":    jk,
-			"birth_place":     r.BirthPlace,
-			"birth_date":    tgl,
+			"full_name":        r.FullName,
+			"nickname":         r.Nickname,
+			"gender":           jk,
+			"birth_place":      r.BirthPlace,
+			"birth_date":       tgl,
 			"usia":             util.GetAge(r.BirthDate),
 			"kategori":         util.GetMemberCategory(r.BirthDate, r.EducationLevel, r.IsMarried),
-			"group_label":         r.GroupLabel,
-			"village":             r.Village,
+			"group_label":      r.GroupLabel,
+			"village":          r.Village,
 			"region":           r.Region,
 			"home_address":     r.HomeAddress,
-			"whatsapp_number":            r.WhatsappNumber,
-			"occupation":        r.Occupation,
-			"hobby":             r.Hobby,
+			"whatsapp_number":  r.WhatsappNumber,
+			"occupation":       r.Occupation,
+			"hobby":            r.Hobby,
 			"mentoring_status": r.MentoringStatus,
 		})
 	}

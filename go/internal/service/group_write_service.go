@@ -12,13 +12,13 @@ import (
 )
 
 type SaveGroupInput struct {
-	GroupID       string
-	GroupCode     string
-	GroupName     string
-	Mentor       string
+	GroupID   string
+	GroupCode string
+	GroupName string
+	Mentor    string
 	Signatory string
-	Schedule        string
-	IsActive   *bool
+	Schedule  string
+	IsActive  *bool
 }
 
 func (s *GroupService) Save(ctx context.Context, in SaveGroupInput) (*model.GroupDTO, error) {
@@ -66,15 +66,15 @@ func (s *GroupService) Save(ctx context.Context, in SaveGroupInput) (*model.Grou
 		status = *in.IsActive
 	}
 	g := &model.Group{
-		GroupID:       groupID,
-		GroupCode:     in.GroupCode,
-		GroupName:     in.GroupName,
-		Mentor:       in.Mentor,
+		GroupID:   groupID,
+		GroupCode: in.GroupCode,
+		GroupName: in.GroupName,
+		Mentor:    in.Mentor,
 		Signatory: in.Signatory,
-		Schedule:        in.Schedule,
-		IsActive:   status,
-		CreatedAt:     time.Now(),
-		UpdatedAt:     time.Now(),
+		Schedule:  in.Schedule,
+		IsActive:  status,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 	}
 	if err := s.repo.Insert(ctx, g); err != nil {
 		return nil, err

@@ -29,14 +29,14 @@ func (s *GroupService) GetGroups(ctx context.Context, includeInactive bool) ([]m
 
 func toGroupDTO(g model.Group) model.GroupDTO {
 	return model.GroupDTO{
-		GroupID:       g.GroupID,
-		GroupCode:     g.GroupCode,
-		GroupName:     g.GroupName,
-		Mentor:       g.Mentor,
+		GroupID:   g.GroupID,
+		GroupCode: g.GroupCode,
+		GroupName: g.GroupName,
+		Mentor:    g.Mentor,
 		Signatory: g.Signatory,
-		Schedule:        g.Schedule,
-		IsActive:   g.IsActive,
-		CreatedAt:     g.CreatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
-		UpdatedAt:     g.UpdatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
+		Schedule:  g.Schedule,
+		IsActive:  g.IsActive,
+		CreatedAt: g.CreatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
+		UpdatedAt: g.UpdatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
 	}
 }

@@ -13,13 +13,13 @@ func handleCreateMonitoring(c *fiber.Ctx, svc *service.MonitoringService) error 
 		userID = u.UserID
 	}
 	in := service.CreateMonitoringInput{
-		MemberID:     BodyString(c, "member_id"),
-		Date:      BodyString(c, "date"),
-		Type:        BodyString(c, "type"),
-		Status:       BodyString(c, "status"),
-		Notes:      BodyString(c, "notes"),
+		MemberID: BodyString(c, "member_id"),
+		Date:     BodyString(c, "date"),
+		Type:     BodyString(c, "type"),
+		Status:   BodyString(c, "status"),
+		Notes:    BodyString(c, "notes"),
 		FollowUp: BodyString(c, "follow_up"),
-		UserID:       userID,
+		UserID:   userID,
 	}
 	dto, err := svc.Create(c.Context(), in)
 	if err != nil {

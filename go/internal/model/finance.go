@@ -6,7 +6,7 @@ type CashTransaction struct {
 	CashID      string
 	GroupID     *string
 	CashType    string
-	Date     time.Time
+	Date        time.Time
 	AccountName string
 	Description string
 	Debit       float64
@@ -134,9 +134,9 @@ type DuesDataDTO struct {
 }
 
 type ZakatRecord struct {
-	ZakatID   string
-	GroupID   *string
-	Title     string
+	ZakatID     string
+	GroupID     *string
+	Title       string
 	Description string
 	Location    string
 	// Tipe zakat tidak lagi di header: tiap muzakki/mustahik/alokasi
@@ -254,16 +254,16 @@ type ZakatRecordDTO struct {
 	Description string `json:"description"`
 	Location    string `json:"location"`
 	// Kategori yang hadir di record (dari muzakki/mustahik), mis. ["FITRAH","MAL"].
-	Categories    []string `json:"categories,omitempty"`
-	SoulCount     int      `json:"soul_count"`     // cache
-	TotalRiceKg   float64  `json:"total_rice_kg"`  // atribut header
-	TotalMoneyRp  float64  `json:"total_money_rp"` // cache
-	Status          string  `json:"status"`
-	TransactionDate string  `json:"transaction_date"`
-	CompletedAt     string  `json:"completed_at,omitempty"`
-	Version         int     `json:"version"`
-	UpdatedAt       string  `json:"updated_at"`
-	UpdatedBy       string  `json:"updated_by"`
+	Categories      []string `json:"categories,omitempty"`
+	SoulCount       int      `json:"soul_count"`     // cache
+	TotalRiceKg     float64  `json:"total_rice_kg"`  // atribut header
+	TotalMoneyRp    float64  `json:"total_money_rp"` // cache
+	Status          string   `json:"status"`
+	TransactionDate string   `json:"transaction_date"`
+	CompletedAt     string   `json:"completed_at,omitempty"`
+	Version         int      `json:"version"`
+	UpdatedAt       string   `json:"updated_at"`
+	UpdatedBy       string   `json:"updated_by"`
 
 	PayerCount     int `json:"payer_count,omitempty"`
 	RecipientCount int `json:"recipient_count,omitempty"`

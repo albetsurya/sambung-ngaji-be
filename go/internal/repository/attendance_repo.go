@@ -116,7 +116,7 @@ func (r *AttendanceRepo) DeleteByMember(ctx context.Context, memberID string) (i
 type BulkItem struct {
 	MemberID string
 	Status   string
-	Notes  string
+	Notes    string
 }
 
 func (r *AttendanceRepo) BulkUpsert(ctx context.Context, meetingID string, items []BulkItem, createdBy string) (inserted, updated int, err error) {

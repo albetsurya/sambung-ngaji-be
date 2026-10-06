@@ -33,7 +33,7 @@ func NewMoodService(repo *repository.MoodRepo, memberRepo *repository.MemberRepo
 type SaveMoodInput struct {
 	MemberID string
 	MoodKey  string
-	Date  string
+	Date     string
 }
 
 func (s *MoodService) Save(ctx context.Context, in SaveMoodInput) (*model.MemberMoodDTO, error) {
@@ -62,7 +62,7 @@ func (s *MoodService) Save(ctx context.Context, in SaveMoodInput) (*model.Member
 		MoodID:   util.NewID("MOD"),
 		MemberID: in.MemberID,
 		MoodKey:  in.MoodKey,
-		Date:  tgl,
+		Date:     tgl,
 	}
 	if err := s.repo.Upsert(ctx, m); err != nil {
 		return nil, err
@@ -93,7 +93,7 @@ func toMoodDTO(m model.MemberMood) model.MemberMoodDTO {
 		MoodID:    m.MoodID,
 		MemberID:  m.MemberID,
 		MoodKey:   m.MoodKey,
-		Date:   m.Date.Format("2006-01-02"),
+		Date:      m.Date.Format("2006-01-02"),
 		CreatedAt: m.CreatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
 	}
 }

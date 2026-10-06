@@ -8,23 +8,23 @@ import (
 )
 
 type MemberExportRow struct {
-	MemberID          string
-	FullName       string
-	Nickname     string
-	Gender      *string
-	BirthPlace       string
-	BirthDate      *time.Time
-	Village              string
-	Region            string
-	HomeAddress       string
-	WhatsappNumber              string
-	Occupation         string
-	Hobby              string
-	MentoringStatus   string
-	GroupLabel          string
-	EducationLevel string
-	IsMarried           bool
-	IsActive       bool
+	MemberID        string
+	FullName        string
+	Nickname        string
+	Gender          *string
+	BirthPlace      string
+	BirthDate       *time.Time
+	Village         string
+	Region          string
+	HomeAddress     string
+	WhatsappNumber  string
+	Occupation      string
+	Hobby           string
+	MentoringStatus string
+	GroupLabel      string
+	EducationLevel  string
+	IsMarried       bool
+	IsActive        bool
 }
 
 func (r *MemberRepo) Deactivate(ctx context.Context, id string) error {

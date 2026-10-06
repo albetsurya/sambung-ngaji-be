@@ -151,6 +151,8 @@ var RegisteredActions = map[string]bool{
 	"cancelPostDueToCash":    true,
 	"runFinanceSync":         true,
 	"runFinanceImport":       true,
+	"getTilawatiEditorList":  true,
+	"publishTilawatiEditor":  true,
 }
 
 type Services struct {
@@ -179,6 +181,7 @@ type Services struct {
 	FridayReminder *service.FridayReminderService
 	Finance        *service.FinanceService
 	FinanceSync    *service.FinanceSyncService
+	TilawatiEditor *service.TilawatiEditorService
 }
 
 func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, providers map[string]ai.Provider, providerOrder []string, storage *service.StorageService) *Services {
@@ -371,11 +374,18 @@ func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, providers map[string
 			fonnteSvc,
 			repository.NewSettingsRepo(pool),
 		),
+		TilawatiEditor: service.NewTilawatiEditorService(
+			pool,
+			repository.NewRepository(pool),
+			storage,
+			"/app", // Di Docker aslinya ada di /app, namun service butuh frontendDir untuk public/audio
+		),
 	}
 }
 
 func RegisterAPI(app *fiber.App, svc *Services) {
 	RegisterRESTAPI(app, svc)
+	RegisterTilawatiEditorAPI(app, svc, AuthMiddleware(svc.Auth))
 
 	app.Post("/api", BodyParserMiddleware(), AuthMiddleware(svc.Auth), AuditMiddleware(svc.Audit), func(c *fiber.Ctx) error {
 		action, _ := BodyOf(c)["action"].(string)

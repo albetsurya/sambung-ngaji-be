@@ -7,30 +7,30 @@ import (
 )
 
 type NewMemberInput struct {
-	MemberID               string
-	GroupID                *string
-	FullName            string
-	Nickname          string
-	Gender           *string
-	BirthPlace            string
-	BirthDate           interface{}
-	PhotoURL                string
-	WhatsappNumber                   string
-	HomeAddress            string
-	Village                   string
-	Region                 string
-	GroupLabel               string
-	IsPreacher            bool
-	IsEmployed                bool
-	IsMarried                bool
-	Hobby                   string
-	Occupation              string
-	MentoringStatus        string
-	EducationLevel      string
-	School                string
-	Major                string
-	EducationStartYear   string
-	EducationEndYear string
+	MemberID           string
+	GroupID            *string
+	FullName           string
+	Nickname           string
+	Gender             *string
+	BirthPlace         string
+	BirthDate          interface{}
+	PhotoURL           string
+	WhatsappNumber     string
+	HomeAddress        string
+	Village            string
+	Region             string
+	GroupLabel         string
+	IsPreacher         bool
+	IsEmployed         bool
+	IsMarried          bool
+	Hobby              string
+	Occupation         string
+	MentoringStatus    string
+	EducationLevel     string
+	School             string
+	Major              string
+	EducationStartYear string
+	EducationEndYear   string
 }
 
 func (r *MemberRepo) Insert(ctx context.Context, in NewMemberInput) error {
