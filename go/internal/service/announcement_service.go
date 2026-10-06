@@ -59,8 +59,8 @@ type CreateTemplateInput struct {
 	GroupID      string
 	TemplateName string
 	Kode         string
-	TemplateBody  string
-	IsActive  bool
+	TemplateBody string
+	IsActive     bool
 }
 
 var kodeRegex = regexp.MustCompile(`^[A-Z0-9_]{3,30}$`)
@@ -91,8 +91,8 @@ func (s *AnnouncementService) CreateTemplate(ctx context.Context, in CreateTempl
 		GroupID:      grpPtr,
 		TemplateName: strings.TrimSpace(in.TemplateName),
 		Kode:         kode,
-		TemplateBody:  in.TemplateBody,
-		IsActive:  true,
+		TemplateBody: in.TemplateBody,
+		IsActive:     true,
 	}
 	if err := s.repo.InsertTemplate(ctx, t); err != nil {
 		return nil, err
@@ -106,8 +106,8 @@ type UpdateTemplateInput struct {
 	TemplateID   string
 	TemplateName *string
 	Kode         *string
-	TemplateBody  *string
-	IsActive  *bool
+	TemplateBody *string
+	IsActive     *bool
 }
 
 func (s *AnnouncementService) UpdateTemplate(ctx context.Context, in UpdateTemplateInput) (*model.AnnouncementTemplateDTO, error) {
@@ -174,26 +174,26 @@ func (s *AnnouncementService) CreateTemplateFromAnnouncement(ctx context.Context
 	return s.CreateTemplate(ctx, CreateTemplateInput{
 		TemplateName: namaTemplate,
 		Kode:         kode,
-		TemplateBody:  text,
-		IsActive:  true,
+		TemplateBody: text,
+		IsActive:     true,
 	})
 }
 
 type GenerateAnnouncementInput struct {
-	TemplateID    string
-	GroupID       string
+	TemplateID string
+	GroupID    string
 	Date       string
-	Time           string
-	Event         string
-	Topic        string
-	Notes       string
-	Signatory string
+	Time       string
+	Event      string
+	Topic      string
+	Notes      string
+	Signatory  string
 }
 
 type GenerateAnnouncementResult struct {
 	GeneratedText string                 `json:"generated_text"`
 	Warning       string                 `json:"warning"`
-	Day          string                 `json:"day"`
+	Day           string                 `json:"day"`
 	Data          map[string]interface{} `json:"data"`
 }
 
@@ -229,13 +229,13 @@ func (s *AnnouncementService) Generate(ctx context.Context, in GenerateAnnouncem
 
 	data := map[string]interface{}{
 		"nama_kelompok": group.GroupName,
-		"day":          day,
-		"date":       formatDateShort(tgl),
-		"time":           in.Time,
+		"day":           day,
+		"date":          formatDateShort(tgl),
+		"time":          in.Time,
 		"event":         in.Event,
-		"topic":        in.Topic,
-		"notes":       in.Notes,
-		"signatory": signatory,
+		"topic":         in.Topic,
+		"notes":         in.Notes,
+		"signatory":     signatory,
 		// Alias kompatibel untuk template lama yang masih memakai placeholder Indonesia.
 		"hari":          day,
 		"tanggal":       formatDateShort(tgl),
@@ -251,7 +251,7 @@ func (s *AnnouncementService) Generate(ctx context.Context, in GenerateAnnouncem
 	return &GenerateAnnouncementResult{
 		GeneratedText: text,
 		Warning:       warning,
-		Day:          day,
+		Day:           day,
 		Data:          data,
 	}, nil
 }
@@ -260,11 +260,11 @@ type CreateAnnouncementInput struct {
 	TemplateID string
 	MeetingID  string
 	GroupID    string
-	Date    string
-	Time        string
+	Date       string
+	Time       string
 	Event      string
-	Topic     string
-	Notes    string
+	Topic      string
+	Notes      string
 	UserID     string
 }
 
@@ -272,11 +272,11 @@ func (s *AnnouncementService) Create(ctx context.Context, in CreateAnnouncementI
 	gen, err := s.Generate(ctx, GenerateAnnouncementInput{
 		TemplateID: in.TemplateID,
 		GroupID:    in.GroupID,
-		Date:    in.Date,
-		Time:        in.Time,
+		Date:       in.Date,
+		Time:       in.Time,
 		Event:      in.Event,
-		Topic:     in.Topic,
-		Notes:    in.Notes,
+		Topic:      in.Topic,
+		Notes:      in.Notes,
 	})
 	if err != nil {
 		return nil, err
@@ -285,12 +285,12 @@ func (s *AnnouncementService) Create(ctx context.Context, in CreateAnnouncementI
 	tgl, _ := time.Parse("2006-01-02", in.Date)
 	a := &model.Announcement{
 		AnnouncementID: util.NewID("ANN"),
-		Date:        tgl,
-		Day:           gen.Day,
-		Time:            in.Time,
+		Date:           tgl,
+		Day:            gen.Day,
+		Time:           in.Time,
 		Event:          in.Event,
-		Topic:         in.Topic,
-		Notes:        in.Notes,
+		Topic:          in.Topic,
+		Notes:          in.Notes,
 		GeneratedText:  gen.GeneratedText,
 		Status:         "DRAFT",
 	}
@@ -319,10 +319,10 @@ type UpdateAnnouncementInput struct {
 	AnnouncementID string
 	GeneratedText  *string
 	Status         *string
-	Time            *string
+	Time           *string
 	Event          *string
-	Topic         *string
-	Notes        *string
+	Topic          *string
+	Notes          *string
 }
 
 func (s *AnnouncementService) Update(ctx context.Context, in UpdateAnnouncementInput) (*model.AnnouncementDTO, error) {
@@ -408,8 +408,8 @@ func toTemplateDTO(t model.AnnouncementTemplate) model.AnnouncementTemplateDTO {
 		GroupID:      gid,
 		TemplateName: t.TemplateName,
 		Kode:         t.Kode,
-		TemplateBody:  t.TemplateBody,
-		IsActive:  t.IsActive,
+		TemplateBody: t.TemplateBody,
+		IsActive:     t.IsActive,
 		CreatedAt:    t.CreatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
 		UpdatedAt:    t.UpdatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
 	}
@@ -434,12 +434,12 @@ func toAnnouncementDTO(a model.Announcement) model.AnnouncementDTO {
 		TemplateID:     tid,
 		MeetingID:      mid,
 		GroupID:        gid,
-		Date:        a.Date.Format("2006-01-02"),
-		Day:           a.Day,
-		Time:            a.Time,
+		Date:           a.Date.Format("2006-01-02"),
+		Day:            a.Day,
+		Time:           a.Time,
 		Event:          a.Event,
-		Topic:         a.Topic,
-		Notes:        a.Notes,
+		Topic:          a.Topic,
+		Notes:          a.Notes,
 		GeneratedText:  a.GeneratedText,
 		Status:         a.Status,
 		CreatedBy:      cby,
@@ -494,19 +494,19 @@ func containsString(arr []string, s string) bool {
 }
 
 type WeeklyGenerateInput struct {
-	TemplateID    string
-	GroupID       string
-	WeekStart     string
-	Time           string
-	Event         string
-	Topic        string
-	Notes       string
-	Signatory string
+	TemplateID string
+	GroupID    string
+	WeekStart  string
+	Time       string
+	Event      string
+	Topic      string
+	Notes      string
+	Signatory  string
 }
 
 type WeeklyGenerateResult struct {
-	Day          string                 `json:"day"`
-	Date       string                 `json:"date"`
+	Day           string                 `json:"day"`
+	Date          string                 `json:"date"`
 	GeneratedText string                 `json:"generated_text"`
 	Warning       string                 `json:"warning"`
 	Data          map[string]interface{} `json:"data"`
@@ -523,7 +523,7 @@ func (s *AnnouncementService) GenerateWeekly(ctx context.Context, in WeeklyGener
 	}
 
 	dayOffsets := []struct {
-		Day  string
+		Day   string
 		Delta int
 	}{
 		{"Minggu", 0},
@@ -535,21 +535,21 @@ func (s *AnnouncementService) GenerateWeekly(ctx context.Context, in WeeklyGener
 	for _, d := range dayOffsets {
 		date := base.AddDate(0, 0, d.Delta)
 		res, err := s.Generate(ctx, GenerateAnnouncementInput{
-			TemplateID:    in.TemplateID,
-			GroupID:       in.GroupID,
+			TemplateID: in.TemplateID,
+			GroupID:    in.GroupID,
 			Date:       date.Format("2006-01-02"),
-			Time:           in.Time,
-			Event:         in.Event,
-			Topic:        in.Topic,
-			Notes:       in.Notes,
-			Signatory: in.Signatory,
+			Time:       in.Time,
+			Event:      in.Event,
+			Topic:      in.Topic,
+			Notes:      in.Notes,
+			Signatory:  in.Signatory,
 		})
 		if err != nil {
 			return nil, err
 		}
 		out = append(out, WeeklyGenerateResult{
-			Day:          d.Day,
-			Date:       date.Format("2006-01-02"),
+			Day:           d.Day,
+			Date:          date.Format("2006-01-02"),
 			GeneratedText: res.GeneratedText,
 			Warning:       res.Warning,
 			Data:          res.Data,

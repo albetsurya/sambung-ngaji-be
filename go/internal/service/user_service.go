@@ -123,12 +123,12 @@ func (s *UserService) CreateUser(ctx context.Context, in CreateUserInput) (*mode
 }
 
 type UpdateUserInput struct {
-	UserID      string
-	Name        *string
-	Role        *string
+	UserID   string
+	Name     *string
+	Role     *string
 	IsActive *bool
-	Password    *string
-	AdminID     string
+	Password *string
+	AdminID  string
 }
 
 func (s *UserService) UpdateUser(ctx context.Context, in UpdateUserInput) (*model.UserDTO, error) {
@@ -404,7 +404,7 @@ func toUserDTO(u model.User) model.UserDTO {
 		Role:        u.Role,
 		MemberID:    mid,
 		GroupID:     gid,
-		IsActive: u.IsActive,
+		IsActive:    u.IsActive,
 		CreatedAt:   u.CreatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
 		UpdatedAt:   u.UpdatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
 		LastLoginAt: lla,

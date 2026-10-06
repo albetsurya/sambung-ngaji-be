@@ -97,7 +97,7 @@ func (s *FinanceSyncService) ImportFromGAS(ctx context.Context, groupID string) 
 			}
 			k := &model.CashTransaction{
 				CashID: util.NewID("KAS"), GroupID: &gid, CashType: normCashType(kt),
-				Date:     tgl,
+				Date:        tgl,
 				AccountName: str(m, "account", "account_name"),
 				Description: str(m, "keterangan", "description"),
 				Debit:       num(m, "debet", "debit"),

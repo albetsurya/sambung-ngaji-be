@@ -8,14 +8,14 @@ import (
 
 func handleSaveFridaySchedule(c *fiber.Ctx, svc *service.FridayService) error {
 	in := service.SaveFridayInput{
-		GroupID:       BodyString(c, "group_id"),
-		Date:       BodyString(c, "date"),
-		SermonLeader:    BodyString(c, "sermon_leader"),
-		Muadzin:       BodyString(c, "muadzin"),
-		Advisor:     BodyString(c, "advisor"),
-		ParkingAttendant: BodyString(c, "parking_attendant"),
-		FootwearAttendant:  BodyString(c, "footwear_attendant"),
-		Notes:       BodyString(c, "notes"),
+		GroupID:           BodyString(c, "group_id"),
+		Date:              BodyString(c, "date"),
+		SermonLeader:      BodyString(c, "sermon_leader"),
+		Muadzin:           BodyString(c, "muadzin"),
+		Advisor:           BodyString(c, "advisor"),
+		ParkingAttendant:  BodyString(c, "parking_attendant"),
+		FootwearAttendant: BodyString(c, "footwear_attendant"),
+		Notes:             BodyString(c, "notes"),
 	}
 	if u := UserOf(c); u != nil {
 		in.CreatedBy = u.Username

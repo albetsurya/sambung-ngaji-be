@@ -18,7 +18,7 @@ func handleSaveMood(c *fiber.Ctx, svc *service.MoodService) error {
 	res, err := svc.Save(c.Context(), service.SaveMoodInput{
 		MemberID: memberID,
 		MoodKey:  moodKey,
-		Date:  date,
+		Date:     date,
 	})
 	if err != nil {
 		return Fail(c, err.Error())

@@ -39,8 +39,8 @@ func handleCreateAnnouncementTemplate(c *fiber.Ctx, svc *service.AnnouncementSer
 		GroupID:      BodyString(c, "group_id"),
 		TemplateName: BodyString(c, "template_name"),
 		Kode:         BodyString(c, "kode"),
-		TemplateBody:  BodyString(c, "template_body"),
-		IsActive:  true,
+		TemplateBody: BodyString(c, "template_body"),
+		IsActive:     true,
 	}
 	dto, err := svc.CreateTemplate(c.Context(), in)
 	if err != nil {
@@ -97,14 +97,14 @@ func handleCreateTemplateFromAnnouncement(c *fiber.Ctx, svc *service.Announcemen
 
 func handleGenerateAnnouncement(c *fiber.Ctx, svc *service.AnnouncementService) error {
 	in := service.GenerateAnnouncementInput{
-		TemplateID:    BodyString(c, "template_id"),
-		GroupID:       BodyString(c, "group_id"),
+		TemplateID: BodyString(c, "template_id"),
+		GroupID:    BodyString(c, "group_id"),
 		Date:       BodyString(c, "date"),
-		Time:           BodyString(c, "time"),
-		Event:         BodyString(c, "event"),
-		Topic:        BodyString(c, "topic"),
-		Notes:       BodyString(c, "notes"),
-		Signatory: BodyString(c, "signatory"),
+		Time:       BodyString(c, "time"),
+		Event:      BodyString(c, "event"),
+		Topic:      BodyString(c, "topic"),
+		Notes:      BodyString(c, "notes"),
+		Signatory:  BodyString(c, "signatory"),
 	}
 	res, err := svc.Generate(c.Context(), in)
 	if err != nil {
@@ -123,11 +123,11 @@ func handleCreateAnnouncement(c *fiber.Ctx, svc *service.AnnouncementService) er
 		TemplateID: BodyString(c, "template_id"),
 		MeetingID:  BodyString(c, "meeting_id"),
 		GroupID:    BodyString(c, "group_id"),
-		Date:    BodyString(c, "date"),
-		Time:        BodyString(c, "time"),
+		Date:       BodyString(c, "date"),
+		Time:       BodyString(c, "time"),
 		Event:      BodyString(c, "event"),
-		Topic:     BodyString(c, "topic"),
-		Notes:    BodyString(c, "notes"),
+		Topic:      BodyString(c, "topic"),
+		Notes:      BodyString(c, "notes"),
 		UserID:     userID,
 	}
 	dto, err := svc.Create(c.Context(), in)
@@ -189,14 +189,14 @@ func handleGetAnnouncementRecipientSummary(c *fiber.Ctx, svc *service.Announceme
 
 func handleGenerateWeeklyAnnouncements(c *fiber.Ctx, svc *service.AnnouncementService) error {
 	in := service.WeeklyGenerateInput{
-		TemplateID:    BodyString(c, "template_id"),
-		GroupID:       BodyString(c, "group_id"),
-		WeekStart:     BodyString(c, "week_start"),
-		Time:           BodyString(c, "time"),
-		Event:         BodyString(c, "event"),
-		Topic:        BodyString(c, "topic"),
-		Notes:       BodyString(c, "notes"),
-		Signatory: BodyString(c, "signatory"),
+		TemplateID: BodyString(c, "template_id"),
+		GroupID:    BodyString(c, "group_id"),
+		WeekStart:  BodyString(c, "week_start"),
+		Time:       BodyString(c, "time"),
+		Event:      BodyString(c, "event"),
+		Topic:      BodyString(c, "topic"),
+		Notes:      BodyString(c, "notes"),
+		Signatory:  BodyString(c, "signatory"),
 	}
 	res, err := svc.GenerateWeekly(c.Context(), in)
 	if err != nil {

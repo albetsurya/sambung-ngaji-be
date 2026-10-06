@@ -10,9 +10,9 @@ import (
 func parseMemberFilter(c *fiber.Ctx) model.MemberListFilter {
 	return model.MemberListFilter{
 		Search:          BodyString(c, "search"),
-		GroupLabel:        BodyString(c, "group_label"),
-		Gender:    BodyString(c, "gender"),
-		Village:            BodyString(c, "village"),
+		GroupLabel:      BodyString(c, "group_label"),
+		Gender:          BodyString(c, "gender"),
+		Village:         BodyString(c, "village"),
 		Kategori:        BodyString(c, "kategori"),
 		IncludeInactive: BodyBool(c, "includeInactive"),
 		Limit:           int(BodyFloat(c, "limit")),

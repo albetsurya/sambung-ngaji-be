@@ -70,11 +70,11 @@ func AdminTools(canFinance bool) []model.LLMToolDef {
 				Parameters: map[string]interface{}{
 					"type": "object",
 					"properties": map[string]interface{}{
-						"kategori":      map[string]interface{}{"type": "string", "description": "BALITA|CABERAWIT|PRA_REMAJA|REMAJA|PRA_NIKAH|DEWASA|ISTIMEWA"},
-						"gender": map[string]interface{}{"type": "string", "description": "L atau P"},
-						"group_label":      map[string]interface{}{"type": "string", "description": "group_id"},
-						"search":        map[string]interface{}{"type": "string", "description": "Kata kunci name"},
-						"limit":         map[string]interface{}{"type": "number", "description": "Maksimal hasil, default 50"},
+						"kategori":    map[string]interface{}{"type": "string", "description": "BALITA|CABERAWIT|PRA_REMAJA|REMAJA|PRA_NIKAH|DEWASA|ISTIMEWA"},
+						"gender":      map[string]interface{}{"type": "string", "description": "L atau P"},
+						"group_label": map[string]interface{}{"type": "string", "description": "group_id"},
+						"search":      map[string]interface{}{"type": "string", "description": "Kata kunci name"},
+						"limit":       map[string]interface{}{"type": "number", "description": "Maksimal hasil, default 50"},
 					},
 					"required": []string{},
 				},

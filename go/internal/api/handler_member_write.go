@@ -18,11 +18,11 @@ func handleCreateMember(c *fiber.Ctx, svc *service.MemberService) error {
 	}
 
 	in := service.CreateMemberInput{
-		GroupID:       groupID,
+		GroupID:    groupID,
 		FullName:   BodyString(c, "full_name"),
-		Nickname: BodyString(c, "nickname"),
-		Gender:  BodyString(c, "gender"),
-		BirthPlace:   BodyString(c, "birth_place"),
+		Nickname:   BodyString(c, "nickname"),
+		Gender:     BodyString(c, "gender"),
+		BirthPlace: BodyString(c, "birth_place"),
 		BirthDate:  BodyString(c, "birth_date"),
 		GroupLabel: func() string {
 			if groupName != "" {
@@ -30,25 +30,25 @@ func handleCreateMember(c *fiber.Ctx, svc *service.MemberService) error {
 			}
 			return BodyString(c, "group_label")
 		}(),
-		Village:                   BodyString(c, "village"),
-		Region:                 BodyString(c, "region"),
-		HomeAddress:            BodyString(c, "home_address"),
-		WhatsappNumber:                   BodyString(c, "whatsapp_number"),
-		IsPreacher:            BodyBool(c, "is_preacher"),
-		IsEmployed:                BodyBool(c, "is_employed"),
-		IsMarried:                BodyBool(c, "is_married"),
-		Height:            BodyString(c, "height"),
+		Village:            BodyString(c, "village"),
+		Region:             BodyString(c, "region"),
+		HomeAddress:        BodyString(c, "home_address"),
+		WhatsappNumber:     BodyString(c, "whatsapp_number"),
+		IsPreacher:         BodyBool(c, "is_preacher"),
+		IsEmployed:         BodyBool(c, "is_employed"),
+		IsMarried:          BodyBool(c, "is_married"),
+		Height:             BodyString(c, "height"),
 		Weight:             BodyString(c, "weight"),
-		Hobby:                   BodyString(c, "hobby"),
-		Occupation:              BodyString(c, "occupation"),
-		PhotoURL:                BodyString(c, "photo_url"),
-		MentoringStatus:        BodyString(c, "mentoring_status"),
-		JoinedDate:           BodyString(c, "joined_date"),
-		EducationLevel:      BodyString(c, "education_level"),
-		School:                BodyString(c, "school"),
-		Major:                BodyString(c, "major"),
-		EducationStartYear:   BodyString(c, "education_start_year"),
-		EducationEndYear: BodyString(c, "education_end_year"),
+		Hobby:              BodyString(c, "hobby"),
+		Occupation:         BodyString(c, "occupation"),
+		PhotoURL:           BodyString(c, "photo_url"),
+		MentoringStatus:    BodyString(c, "mentoring_status"),
+		JoinedDate:         BodyString(c, "joined_date"),
+		EducationLevel:     BodyString(c, "education_level"),
+		School:             BodyString(c, "school"),
+		Major:              BodyString(c, "major"),
+		EducationStartYear: BodyString(c, "education_start_year"),
+		EducationEndYear:   BodyString(c, "education_end_year"),
 	}
 	m, err := svc.Create(c.Context(), in)
 	if err != nil {

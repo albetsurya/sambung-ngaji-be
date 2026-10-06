@@ -29,7 +29,7 @@ type UserDTO struct {
 	Role        string `json:"role"`
 	GroupID     string `json:"group_id"`
 	MemberID    string `json:"member_id"`
-	IsActive bool   `json:"is_active"`
+	IsActive    bool   `json:"is_active"`
 	CreatedAt   string `json:"created_at"`
 	UpdatedAt   string `json:"updated_at"`
 	LastLoginAt string `json:"last_login_at"`

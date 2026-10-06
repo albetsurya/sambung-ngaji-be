@@ -7,8 +7,8 @@ type AnnouncementTemplate struct {
 	GroupID      *string
 	TemplateName string
 	Kode         string
-	TemplateBody  string
-	IsActive  bool
+	TemplateBody string
+	IsActive     bool
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }
@@ -18,8 +18,8 @@ type AnnouncementTemplateDTO struct {
 	GroupID      string `json:"group_id"`
 	TemplateName string `json:"template_name"`
 	Kode         string `json:"kode"`
-	TemplateBody  string `json:"template_body"`
-	IsActive  bool   `json:"is_active"`
+	TemplateBody string `json:"template_body"`
+	IsActive     bool   `json:"is_active"`
 	CreatedAt    string `json:"created_at"`
 	UpdatedAt    string `json:"updated_at"`
 }
@@ -29,12 +29,12 @@ type Announcement struct {
 	TemplateID     *string
 	MeetingID      *string
 	GroupID        *string
-	Date        time.Time
-	Day           string
-	Time            string
+	Date           time.Time
+	Day            string
+	Time           string
 	Event          string
-	Topic         string
-	Notes        string
+	Topic          string
+	Notes          string
 	GeneratedText  string
 	Status         string
 	CreatedBy      *string
@@ -47,12 +47,12 @@ type AnnouncementDTO struct {
 	TemplateID     string `json:"template_id"`
 	MeetingID      string `json:"meeting_id"`
 	GroupID        string `json:"group_id"`
-	Date        string `json:"date"`
-	Day           string `json:"day"`
-	Time            string `json:"time"`
+	Date           string `json:"date"`
+	Day            string `json:"day"`
+	Time           string `json:"time"`
 	Event          string `json:"event"`
-	Topic         string `json:"topic"`
-	Notes        string `json:"notes"`
+	Topic          string `json:"topic"`
+	Notes          string `json:"notes"`
 	GeneratedText  string `json:"generated_text"`
 	Status         string `json:"status"`
 	CreatedBy      string `json:"created_by"`

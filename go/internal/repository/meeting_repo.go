@@ -103,17 +103,17 @@ func (r *MeetingRepo) Create(ctx context.Context, m *model.Meeting) error {
 }
 
 type MeetingPatch struct {
-	Date        *string
-	Day           *string
-	Time            *string
-	StartTime       *string
-	GroupID        *string
-	Event          *string
-	Topic         *string
-	Status         *string
-	Notes        *string
+	Date             *string
+	Day              *string
+	Time             *string
+	StartTime        *string
+	GroupID          *string
+	Event            *string
+	Topic            *string
+	Status           *string
+	Notes            *string
 	TargetCategories *[]string
-	GenderTarget   *string
+	GenderTarget     *string
 }
 
 func (r *MeetingRepo) Update(ctx context.Context, id string, p MeetingPatch) error {
@@ -191,8 +191,8 @@ func (r *MeetingRepo) DeleteMany(ctx context.Context, ids []string) (int64, erro
 type ReminderMeetingRow struct {
 	MeetingID string
 	Event     string
-	Date   string
-	Time       string
+	Date      string
+	Time      string
 }
 
 func (r *MeetingRepo) FindPendingReminder(ctx context.Context, from, to time.Time) ([]ReminderMeetingRow, error) {

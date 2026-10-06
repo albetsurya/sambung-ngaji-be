@@ -76,8 +76,8 @@ func (s *MemberRequestService) autoCreateMember(ctx context.Context, userID, nam
 	memberID := util.NewID("MBR")
 	in := repository.NewMemberInput{
 		MemberID:        memberID,
-		FullName:     util.TitleCaseID(strings.TrimSpace(name)),
-		Nickname:   util.TitleCaseID(strings.TrimSpace(name)),
+		FullName:        util.TitleCaseID(strings.TrimSpace(name)),
+		Nickname:        util.TitleCaseID(strings.TrimSpace(name)),
 		MentoringStatus: "AKTIF",
 	}
 	if err := s.memberRepo.Insert(ctx, in); err != nil {

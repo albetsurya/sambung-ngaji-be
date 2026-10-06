@@ -12,8 +12,8 @@ import (
 )
 
 type ParsedPdfMeeting struct {
-	Date string          `json:"date"`
-	Day    string          `json:"day"`
+	Date    string          `json:"date"`
+	Day     string          `json:"day"`
 	Event   string          `json:"event"`
 	Tempat  string          `json:"tempat"`
 	Peserta []ParsedPeserta `json:"peserta"`

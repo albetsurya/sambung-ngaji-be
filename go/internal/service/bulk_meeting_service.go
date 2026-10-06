@@ -34,14 +34,14 @@ var hariIndex = map[string]int{
 }
 
 type BulkParams struct {
-	Tahun          int
-	Bulan          int
-	Day           []string
-	Time            string
-	Event          string
-	GroupID        string
-	Topic         string
-	Notes        string
+	Tahun            int
+	Bulan            int
+	Day              []string
+	Time             string
+	Event            string
+	GroupID          string
+	Topic            string
+	Notes            string
 	TargetCategories []string
 }
 
@@ -97,9 +97,9 @@ func buildDateList(p BulkParams) []time.Time {
 }
 
 type BulkPreviewItem struct {
-	Date        string `json:"date"`
+	Date           string `json:"date"`
 	TanggalDisplay string `json:"tanggal_display"`
-	Day           string `json:"day"`
+	Day            string `json:"day"`
 	SudahAda       bool   `json:"sudah_ada"`
 }
 
@@ -141,9 +141,9 @@ func (s *BulkMeetingService) Preview(ctx context.Context, p BulkParams) (*BulkPr
 			totalNew++
 		}
 		items = append(items, BulkPreviewItem{
-			Date:        iso,
+			Date:           iso,
 			TanggalDisplay: formatDateShort(d),
-			Day:           util.GetHariFromDate(&d),
+			Day:            util.GetHariFromDate(&d),
 			SudahAda:       sudahAda,
 		})
 	}
@@ -164,9 +164,9 @@ type BulkCreateResult struct {
 
 type BulkCreatedItem struct {
 	MeetingID      string `json:"meeting_id"`
-	Date        string `json:"date"`
+	Date           string `json:"date"`
 	TanggalDisplay string `json:"tanggal_display"`
-	Day           string `json:"day"`
+	Day            string `json:"day"`
 }
 
 func (s *BulkMeetingService) BulkCreate(ctx context.Context, p BulkParams, userID string) (*BulkCreateResult, error) {
@@ -200,15 +200,15 @@ func (s *BulkMeetingService) BulkCreate(ctx context.Context, p BulkParams, userI
 		mid := util.NewID("MTG")
 		gid := p.GroupID
 		m := &model.Meeting{
-			MeetingID:      mid,
-			Date:        d,
-			Day:           util.GetHariFromDate(&d),
-			Time:            p.Time,
-			GroupID:        &gid,
-			Event:          p.Event,
-			Topic:         p.Topic,
-			Status:         "SCHEDULED",
-			Notes:        p.Notes,
+			MeetingID:        mid,
+			Date:             d,
+			Day:              util.GetHariFromDate(&d),
+			Time:             p.Time,
+			GroupID:          &gid,
+			Event:            p.Event,
+			Topic:            p.Topic,
+			Status:           "SCHEDULED",
+			Notes:            p.Notes,
 			TargetCategories: p.TargetCategories,
 		}
 		if userID != "" {
@@ -222,9 +222,9 @@ func (s *BulkMeetingService) BulkCreate(ctx context.Context, p BulkParams, userI
 		}
 		created = append(created, BulkCreatedItem{
 			MeetingID:      mid,
-			Date:        d.Format("2006-01-02"),
+			Date:           d.Format("2006-01-02"),
 			TanggalDisplay: formatDateShort(d),
-			Day:           util.GetHariFromDate(&d),
+			Day:            util.GetHariFromDate(&d),
 		})
 	}
 
@@ -239,7 +239,7 @@ type BulkTemplateDTO struct {
 	TemplateID   string `json:"template_id"`
 	TemplateName string `json:"template_name"`
 	Kode         string `json:"kode"`
-	TemplateBody  string `json:"template_body"`
+	TemplateBody string `json:"template_body"`
 }
 
 func (s *BulkMeetingService) GetTemplates(ctx context.Context, groupID string) ([]BulkTemplateDTO, error) {
@@ -253,7 +253,7 @@ func (s *BulkMeetingService) GetTemplates(ctx context.Context, groupID string) (
 			TemplateID:   t.TemplateID,
 			TemplateName: t.TemplateName,
 			Kode:         t.Kode,
-			TemplateBody:  t.TemplateBody,
+			TemplateBody: t.TemplateBody,
 		})
 	}
 	return out, nil

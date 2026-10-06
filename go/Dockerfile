@@ -19,7 +19,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
 # dan TIDAK bisa jalan di alpine (musl): Error relocating __pthread_key_create, rc=127.
 FROM debian:bookworm-slim
 
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates tzdata curl \
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates tzdata curl ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 # Pin versi Supabase CLI (reproducible build + hindari supply-chain via tag latest).

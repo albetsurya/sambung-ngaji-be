@@ -10,13 +10,13 @@ import (
 )
 
 type CreateMonitoringInput struct {
-	MemberID     string
-	Date      string
-	Type        string
-	Status       string
-	Notes      string
+	MemberID string
+	Date     string
+	Type     string
+	Status   string
+	Notes    string
 	FollowUp string
-	UserID       string
+	UserID   string
 }
 
 var validMonitoringStatus = map[string]bool{
@@ -56,11 +56,11 @@ func (s *MonitoringService) Create(ctx context.Context, in CreateMonitoringInput
 	m := &model.Monitoring{
 		MonitoringID: util.NewID("MON"),
 		MemberID:     in.MemberID,
-		Date:      tgl,
-		Type:        mtype,
+		Date:         tgl,
+		Type:         mtype,
 		Status:       in.Status,
-		Notes:      in.Notes,
-		FollowUp: in.FollowUp,
+		Notes:        in.Notes,
+		FollowUp:     in.FollowUp,
 	}
 	if in.UserID != "" {
 		m.CreatedBy = &in.UserID
@@ -86,8 +86,8 @@ func (s *MonitoringService) Create(ctx context.Context, in CreateMonitoringInput
 
 type UpdateMonitoringInput struct {
 	MonitoringID string
-	Notes      *string
-	FollowUp *string
+	Notes        *string
+	FollowUp     *string
 }
 
 func (s *MonitoringService) UpdateEntry(ctx context.Context, in UpdateMonitoringInput) (*model.MonitoringDTO, error) {

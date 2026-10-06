@@ -81,7 +81,7 @@ type SaveAttendanceInput struct {
 	MeetingID string
 	MemberID  string
 	Status    string
-	Notes   string
+	Notes     string
 	UserID    string
 }
 
@@ -122,7 +122,7 @@ func (s *AttendanceService) SaveAttendance(ctx context.Context, in SaveAttendanc
 		MeetingID:    in.MeetingID,
 		MemberID:     in.MemberID,
 		Status:       in.Status,
-		Notes:      in.Notes,
+		Notes:        in.Notes,
 	}
 	if in.UserID != "" {
 		a.CreatedBy = &in.UserID
@@ -225,7 +225,7 @@ func toAttendanceDTO(a model.Attendance) model.AttendanceDTO {
 		MeetingID:    a.MeetingID,
 		MemberID:     a.MemberID,
 		Status:       a.Status,
-		Notes:      a.Notes,
+		Notes:        a.Notes,
 		CreatedBy:    cby,
 		CreatedAt:    a.CreatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
 		UpdatedAt:    a.UpdatedAt.Format("2006-01-02T15:04:05.000Z07:00"),

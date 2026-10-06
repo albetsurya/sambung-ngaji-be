@@ -82,7 +82,7 @@ func (s *FinanceSyncService) pullLegacyZakat(ctx context.Context, cli *sheets.Se
 		}
 		payersByZakat[zid] = append(payersByZakat[zid], model.ZakatPayer{
 			MasterID: midPtr, Name: strings.TrimSpace(name),
-			Amount: parseNum(sheetGet(r, "amount", "nominal")),
+			Amount:             parseNum(sheetGet(r, "amount", "nominal")),
 			ZakatCategory:      normZakatCategory(sheetGet(r, "zakat_type", "jenis_zakat")),
 			FamilyMembersCount: atoi(sheetGet(r, "soul_count", "jumlah_anggota_keluarga"), 0),
 		})
@@ -107,7 +107,7 @@ func (s *FinanceSyncService) pullLegacyZakat(ctx context.Context, cli *sheets.Se
 		}
 		recipsByZakat[zid] = append(recipsByZakat[zid], model.ZakatRecipient{
 			MasterID: midPtr, Name: strings.TrimSpace(name),
-			Amount: parseNum(sheetGet(r, "amount", "nominal")),
+			Amount:        parseNum(sheetGet(r, "amount", "nominal")),
 			ZakatCategory: normZakatCategory(sheetGet(r, "zakat_type", "jenis_zakat")),
 		})
 	}
@@ -151,10 +151,10 @@ func (s *FinanceSyncService) pullLegacyZakat(ctx context.Context, cli *sheets.Se
 		}
 		z := &model.ZakatRecord{
 			ZakatID: zid, GroupID: &gid, Title: title,
-			Description: sheetGet(r, "description", "notes", "keterangan"),
-			Location:    sheetGet(r, "location", "tempat"),
+			Description:  sheetGet(r, "description", "notes", "keterangan"),
+			Location:     sheetGet(r, "location", "tempat"),
 			TotalMoneyRp: total,
-			Status: status, TransactionDate: tgl,
+			Status:       status, TransactionDate: tgl,
 		}
 		if err := s.repo.ZakatUpsert(ctx, z); err != nil {
 			s.recordError(ctx, groupID, "zakat", zid, "legacy->db", err.Error())

@@ -57,17 +57,17 @@ func handleCreateMeeting(c *fiber.Ctx, svc *service.MeetingService) error {
 		return err
 	}
 	in := service.CreateMeetingInput{
-		Date:        BodyString(c, "date"),
-		Time:            BodyString(c, "time"),
-		StartTime:       BodyString(c, "start_time"),
-		GroupID:        groupID,
-		Event:          BodyString(c, "event"),
-		Topic:         BodyString(c, "topic"),
-		Status:         BodyString(c, "status"),
-		Notes:        BodyString(c, "notes"),
+		Date:             BodyString(c, "date"),
+		Time:             BodyString(c, "time"),
+		StartTime:        BodyString(c, "start_time"),
+		GroupID:          groupID,
+		Event:            BodyString(c, "event"),
+		Topic:            BodyString(c, "topic"),
+		Status:           BodyString(c, "status"),
+		Notes:            BodyString(c, "notes"),
 		TargetCategories: parseKategoriTarget(c),
-		GenderTarget:   BodyString(c, "gender_target"),
-		CreatedBy:      createdBy,
+		GenderTarget:     BodyString(c, "gender_target"),
+		CreatedBy:        createdBy,
 	}
 	dto, err := svc.CreateMeeting(c.Context(), in)
 	if err != nil {
@@ -82,14 +82,14 @@ func handleUpdateMeeting(c *fiber.Ctx, svc *service.MeetingService) error {
 	}
 	in := service.UpdateMeetingInput{
 		MeetingID: BodyString(c, "meeting_id"),
-		Date:   BodyString(c, "date"),
-		Time:       BodyString(c, "time"),
-		StartTime:  BodyString(c, "start_time"),
+		Date:      BodyString(c, "date"),
+		Time:      BodyString(c, "time"),
+		StartTime: BodyString(c, "start_time"),
 		GroupID:   BodyString(c, "group_id"),
 		Event:     BodyString(c, "event"),
-		Topic:    BodyString(c, "topic"),
+		Topic:     BodyString(c, "topic"),
 		Status:    BodyString(c, "status"),
-		Notes:   BodyString(c, "notes"),
+		Notes:     BodyString(c, "notes"),
 	}
 	if _, ok := BodyOf(c)["target_categories"]; ok {
 		kat := parseKategoriTarget(c)
