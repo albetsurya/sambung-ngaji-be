@@ -376,7 +376,6 @@ func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, providers map[string
 		),
 		TilawatiEditor: service.NewTilawatiEditorService(
 			pool,
-			repository.NewRepository(pool),
 			storage,
 			"/app", // Di Docker aslinya ada di /app, namun service butuh frontendDir untuk public/audio
 		),
