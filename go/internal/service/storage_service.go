@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 )
@@ -70,6 +71,40 @@ func (s *StorageService) UploadPhoto(ctx context.Context, memberID, base64Data, 
 	}
 	req.Header.Set("Authorization", "Bearer "+s.serviceKey)
 	req.Header.Set("Content-Type", mimeType)
+	req.Header.Set("x-upsert", "true")
+
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("upload storage: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("storage HTTP %d: %s", resp.StatusCode, string(body))
+	}
+
+	publicURL := fmt.Sprintf("%s/storage/v1/object/public/%s/%s", s.url, s.bucket, path)
+	return publicURL, nil
+}
+
+func (s *StorageService) UploadFile(ctx context.Context, path string, filePath string, contentType string) (string, error) {
+	if s.url == "" || s.serviceKey == "" || s.bucket == "" {
+		return "", errors.New("Supabase Storage belum dikonfigurasi")
+	}
+
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return "", fmt.Errorf("baca file: %w", err)
+	}
+
+	uploadURL := fmt.Sprintf("%s/storage/v1/object/%s/%s", s.url, s.bucket, path)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, uploadURL, bytes.NewReader(data))
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Authorization", "Bearer "+s.serviceKey)
+	req.Header.Set("Content-Type", contentType)
 	req.Header.Set("x-upsert", "true")
 
 	resp, err := s.client.Do(req)
