@@ -605,7 +605,20 @@ func (s *FinanceService) DuePostToCash(ctx context.Context, groupID, monthKey, c
 		{"KAFAN", totKafan},
 		{"UKHRO MT", totUkhro},
 	}
-	out := make([]model.CashTransactionDTO, 0, len(pos))
+	expenses := []struct {
+		account string
+		amount  float64
+	}{
+		{"INFAQ SHODAQOH IR", totIR},
+		{"UANG SAMBUNG", 840000},
+		{"JIMPITAN", totJimpitan},
+		{"SIAR-SIAR", totSiar},
+		{"SERIBUAN", totSeribu},
+		{"KAFAN", totKafan},
+		{"UKHRO MT", totUkhro},
+		{"DANA KESEHATAN", 105000},
+	}
+	out := make([]model.CashTransactionDTO, 0, len(pos)+len(expenses))
 	gid := groupID
 	for _, pp := range pos {
 		if pp.amount <= 0 {
@@ -631,6 +644,33 @@ func (s *FinanceService) DuePostToCash(ctx context.Context, groupID, monthKey, c
 			TransactionDate: tgl.Format("2006-01-02"),
 			AccountName:     k.AccountName, Description: k.Description,
 			Debit: k.Debit, Credit: 0, CreatedBy: createdBy,
+		})
+	}
+	for _, ep := range expenses {
+		creditAmount := ep.amount
+		if ep.account == "UANG SAMBUNG" {
+			creditAmount = 840000
+		}
+		k := &model.CashTransaction{
+			CashID:      util.NewID("KAS"),
+			GroupID:     &gid,
+			CashType:    "main",
+			Date:        tgl,
+			AccountName: ep.account,
+			Description: "Shodaqoh " + label + " - " + ep.account + " [" + marker + " - Pengeluaran]",
+			Debit:       0,
+			Credit:      creditAmount,
+			CreatedBy:   createdBy,
+		}
+		if err := s.repo.CashInsert(ctx, k); err != nil {
+			return nil, err
+		}
+		_ = s.repo.MarkSynced(ctx, "cash_transactions", "cash_id", k.CashID, "app", 0)
+		out = append(out, model.CashTransactionDTO{
+			CashID: k.CashID, GroupID: groupID, CashType: "main",
+			TransactionDate: tgl.Format("2006-01-02"),
+			AccountName:     k.AccountName, Description: k.Description,
+			Debit: 0, Credit: k.Credit, CreatedBy: createdBy,
 		})
 	}
 	if len(out) == 0 {
