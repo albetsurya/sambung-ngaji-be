@@ -6,7 +6,8 @@ type CashTransaction struct {
 	CashID      string
 	GroupID     *string
 	CashType    string
-	Date        time.Time
+<<<<<<< HEAD
+	Date        time.Time `db:"date"`
 	AccountName string
 	Description string
 	Debit       float64
