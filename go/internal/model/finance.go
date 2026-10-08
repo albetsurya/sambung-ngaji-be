@@ -6,7 +6,6 @@ type CashTransaction struct {
 	CashID      string
 	GroupID     *string
 	CashType    string
-<<<<<<< HEAD
 	Date        time.Time `db:"date"`
 	AccountName string
 	Description string
