@@ -28,9 +28,10 @@ type Config struct {
 	NvidiaAPIKey        string
 	NvidiaModels        []string
 
-	SupabaseURL        string
-	SupabaseServiceKey string
-	SupabaseBucket     string
+	SupabaseURL         string
+	SupabaseServiceKey  string
+	SupabaseBucket      string
+	TilawatiFrontendDir string
 }
 
 func Load() (*Config, error) {
@@ -60,6 +61,11 @@ func Load() (*Config, error) {
 	cfg.SupabaseURL = envTrim("SUPABASE_URL")
 	cfg.SupabaseServiceKey = envTrim("SUPABASE_SERVICE_ROLE_KEY")
 	cfg.SupabaseBucket = envTrim("SUPABASE_BUCKET")
+	frontendDefault := "/app"
+	if cfg.AppEnv == "development" {
+		frontendDefault = "../../frontend"
+	}
+	cfg.TilawatiFrontendDir = getEnv("TILAWATI_FRONTEND_DIR", frontendDefault)
 	if cfg.DatabaseURL == "" {
 		return nil, fmt.Errorf("DATABASE_URL wajib diisi")
 	}

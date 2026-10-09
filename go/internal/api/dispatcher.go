@@ -182,9 +182,10 @@ type Services struct {
 	Finance        *service.FinanceService
 	FinanceSync    *service.FinanceSyncService
 	TilawatiEditor *service.TilawatiEditorService
+	NgajiCeria     *service.NgajiCeriaService
 }
 
-func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, providers map[string]ai.Provider, providerOrder []string, storage *service.StorageService) *Services {
+func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, providers map[string]ai.Provider, providerOrder []string, storage *service.StorageService, tilawatiFrontendDir string) *Services {
 	financeSvc := service.NewFinanceService(repository.NewFinanceRepo(pool))
 	financeSyncSvc := service.NewFinanceSyncService(
 		repository.NewFinanceRepo(pool),
@@ -377,14 +378,16 @@ func NewServices(pool *pgxpool.Pool, authSvc *auth.Service, providers map[string
 		TilawatiEditor: service.NewTilawatiEditorService(
 			pool,
 			storage,
-			"/app", // Di Docker aslinya ada di /app, namun service butuh frontendDir untuk public/audio
+			tilawatiFrontendDir,
 		),
+		NgajiCeria: service.NewNgajiCeriaService(pool),
 	}
 }
 
 func RegisterAPI(app *fiber.App, svc *Services) {
 	RegisterRESTAPI(app, svc)
 	RegisterTilawatiEditorAPI(app, svc, AuthMiddleware(svc.Auth))
+	RegisterNgajiCeriaAPI(app, svc, AuthMiddleware(svc.Auth))
 
 	app.Post("/api", BodyParserMiddleware(), AuthMiddleware(svc.Auth), AuditMiddleware(svc.Audit), func(c *fiber.Ctx) error {
 		action, _ := BodyOf(c)["action"].(string)

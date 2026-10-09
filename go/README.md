@@ -192,6 +192,26 @@ curl http://localhost:8080/ready    # Readiness (DB connectivity + pool stats)
 | AI | `/api/ai/chat` | POST | All (quota) |
 | AI | `/api/ai/usage` | GET | Admin+ |
 | Settings | `/api/settings` | GET/PUT | Super Admin |
+| Ngaji Ceria | `/api/v1/ngaji-ceria/progress` | GET | Authenticated |
+| Ngaji Ceria | `/api/v1/ngaji-ceria/progress/events` | POST | Authenticated |
+| Ngaji Ceria | `/api/v1/ngaji-ceria/missions/:missionId/claim` | POST | Authenticated |
+| Ngaji Ceria | `/api/v1/ngaji-ceria/leaderboard` | GET | Authenticated |
+| Ngaji Ceria | `/api/v1/ngaji-ceria/leaderboard` | POST | Authenticated (idempotent `eventId`, awards XP + score) |
+| Tilawati Playback | `/api/v1/tilawati-editor/published` | GET | Public, published clips only |
+| Tilawati Editor | `/api/v1/tilawati-editor/list` | GET | Admin+ |
+| Tilawati Draft | `/api/v1/tilawati-editor/draft` | GET | Admin+, current user's draft |
+| Tilawati Draft | `/api/v1/tilawati-editor/draft-save` | POST | Admin+, `jilid/page/timeline/revision/updatedAt` |
+| Tilawati Editor | `/api/v1/tilawati-editor/publish` | POST | Admin+ |
+| Tilawati Editor | `/api/v1/tilawati-editor/history` | GET | Admin+ |
+
+Editor memerlukan `ffmpeg`, `ffprobe`, serta master `.ogg` di
+`$TILAWATI_FRONTEND_DIR/public/audio/tilawati`. Default development adalah
+`../../frontend` (jalankan backend dari `backend/go`); production `/app`.
+Docker Compose dev memasang audio frontend read-only di `/app/public/audio`.
+Pada deployment production, pasang/copy direktori master ke path yang sama,
+atau atur `TILAWATI_FRONTEND_DIR` ke direktori aset yang terpasang.
+Hasil publish diunggah ke Supabase Storage sesuai konfigurasi
+`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, dan `SUPABASE_BUCKET`.
 
 > Format request/response: JSON dengan envelope `{ success: bool, data: T, message: string }`
 
@@ -236,6 +256,8 @@ go test ./... -race
 # Jalankan migrasi (manual atau via tool)
 psql -d sambung_ngaji -f db/migration/001_init.up.sql
 psql -d sambung_ngaji -f db/migration/002_xxx.up.sql
+psql -d sambung_ngaji -f db/migrations/000034_ngaji_ceria_gamification.up.sql
+psql -d sambung_ngaji -f db/migrations/000035_tilawati_drafts.up.sql
 # Rollback:
 psql -d sambung_ngaji -f db/migration/002_xxx.down.sql
 ```

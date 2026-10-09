@@ -116,7 +116,7 @@ func main() {
 		cfg.SupabaseServiceKey,
 		cfg.SupabaseBucket,
 	)
-	services := api.NewServices(db, authSvc, providers, providerOrder, storageSvc)
+	services := api.NewServices(db, authSvc, providers, providerOrder, storageSvc, cfg.TilawatiFrontendDir)
 	api.RegisterAPI(app, services)
 
 	api.SetCronServices(services)

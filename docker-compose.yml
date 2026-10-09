@@ -27,6 +27,7 @@ services:
     network_mode: host
     volumes:
       - ./go:/app
+      - ../frontend/public/audio:/app/public/audio:ro
     env_file:
       - ./go/.env.docker
     depends_on:
@@ -34,6 +35,7 @@ services:
         condition: service_healthy
     environment:
       TZ: Asia/Jakarta
+      TILAWATI_FRONTEND_DIR: /app
 
   adminer:
     image: adminer:latest

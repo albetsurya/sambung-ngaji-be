@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"os"
@@ -14,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog/log"
 )
@@ -28,13 +30,26 @@ type TilawatiTimelineEdit struct {
 	UpdatedAt             time.Time       `json:"updatedAt"`
 }
 
+type TilawatiTimelineHistory struct {
+	HistoryID             int64           `json:"historyId"`
+	Jilid                 int             `json:"jilid"`
+	Page                  int             `json:"page"`
+	Revision              string          `json:"revision"`
+	PublishedTimelineJSON json.RawMessage `json:"publishedTimelineJson"`
+	PublishedBy           *string         `json:"publishedBy,omitempty"`
+	CreatedAt             time.Time       `json:"createdAt"`
+}
+
 type TimelineClipSegment struct {
-	Start float64 `json:"start"`
-	End   float64 `json:"end"`
+	SourceAudioURL string  `json:"sourceUrl"`
+	Start          float64 `json:"start"`
+	End            float64 `json:"end"`
 }
 
 type TimelineClip struct {
 	ID             string                `json:"id"`
+	Label          string                `json:"label"`
+	Kind           string                `json:"kind"`
 	SourceAudioURL string                `json:"sourceAudioUrl"`
 	Segments       []TimelineClipSegment `json:"segments"`
 	TrimStart      float64               `json:"trimStart"`
@@ -44,8 +59,9 @@ type TimelineClip struct {
 
 // PublishedTimeline merefleksikan struktur data dari frontend
 type PublishedTimeline struct {
-	Clips []TimelineClip `json:"clips"`
-	Texts []interface{}  `json:"texts"`
+	Version int            `json:"version"`
+	Clips   []TimelineClip `json:"clips"`
+	Texts   []interface{}  `json:"texts"`
 }
 
 type AudioAsset struct {
@@ -54,6 +70,79 @@ type AudioAsset struct {
 	AudioURL  string  `json:"audioUrl"`
 	Duration  float64 `json:"duration"`
 	IsOpening bool    `json:"isOpening"`
+	Type      string  `json:"type"`
+}
+
+type TimelineDraft struct {
+	Timeline  PublishedTimeline `json:"timeline"`
+	UpdatedAt int64             `json:"updatedAt"`
+	Revision  string            `json:"revision"`
+}
+
+func (s *TilawatiEditorService) GetDraft(ctx context.Context, userID string, jilid, page int) (*TimelineDraft, error) {
+	var draft TimelineDraft
+	var raw json.RawMessage
+	err := s.db.QueryRow(ctx, `SELECT timeline_json, updated_at_ms, base_revision FROM tilawati_timeline_drafts WHERE user_id=$1 AND jilid=$2 AND page=$3`, userID, jilid, page).Scan(&raw, &draft.UpdatedAt, &draft.Revision)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(raw, &draft.Timeline); err != nil {
+		return nil, err
+	}
+	return &draft, nil
+}
+
+func validateTimelineDraft(jilid, page int, draft TimelineDraft) error {
+	if jilid < 1 || jilid > 6 || page < 1 || page > 44 || draft.Timeline.Version != 2 || draft.UpdatedAt <= 0 || draft.UpdatedAt > time.Now().Add(5*time.Minute).UnixMilli() {
+		return fmt.Errorf("draft tidak valid")
+	}
+	if len(draft.Timeline.Clips) > 500 || len(draft.Timeline.Texts) > 1000 {
+		return fmt.Errorf("draft terlalu besar")
+	}
+	return nil
+}
+
+func (s *TilawatiEditorService) SaveDraft(ctx context.Context, userID string, jilid, page int, draft TimelineDraft) error {
+	if err := validateTimelineDraft(jilid, page, draft); err != nil {
+		return err
+	}
+	raw, err := json.Marshal(draft.Timeline)
+	if err != nil {
+		return err
+	}
+	if len(raw) > 2*1024*1024 {
+		return fmt.Errorf("draft terlalu besar")
+	}
+	// Advisory lock menyamakan urutan draft-save dan publish untuk halaman ini.
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock($1,$2)`, jilid, page); err != nil {
+		return err
+	}
+	var revision string
+	err = tx.QueryRow(ctx, `SELECT revision FROM tilawati_timeline_edits WHERE jilid=$1 AND page=$2`, jilid, page).Scan(&revision)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return err
+	}
+	if revision != draft.Revision {
+		return fmt.Errorf("conflict: halaman sudah dipublikasikan ulang; muat ulang sebelum menyimpan draft")
+	}
+	result, err := tx.Exec(ctx, `INSERT INTO tilawati_timeline_drafts (user_id,jilid,page,timeline_json,base_revision,updated_at_ms)
+		VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (user_id,jilid,page) DO UPDATE SET timeline_json=EXCLUDED.timeline_json, base_revision=EXCLUDED.base_revision, updated_at_ms=EXCLUDED.updated_at_ms
+		WHERE tilawati_timeline_drafts.updated_at_ms <= EXCLUDED.updated_at_ms`, userID, jilid, page, raw, draft.Revision, draft.UpdatedAt)
+	if err != nil {
+		return err
+	}
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("conflict: draft cloud lebih baru; buka ulang editor untuk sinkronisasi")
+	}
+	return tx.Commit(ctx)
 }
 
 type PublishTimelineRequest struct {
@@ -61,6 +150,7 @@ type PublishTimelineRequest struct {
 	Page             int               `json:"page"`
 	Timeline         PublishedTimeline `json:"timeline"`
 	ExpectedRevision string            `json:"expectedRevision"`
+	PublishedBy      string            `json:"-"`
 }
 
 type FlattenedSegment struct {
@@ -112,21 +202,35 @@ func (s *TilawatiEditorService) GetPublishedTimeline(ctx context.Context, jilid,
 }
 
 func (s *TilawatiEditorService) PublishTimeline(ctx context.Context, req PublishTimelineRequest) (*TilawatiTimelineEdit, []AudioAsset, error) {
+	if err := s.validatePublishRequest(req); err != nil {
+		return nil, nil, err
+	}
+
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to start db transaction: %w", err)
 	}
 	defer tx.Rollback(ctx)
+	if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock($1,$2)`, req.Jilid, req.Page); err != nil {
+		return nil, nil, err
+	}
+	if s.storageSvc == nil {
+		return nil, nil, fmt.Errorf("storage audio belum dikonfigurasi")
+	}
 
 	// Optimistic locking check
-	if req.ExpectedRevision != "" {
-		var currentRevision string
-		err := tx.QueryRow(ctx, `SELECT revision FROM tilawati_timeline_edits WHERE jilid = $1 AND page = $2 FOR UPDATE`, req.Jilid, req.Page).Scan(&currentRevision)
-		if err != nil && !strings.Contains(err.Error(), "no rows in result set") {
-			return nil, nil, fmt.Errorf("failed to check current revision: %w", err)
-		}
-		if currentRevision != "" && currentRevision != req.ExpectedRevision {
-			return nil, nil, fmt.Errorf("conflict: timeline has been modified by another user (expected %s, got %s)", req.ExpectedRevision, currentRevision)
+	var currentRevision string
+	var currentTimeline json.RawMessage
+	err = tx.QueryRow(ctx, `SELECT revision, published_timeline_json FROM tilawati_timeline_edits WHERE jilid = $1 AND page = $2 FOR UPDATE`, req.Jilid, req.Page).Scan(&currentRevision, &currentTimeline)
+	if err != nil && !strings.Contains(err.Error(), "no rows in result set") {
+		return nil, nil, fmt.Errorf("failed to check current revision: %w", err)
+	}
+	if currentRevision != req.ExpectedRevision {
+		return nil, nil, fmt.Errorf("conflict: timeline has been modified by another user (expected %s, got %s)", req.ExpectedRevision, currentRevision)
+	}
+	if currentRevision != "" && len(currentTimeline) > 0 {
+		if _, err := tx.Exec(ctx, `INSERT INTO tilawati_timeline_edit_history (jilid, page, revision, published_timeline_json, published_by) VALUES ($1,$2,$3,$4,$5)`, req.Jilid, req.Page, currentRevision, currentTimeline, nullableString(req.PublishedBy)); err != nil {
+			return nil, nil, fmt.Errorf("failed to save timeline history: %w", err)
 		}
 	}
 
@@ -144,6 +248,15 @@ func (s *TilawatiEditorService) PublishTimeline(ctx context.Context, req Publish
 	newRevision := fmt.Sprintf("%d", time.Now().UnixNano()/int64(time.Millisecond))
 	outputByClip := make(map[string]string)
 	var outputMutex sync.Mutex
+	committed := false
+	defer func() {
+		if committed || s.storageSvc == nil {
+			return
+		}
+		for _, uploadedURL := range outputByClip {
+			_ = s.storageSvc.DeletePhoto(context.Background(), uploadedURL)
+		}
+	}()
 
 	var wg sync.WaitGroup
 	errChan := make(chan error, len(req.Timeline.Clips))
@@ -229,6 +342,7 @@ func (s *TilawatiEditorService) PublishTimeline(ctx context.Context, req Publish
 	if err := tx.Commit(ctx); err != nil {
 		return nil, nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
+	committed = true
 
 	currentAssets, err := s.ListPageAudio(req.Jilid, req.Page)
 	if err != nil {
@@ -237,6 +351,33 @@ func (s *TilawatiEditorService) PublishTimeline(ctx context.Context, req Publish
 	}
 
 	return &edit, currentAssets, nil
+}
+
+func nullableString(value string) *string {
+	if value == "" {
+		return nil
+	}
+	return &value
+}
+
+func (s *TilawatiEditorService) ListHistory(ctx context.Context, jilid, page, limit int) ([]TilawatiTimelineHistory, error) {
+	if limit < 1 || limit > 100 {
+		limit = 20
+	}
+	rows, err := s.db.Query(ctx, `SELECT history_id, jilid, page, revision, published_timeline_json, published_by, created_at FROM tilawati_timeline_edit_history WHERE jilid=$1 AND page=$2 ORDER BY created_at DESC LIMIT $3`, jilid, page, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list timeline history: %w", err)
+	}
+	defer rows.Close()
+	history := []TilawatiTimelineHistory{}
+	for rows.Next() {
+		var item TilawatiTimelineHistory
+		if err := rows.Scan(&item.HistoryID, &item.Jilid, &item.Page, &item.Revision, &item.PublishedTimelineJSON, &item.PublishedBy, &item.CreatedAt); err != nil {
+			return nil, err
+		}
+		history = append(history, item)
+	}
+	return history, rows.Err()
 }
 
 func (s *TilawatiEditorService) createMergedAudio(segments []FlattenedSegment, outputPath string) error {
@@ -248,7 +389,10 @@ func (s *TilawatiEditorService) createMergedAudio(segments []FlattenedSegment, o
 
 	clipFiles := []string{}
 	for i, seg := range segments {
-		sourcePath := s.audioUrlToFile(seg.SourceAudioURL)
+		sourcePath, err := s.audioURLToFile(seg.SourceAudioURL)
+		if err != nil {
+			return fmt.Errorf("invalid source audio for segment %d: %w", i, err)
+		}
 		clipOutputPath := filepath.Join(tempDir, fmt.Sprintf("clip-%d.ogg", i))
 
 		cmdArgs := []string{
@@ -301,11 +445,17 @@ func (s *TilawatiEditorService) createMergedAudio(segments []FlattenedSegment, o
 	return nil
 }
 
-func (s *TilawatiEditorService) audioUrlToFile(audioUrl string) string {
-	if strings.HasPrefix(audioUrl, "/audio/tilawati/") {
-		return filepath.Join(s.frontendDir, "public", audioUrl)
+func (s *TilawatiEditorService) audioURLToFile(audioURL string) (string, error) {
+	const prefix = "/audio/tilawati/"
+	if !strings.HasPrefix(audioURL, prefix) {
+		return "", fmt.Errorf("source audio must be a local Tilawati asset")
 	}
-	return audioUrl
+
+	relative := filepath.Clean(strings.TrimPrefix(audioURL, prefix))
+	if relative == "." || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("source audio path escapes the Tilawati asset directory")
+	}
+	return filepath.Join(s.audioRoot, relative), nil
 }
 
 func (s *TilawatiEditorService) flattenTimelineSegments(clip TimelineClip) []FlattenedSegment {
@@ -324,7 +474,7 @@ func (s *TilawatiEditorService) flattenTimelineSegments(clip TimelineClip) []Fla
 
 		if visibleEnd > visibleStart {
 			output = append(output, FlattenedSegment{
-				SourceAudioURL: clip.SourceAudioURL,
+				SourceAudioURL: firstNonEmpty(rawSegment.SourceAudioURL, clip.SourceAudioURL),
 				Start:          segmentStart + (visibleStart - offset),
 				End:            segmentStart + (visibleEnd - offset),
 			})
@@ -332,6 +482,64 @@ func (s *TilawatiEditorService) flattenTimelineSegments(clip TimelineClip) []Fla
 		offset += length
 	}
 	return output
+}
+
+func firstNonEmpty(value, fallback string) string {
+	if value != "" {
+		return value
+	}
+	return fallback
+}
+
+func (s *TilawatiEditorService) validatePublishRequest(req PublishTimelineRequest) error {
+	if req.Jilid < 1 || req.Jilid > 6 || req.Page < 1 || req.Page > 44 {
+		return fmt.Errorf("jilid dan halaman harus positif")
+	}
+	if len(req.Timeline.Clips) == 0 {
+		return fmt.Errorf("timeline harus memiliki setidaknya satu klip")
+	}
+
+	seenIDs := make(map[string]struct{}, len(req.Timeline.Clips))
+	for _, clip := range req.Timeline.Clips {
+		if clip.ID == "" {
+			return fmt.Errorf("setiap klip harus memiliki id")
+		}
+		if _, exists := seenIDs[clip.ID]; exists {
+			return fmt.Errorf("id klip duplikat: %s", clip.ID)
+		}
+		seenIDs[clip.ID] = struct{}{}
+		if len(clip.Segments) == 0 {
+			return fmt.Errorf("klip %s tidak memiliki segmen audio", clip.ID)
+		}
+		if !isFiniteNonNegative(clip.TrimStart) || !isFiniteNonNegative(clip.TrimEnd) || clip.TrimEnd <= clip.TrimStart {
+			return fmt.Errorf("rentang trim klip %s tidak valid", clip.ID)
+		}
+
+		var total float64
+		for _, segment := range clip.Segments {
+			if !isFiniteNonNegative(segment.Start) || !isFiniteNonNegative(segment.End) || segment.End <= segment.Start {
+				return fmt.Errorf("rentang segmen klip %s tidak valid", clip.ID)
+			}
+			if _, err := s.audioURLToFile(firstNonEmpty(segment.SourceAudioURL, clip.SourceAudioURL)); err != nil {
+				return fmt.Errorf("sumber audio klip %s tidak valid: %w", clip.ID, err)
+			}
+			total += segment.End - segment.Start
+		}
+		if clip.TrimEnd > total+0.001 {
+			return fmt.Errorf("rentang trim klip %s melebihi durasi segmen", clip.ID)
+		}
+	}
+	return nil
+}
+
+func isFiniteNonNegative(value float64) bool {
+	return !math.IsNaN(value) && !math.IsInf(value, 0) && value >= 0
+}
+
+func (s *TilawatiEditorService) AudioToolsAvailable() (bool, bool) {
+	_, ffmpegErr := exec.LookPath("ffmpeg")
+	_, ffprobeErr := exec.LookPath("ffprobe")
+	return ffmpegErr == nil, ffprobeErr == nil
 }
 
 func (s *TilawatiEditorService) ListPageAudio(jilid int, page int) ([]AudioAsset, error) {
@@ -365,6 +573,7 @@ func (s *TilawatiEditorService) ListPageAudio(jilid int, page int) ([]AudioAsset
 			AudioURL:  audioURL,
 			Duration:  duration,
 			IsOpening: strings.Contains(file.Name(), "header_"),
+			Type:      audioAssetType(file.Name()),
 		}
 		assets = append(assets, asset)
 	}
@@ -374,6 +583,15 @@ func (s *TilawatiEditorService) ListPageAudio(jilid int, page int) ([]AudioAsset
 	})
 
 	return assets, nil
+}
+
+func audioAssetType(filename string) string {
+	for _, kind := range []string{"header", "demo", "baris", "footer"} {
+		if strings.Contains(filename, "_"+kind) {
+			return kind
+		}
+	}
+	return "isi"
 }
 
 func (s *TilawatiEditorService) getAudioDuration(filePath string) (float64, error) {
